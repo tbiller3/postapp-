@@ -19,17 +19,20 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
+import { ChecklistItemCard } from "@/components/checklist-item-card";
+import { FixPanel } from "@/components/fix-panel";
+import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } from "@/data/checklist-meta";
 import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+
+type FilterMode = "all" | "critical" | "review";
 
 const revisionSchema = z.object({
   note: z.string().min(1, "Note is required"),
@@ -45,6 +48,9 @@ export default function AppDetail() {
   const { data: app, isLoading: isLoadingApp } = useGetApp(appId, { query: { enabled: !!appId, queryKey: getGetAppQueryKey(appId) } });
   const { data: revisions, isLoading: isLoadingRevisions } = useListRevisions(appId, { query: { enabled: !!appId, queryKey: getListRevisionsQueryKey(appId) } });
   const { data: checklist, isLoading: isLoadingChecklist } = useGetChecklist(appId, { query: { enabled: !!appId, queryKey: getGetChecklistQueryKey(appId) } });
+
+  const [activeTab, setActiveTab] = useState("checklist");
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
 
   const updateApp = useUpdateApp();
   const createRevision = useCreateRevision();
@@ -84,15 +90,45 @@ export default function AppDetail() {
     });
   };
 
-  // Group checklist by category
-  const groupedChecklist = useMemo(() => {
-    if (!checklist) return {};
-    return checklist.reduce((acc, item) => {
-      if (!acc[item.category]) acc[item.category] = [];
-      acc[item.category].push(item);
-      return acc;
-    }, {} as Record<string, typeof checklist>);
+  // Enrich checklist items with V25 metadata and compute derived status
+  const enrichedChecklist = useMemo(() => {
+    if (!checklist) return [];
+    return checklist.map((item) => {
+      const meta = getItemMeta(item.label);
+      const status: ChecklistStatus = item.completed
+        ? "complete"
+        : meta.blocker
+          ? "missing"
+          : "warning";
+      return { ...item, ...meta, status };
+    });
   }, [checklist]);
+
+  // Blockers = incomplete items with blocker:true
+  const blockers = useMemo(
+    () => enrichedChecklist.filter((i) => i.blocker && !i.completed),
+    [enrichedChecklist],
+  );
+
+  // Apply filter then group by category
+  const groupedChecklist = useMemo(() => {
+    const filtered = enrichedChecklist.filter((item) => {
+      if (filterMode === "critical") return item.blocker && !item.completed;
+      if (filterMode === "review") return !item.blocker && !item.completed;
+      return true;
+    });
+    return filtered.reduce(
+      (acc, item) => {
+        if (!acc[item.category]) acc[item.category] = [];
+        acc[item.category].push(item);
+        return acc;
+      },
+      {} as Record<string, typeof filtered>,
+    );
+  }, [enrichedChecklist, filterMode]);
+
+  const totalItems = enrichedChecklist.length;
+  const completedItems = enrichedChecklist.filter((i) => i.completed).length;
 
   if (isLoadingApp) {
     return <div className="space-y-4"><Skeleton className="h-12 w-1/3" /><Skeleton className="h-64 w-full" /></div>;
@@ -158,51 +194,105 @@ export default function AppDetail() {
         </div>
       </div>
 
-      <Tabs defaultValue="checklist" className="mt-8">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
         <TabsList className="bg-card border border-border rounded-lg p-1 w-full justify-start h-auto">
           <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
             <CheckSquare className="mr-2 h-4 w-4" /> Operations Checklist
+            {!isLoadingChecklist && totalItems > 0 && (
+              <span className="ml-2 font-mono text-[10px] bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                {completedItems}/{totalItems}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500">
             <ShieldAlert className="mr-2 h-4 w-4" /> Review Logs
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="checklist" className="mt-6 space-y-6">
+        <TabsContent value="checklist" className="mt-6">
           {isLoadingChecklist ? (
             <Skeleton className="h-64 w-full rounded-xl bg-card border border-border" />
-          ) : Object.keys(groupedChecklist).length > 0 ? (
-            Object.entries(groupedChecklist).map(([category, items]) => (
-              <Card key={category} className="bg-card border-border shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border py-3">
-                  <CardTitle className="text-sm font-mono uppercase tracking-wider">{category}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y divide-border">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-4 hover:bg-muted/10 transition-colors">
-                        <Checkbox 
-                          id={`check-${item.id}`} 
-                          checked={item.completed}
-                          onCheckedChange={(checked) => handleChecklistToggle(item.id, checked as boolean)}
-                          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                        />
-                        <label 
-                          htmlFor={`check-${item.id}`}
-                          className={`text-sm font-medium leading-none cursor-pointer ${item.completed ? 'text-muted-foreground line-through opacity-70' : ''}`}
-                        >
-                          {item.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
           ) : (
-            <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">
-              <p className="text-muted-foreground">No checklist items defined.</p>
-            </div>
+            <>
+              {/* Filter bar */}
+              <div className="flex items-center gap-2 mb-5">
+                {(["all", "critical", "review"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setFilterMode(mode)}
+                    className={`px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold uppercase tracking-wider border transition-colors ${
+                      filterMode === mode
+                        ? mode === "critical"
+                          ? "bg-red-500/10 border-red-500/30 text-red-400"
+                          : mode === "review"
+                            ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                            : "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-transparent border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                    }`}
+                  >
+                    {mode === "all" && `All · ${enrichedChecklist.length}`}
+                    {mode === "critical" && `Critical · ${blockers.length}`}
+                    {mode === "review" && `Needs Review · ${enrichedChecklist.filter((i) => !i.blocker && !i.completed).length}`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Fix Critical Issues panel */}
+              {filterMode !== "review" && (
+                <FixPanel
+                  blockers={blockers}
+                  onInternalNav={(target) => setActiveTab(target)}
+                />
+              )}
+
+              {/* Grouped sections */}
+              {Object.keys(groupedChecklist).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(groupedChecklist).map(([category, items]) => {
+                    const done = items.filter((i) => i.completed).length;
+                    return (
+                      <Card key={category} className="bg-card border-border shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/20 border-b border-border py-3 px-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-4 rounded-full ${SECTION_ACCENTS[category] ?? "bg-muted"}`} />
+                              <CardTitle className={`text-xs font-mono uppercase tracking-wider ${SECTION_TEXT_ACCENTS[category] ?? "text-muted-foreground"}`}>
+                                {category}
+                              </CardTitle>
+                            </div>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {done}/{items.length}
+                            </span>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <div className="divide-y divide-border/50">
+                            {items.map((item) => (
+                              <ChecklistItemCard
+                                key={item.id}
+                                id={item.id}
+                                label={item.label}
+                                completed={item.completed}
+                                status={item.status}
+                                blocker={item.blocker}
+                                helpText={item.helpText}
+                                actions={item.actions}
+                                onToggle={handleChecklistToggle}
+                                onInternalNav={(target) => setActiveTab(target)}
+                              />
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">
+                  <p className="text-muted-foreground text-sm">No items match this filter.</p>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 

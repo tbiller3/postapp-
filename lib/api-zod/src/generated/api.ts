@@ -16,6 +16,20 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary List apps discovered from the Replit workspace
+ */
+export const ListWorkspaceAppsResponseItem = zod.object({
+  slug: zod.string(),
+  title: zod.string(),
+  kind: zod.string(),
+  previewPath: zod.string(),
+  alreadyImported: zod.boolean(),
+});
+export const ListWorkspaceAppsResponse = zod.array(
+  ListWorkspaceAppsResponseItem,
+);
+
+/**
  * @summary List all apps
  */
 export const ListAppsResponseItem = zod.object({

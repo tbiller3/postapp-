@@ -88,3 +88,11 @@ export interface AppsSummary {
   readyForSubmission: number;
   approved: number;
 }
+
+export interface WorkspaceApp {
+  slug: string;
+  title: string;
+  kind: string;
+  previewPath: string;
+  alreadyImported: boolean;
+}

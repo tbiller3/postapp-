@@ -15,3 +15,4 @@ export * from "./healthStatus";
 export * from "./revision";
 export * from "./updateAppBody";
 export * from "./updateChecklistItemBody";
+export * from "./workspaceApp";

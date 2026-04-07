@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, AppWindow, AlertCircle, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WorkspaceImport } from "@/components/workspace-import";
 
 export default function Dashboard() {
   const { data: apps, isLoading: isLoadingApps } = useListApps();
@@ -17,12 +18,15 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Mission Control</h1>
           <p className="text-muted-foreground mt-1 font-mono text-sm">Overview of all active App Store submissions</p>
         </div>
-        <Link href="/apps/new">
-          <Button className="font-mono uppercase tracking-wider text-xs">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Application
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <WorkspaceImport />
+          <Link href="/apps/new">
+            <Button className="font-mono uppercase tracking-wider text-xs" data-testid="button-add-application">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Application
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {isLoadingSummary ? (

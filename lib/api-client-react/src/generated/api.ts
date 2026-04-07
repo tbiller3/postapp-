@@ -26,6 +26,7 @@ import type {
   Revision,
   UpdateAppBody,
   UpdateChecklistItemBody,
+  WorkspaceApp,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -105,6 +106,81 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List apps discovered from the Replit workspace
+ */
+export const getListWorkspaceAppsUrl = () => {
+  return `/api/workspace-apps`;
+};
+
+export const listWorkspaceApps = async (
+  options?: RequestInit,
+): Promise<WorkspaceApp[]> => {
+  return customFetch<WorkspaceApp[]>(getListWorkspaceAppsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkspaceAppsQueryKey = () => {
+  return [`/api/workspace-apps`] as const;
+};
+
+export const getListWorkspaceAppsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkspaceApps>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaceApps>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWorkspaceAppsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWorkspaceApps>>
+  > = ({ signal }) => listWorkspaceApps({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaceApps>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWorkspaceAppsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkspaceApps>>
+>;
+export type ListWorkspaceAppsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List apps discovered from the Replit workspace
+ */
+
+export function useListWorkspaceApps<
+  TData = Awaited<ReturnType<typeof listWorkspaceApps>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkspaceApps>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWorkspaceAppsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

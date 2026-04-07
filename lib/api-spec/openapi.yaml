@@ -15,6 +15,8 @@ tags:
     description: App Store checklist operations
   - name: revisions
     description: Revision notes operations
+  - name: workspace
+    description: Workspace app discovery
 paths:
   /healthz:
     get:
@@ -29,6 +31,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /workspace-apps:
+    get:
+      operationId: listWorkspaceApps
+      tags: [workspace]
+      summary: List apps discovered from the Replit workspace
+      responses:
+        "200":
+          description: List of workspace-discovered apps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkspaceApp"
 
   /apps:
     get:
@@ -397,3 +414,23 @@ components:
         - needsRevision
         - readyForSubmission
         - approved
+
+    WorkspaceApp:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        kind:
+          type: string
+        previewPath:
+          type: string
+        alreadyImported:
+          type: boolean
+      required:
+        - slug
+        - title
+        - kind
+        - previewPath
+        - alreadyImported

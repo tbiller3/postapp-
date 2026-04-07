@@ -1,4 +1,4 @@
-import { useLocation, useParams } from "wouter";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,11 +6,11 @@ import { useCreateApp, getListAppsQueryKey, getGetAppsSummaryQueryKey } from "@w
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Link2 } from "lucide-react";
 import { Link } from "wouter";
 
 const formSchema = z.object({
@@ -21,6 +21,7 @@ const formSchema = z.object({
   bundleId: z.string().optional(),
   version: z.string().optional(),
   category: z.string().optional(),
+  replitUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -41,6 +42,7 @@ export default function AppNew() {
       bundleId: "",
       version: "1.0.0",
       category: "",
+      replitUrl: "",
     },
   });
 
@@ -187,9 +189,34 @@ export default function AppNew() {
 
             <FormField
               control={form.control}
+              name="replitUrl"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel className="font-mono text-xs uppercase text-muted-foreground flex items-center gap-1.5">
+                    <Link2 className="h-3 w-3" />
+                    Replit Project URL
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="https://replit.com/@username/project-name"
+                      className="font-mono"
+                      data-testid="input-replit-url"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs text-muted-foreground">
+                    Paste the link from your Replit home screen so you can open the project directly from here.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="md:col-span-2">
                   <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Description / Notes</FormLabel>
                   <FormControl>
                     <Textarea 

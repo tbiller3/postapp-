@@ -18,4 +18,6 @@ export interface UpdateAppBody {
   version?: string | null;
   /** @nullable */
   category?: string | null;
+  /** @nullable */
+  replitUrl?: string | null;
 }

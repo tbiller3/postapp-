@@ -11,6 +11,7 @@ export const appsTable = pgTable("apps", {
   bundleId: text("bundle_id"),
   version: text("version"),
   category: text("category"),
+  replitUrl: text("replit_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

@@ -19,6 +19,8 @@ export interface App {
   version: string | null;
   /** @nullable */
   category: string | null;
+  /** @nullable */
+  replitUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

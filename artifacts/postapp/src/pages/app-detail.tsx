@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { ArrowLeft, Save, Trash2, ShieldAlert, CheckSquare, MessageSquare } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 const revisionSchema = z.object({
@@ -118,8 +118,27 @@ export default function AppDetail() {
             <span>{app.platform}</span>
             <span>•</span>
             <span>v{app.version}</span>
-            <span>•</span>
-            <span>{app.bundleId}</span>
+            {app.bundleId && (
+              <>
+                <span>•</span>
+                <span>{app.bundleId}</span>
+              </>
+            )}
+            {app.replitUrl && (
+              <>
+                <span>•</span>
+                <a
+                  href={app.replitUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="link-replit-project"
+                  className="flex items-center gap-1 text-primary hover:underline transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open in Replit
+                </a>
+              </>
+            )}
           </div>
         </div>
         

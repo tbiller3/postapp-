@@ -22,6 +22,8 @@ export interface App {
   version: string | null;
   /** @nullable */
   category: string | null;
+  /** @nullable */
+  replitUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +40,8 @@ export interface CreateAppBody {
   version?: string | null;
   /** @nullable */
   category?: string | null;
+  /** @nullable */
+  replitUrl?: string | null;
 }
 
 export interface UpdateAppBody {
@@ -52,6 +56,8 @@ export interface UpdateAppBody {
   version?: string | null;
   /** @nullable */
   category?: string | null;
+  /** @nullable */
+  replitUrl?: string | null;
 }
 
 export interface Revision {

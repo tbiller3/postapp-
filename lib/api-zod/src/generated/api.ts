@@ -41,6 +41,7 @@ export const ListAppsResponseItem = zod.object({
   bundleId: zod.string().nullable(),
   version: zod.string().nullable(),
   category: zod.string().nullable(),
+  replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -57,6 +58,7 @@ export const CreateAppBody = zod.object({
   bundleId: zod.string().nullish(),
   version: zod.string().nullish(),
   category: zod.string().nullish(),
+  replitUrl: zod.string().nullish(),
 });
 
 /**
@@ -75,6 +77,7 @@ export const GetAppResponse = zod.object({
   bundleId: zod.string().nullable(),
   version: zod.string().nullable(),
   category: zod.string().nullable(),
+  replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -94,6 +97,7 @@ export const UpdateAppBody = zod.object({
   bundleId: zod.string().nullish(),
   version: zod.string().nullish(),
   category: zod.string().nullish(),
+  replitUrl: zod.string().nullish(),
 });
 
 export const UpdateAppResponse = zod.object({
@@ -105,6 +109,7 @@ export const UpdateAppResponse = zod.object({
   bundleId: zod.string().nullable(),
   version: zod.string().nullable(),
   category: zod.string().nullable(),
+  replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });

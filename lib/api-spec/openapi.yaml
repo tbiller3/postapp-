@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: POSTAPP API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: apps
+    description: App management operations
+  - name: checklist
+    description: App Store checklist operations
+  - name: revisions
+    description: Revision notes operations
 paths:
   /healthz:
     get:
@@ -24,6 +29,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /apps:
+    get:
+      operationId: listApps
+      tags: [apps]
+      summary: List all apps
+      responses:
+        "200":
+          description: List of apps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/App"
+    post:
+      operationId: createApp
+      tags: [apps]
+      summary: Create an app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppBody"
+      responses:
+        "201":
+          description: App created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+
+  /apps/{id}:
+    get:
+      operationId: getApp
+      tags: [apps]
+      summary: Get an app by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: App found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+        "404":
+          description: App not found
+    patch:
+      operationId: updateApp
+      tags: [apps]
+      summary: Update an app
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppBody"
+      responses:
+        "200":
+          description: App updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/App"
+        "404":
+          description: App not found
+    delete:
+      operationId: deleteApp
+      tags: [apps]
+      summary: Delete an app
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: App deleted
+        "404":
+          description: App not found
+
+  /apps/{id}/revisions:
+    get:
+      operationId: listRevisions
+      tags: [revisions]
+      summary: List revisions for an app
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of revisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Revision"
+    post:
+      operationId: createRevision
+      tags: [revisions]
+      summary: Add a revision note to an app
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRevisionBody"
+      responses:
+        "201":
+          description: Revision created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Revision"
+
+  /apps/{id}/checklist:
+    get:
+      operationId: getChecklist
+      tags: [checklist]
+      summary: Get App Store checklist for an app
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checklist items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChecklistItem"
+
+  /checklist/{itemId}:
+    patch:
+      operationId: updateChecklistItem
+      tags: [checklist]
+      summary: Update a checklist item
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateChecklistItemBody"
+      responses:
+        "200":
+          description: Checklist item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChecklistItem"
+        "404":
+          description: Item not found
+
+  /apps/summary:
+    get:
+      operationId: getAppsSummary
+      tags: [apps]
+      summary: Get summary counts of apps by status
+      responses:
+        "200":
+          description: Summary of app statuses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppsSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +238,162 @@ components:
       required:
         - status
 
+    App:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+        description:
+          type: ["string", "null"]
+        bundleId:
+          type: ["string", "null"]
+        version:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - platform
+        - status
+        - description
+        - bundleId
+        - version
+        - category
+        - createdAt
+        - updatedAt
+
+    CreateAppBody:
+      type: object
+      properties:
+        name:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+        description:
+          type: ["string", "null"]
+        bundleId:
+          type: ["string", "null"]
+        version:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+      required:
+        - name
+        - platform
+        - status
+
+    UpdateAppBody:
+      type: object
+      properties:
+        name:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+        description:
+          type: ["string", "null"]
+        bundleId:
+          type: ["string", "null"]
+        version:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+
+    Revision:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: integer
+        note:
+          type: string
+        source:
+          type: string
+        resolved:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - appId
+        - note
+        - source
+        - resolved
+        - createdAt
+
+    CreateRevisionBody:
+      type: object
+      properties:
+        note:
+          type: string
+        source:
+          type: string
+      required:
+        - note
+        - source
+
+    ChecklistItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: integer
+        label:
+          type: string
+        completed:
+          type: boolean
+        category:
+          type: string
+      required:
+        - id
+        - appId
+        - label
+        - completed
+        - category
+
+    UpdateChecklistItemBody:
+      type: object
+      properties:
+        completed:
+          type: boolean
+      required:
+        - completed
+
+    AppsSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        draft:
+          type: integer
+        inReview:
+          type: integer
+        needsRevision:
+          type: integer
+        readyForSubmission:
+          type: integer
+        approved:
+          type: integer
+      required:
+        - total
+        - draft
+        - inReview
+        - needsRevision
+        - readyForSubmission
+        - approved

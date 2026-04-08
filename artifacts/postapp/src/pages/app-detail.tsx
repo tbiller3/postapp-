@@ -68,10 +68,16 @@ export default function AppDetail() {
     if (!app) return;
     seedFromApp({
       appName: app.name ?? "",
+      subtitle: app.subtitle ?? "",
       bundleId: app.bundleId ?? "",
       version: app.version ?? "",
+      buildNumber: app.buildNumber ?? "",
       description: app.description ?? "",
       category: app.category ?? "",
+      ageRating: app.ageRating ?? "",
+      keywords: app.keywords ?? "",
+      supportUrl: app.supportUrl ?? "",
+      privacyPolicyUrl: app.privacyPolicyUrl ?? "",
     });
     return () => reset();
   }, [app?.id]);
@@ -117,8 +123,14 @@ export default function AppDetail() {
           name: fields.appName || app?.name || "",
           bundleId: fields.bundleId || undefined,
           version: fields.version || undefined,
+          buildNumber: fields.buildNumber || undefined,
           description: fields.description || undefined,
           category: fields.category || undefined,
+          subtitle: fields.subtitle || undefined,
+          ageRating: fields.ageRating || undefined,
+          keywords: fields.keywords || undefined,
+          supportUrl: fields.supportUrl || undefined,
+          privacyPolicyUrl: fields.privacyPolicyUrl || undefined,
         },
       },
       {

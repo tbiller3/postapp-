@@ -21,7 +21,19 @@ export interface App {
   /** @nullable */
   version: string | null;
   /** @nullable */
+  buildNumber: string | null;
+  /** @nullable */
   category: string | null;
+  /** @nullable */
+  subtitle: string | null;
+  /** @nullable */
+  ageRating: string | null;
+  /** @nullable */
+  keywords: string | null;
+  /** @nullable */
+  supportUrl: string | null;
+  /** @nullable */
+  privacyPolicyUrl: string | null;
   /** @nullable */
   replitUrl: string | null;
   createdAt: string;
@@ -39,7 +51,19 @@ export interface CreateAppBody {
   /** @nullable */
   version?: string | null;
   /** @nullable */
+  buildNumber?: string | null;
+  /** @nullable */
   category?: string | null;
+  /** @nullable */
+  subtitle?: string | null;
+  /** @nullable */
+  ageRating?: string | null;
+  /** @nullable */
+  keywords?: string | null;
+  /** @nullable */
+  supportUrl?: string | null;
+  /** @nullable */
+  privacyPolicyUrl?: string | null;
   /** @nullable */
   replitUrl?: string | null;
 }
@@ -55,7 +79,19 @@ export interface UpdateAppBody {
   /** @nullable */
   version?: string | null;
   /** @nullable */
+  buildNumber?: string | null;
+  /** @nullable */
   category?: string | null;
+  /** @nullable */
+  subtitle?: string | null;
+  /** @nullable */
+  ageRating?: string | null;
+  /** @nullable */
+  keywords?: string | null;
+  /** @nullable */
+  supportUrl?: string | null;
+  /** @nullable */
+  privacyPolicyUrl?: string | null;
   /** @nullable */
   replitUrl?: string | null;
 }

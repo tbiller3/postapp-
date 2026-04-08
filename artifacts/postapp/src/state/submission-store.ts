@@ -135,27 +135,23 @@ export const useSubmissionStore = create<SubmissionStore>((set, get) => ({
     }),
 
   seedFromApp: (app) =>
-    set((s) => ({
-      fields: {
-        ...s.fields,
-        ...(app.appName ? { appName: app.appName } : {}),
-        ...(app.bundleId ? { bundleId: app.bundleId } : {}),
-        ...(app.version ? { version: app.version } : {}),
-        ...(app.description ? { description: app.description } : {}),
-        ...(app.category ? { category: app.category } : {}),
-        ...(app.keywords ? { keywords: app.keywords } : {}),
-        ...(app.privacyPolicyUrl ? { privacyPolicyUrl: app.privacyPolicyUrl } : {}),
-        ...(app.supportUrl ? { supportUrl: app.supportUrl } : {}),
-        ...(app.ageRating ? { ageRating: app.ageRating } : {}),
-      },
-      detected: {
-        ...(app.appName ? { appName: app.appName } : {}),
-        ...(app.bundleId ? { bundleId: app.bundleId } : {}),
-        ...(app.version ? { version: app.version } : {}),
-        ...(app.description ? { description: app.description } : {}),
-        ...(app.category ? { category: app.category } : {}),
-      },
-    })),
+    set((s) => {
+      const fieldKeys: (keyof SubmissionFields)[] = [
+        "appName", "subtitle", "bundleId", "version", "buildNumber",
+        "description", "keywords", "supportUrl", "privacyPolicyUrl",
+        "category", "ageRating",
+      ];
+      const updatedFields = { ...s.fields };
+      const updatedDetected: DetectedData = {};
+      fieldKeys.forEach((k) => {
+        const v = app[k];
+        if (v && v.trim()) {
+          updatedFields[k] = v;
+          updatedDetected[k] = v;
+        }
+      });
+      return { fields: updatedFields, detected: updatedDetected };
+    }),
 
   reset: () =>
     set({ fields: { ...emptyFields }, detected: {}, pricing: { ...defaultPricing } }),

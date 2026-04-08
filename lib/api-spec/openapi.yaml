@@ -272,7 +272,19 @@ components:
           type: ["string", "null"]
         version:
           type: ["string", "null"]
+        buildNumber:
+          type: ["string", "null"]
         category:
+          type: ["string", "null"]
+        subtitle:
+          type: ["string", "null"]
+        ageRating:
+          type: ["string", "null"]
+        keywords:
+          type: ["string", "null"]
+        supportUrl:
+          type: ["string", "null"]
+        privacyPolicyUrl:
           type: ["string", "null"]
         replitUrl:
           type: ["string", "null"]
@@ -288,7 +300,13 @@ components:
         - description
         - bundleId
         - version
+        - buildNumber
         - category
+        - subtitle
+        - ageRating
+        - keywords
+        - supportUrl
+        - privacyPolicyUrl
         - replitUrl
         - createdAt
         - updatedAt
@@ -308,7 +326,19 @@ components:
           type: ["string", "null"]
         version:
           type: ["string", "null"]
+        buildNumber:
+          type: ["string", "null"]
         category:
+          type: ["string", "null"]
+        subtitle:
+          type: ["string", "null"]
+        ageRating:
+          type: ["string", "null"]
+        keywords:
+          type: ["string", "null"]
+        supportUrl:
+          type: ["string", "null"]
+        privacyPolicyUrl:
           type: ["string", "null"]
         replitUrl:
           type: ["string", "null"]
@@ -332,7 +362,19 @@ components:
           type: ["string", "null"]
         version:
           type: ["string", "null"]
+        buildNumber:
+          type: ["string", "null"]
         category:
+          type: ["string", "null"]
+        subtitle:
+          type: ["string", "null"]
+        ageRating:
+          type: ["string", "null"]
+        keywords:
+          type: ["string", "null"]
+        supportUrl:
+          type: ["string", "null"]
+        privacyPolicyUrl:
           type: ["string", "null"]
         replitUrl:
           type: ["string", "null"]

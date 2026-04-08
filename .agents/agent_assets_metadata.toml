@@ -1,0 +1,37 @@
+uploads = []
+
+[[generated]]
+id = "Vhs71gytJqq4X9ybBCQwm"
+uri = "file://attached_assets/waitwise_icon_pause.png"
+type = "image"
+title = "waitwise icon pause concept"
+
+[[generated]]
+id = "nEGKOk6qOmG5btQIvQKb8"
+uri = "file://attached_assets/waitwise_icon_hourglass.png"
+type = "image"
+title = "waitwise icon hourglass concept"
+
+[[generated]]
+id = "oD1wqcK2nzFm1pNbIyMj7"
+uri = "file://attached_assets/waitwise_icon_hand.png"
+type = "image"
+title = "waitwise icon hand concept"
+
+[[outputs]]
+id = "8v4KMQUocb-ZYte4nmMCr"
+uri = "file://attached_assets/waitwise_icon_pause.png"
+type = "image"
+title = "Option 1 — Pause Symbol (Navy/Indigo)"
+
+[[outputs]]
+id = "Yao_e9wA2hIi-iB_DdH5P"
+uri = "file://attached_assets/waitwise_icon_hourglass.png"
+type = "image"
+title = "Option 2 — Hourglass (Forest Green/Emerald)"
+
+[[outputs]]
+id = "O1a0kqvnzG0SQJLZE8UxB"
+uri = "file://attached_assets/waitwise_icon_hand.png"
+type = "image"
+title = "Option 3 — Open Hand (Burgundy/Rose)"

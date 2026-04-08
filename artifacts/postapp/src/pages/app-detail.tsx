@@ -285,31 +285,31 @@ export default function AppDetail() {
 
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 pb-20">
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">{app.name}</h1>
-            <StatusBadge status={app.status} />
-          </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono mt-2">
-            <span>{app.platform}</span>
-            <span>•</span>
-            <span>v{app.version}</span>
-            {app.bundleId && (
-              <>
-                <span>•</span>
-                <span>{app.bundleId}</span>
-              </>
-            )}
-            {app.replitUrl && (
-              <>
-                <span>•</span>
+      {/* Page header */}
+      <div className="mb-6">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground -ml-2">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">{app.name}</h1>
+              <StatusBadge status={app.status} />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground font-mono mt-2">
+              <span>{app.platform}</span>
+              <span className="text-muted-foreground/30">·</span>
+              <span>v{app.version}</span>
+              {app.bundleId && (
+                <>
+                  <span className="text-muted-foreground/30 hidden sm:inline">·</span>
+                  <span className="hidden sm:inline truncate max-w-[200px]">{app.bundleId}</span>
+                </>
+              )}
+              {app.replitUrl && (
                 <a
                   href={app.replitUrl}
                   target="_blank"
@@ -318,36 +318,35 @@ export default function AppDetail() {
                   className="flex items-center gap-1 text-primary hover:underline transition-colors"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  Open in Replit
+                  <span className="hidden sm:inline">Open in Replit</span>
                 </a>
-              </>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-md">
-          <Select value={app.status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-[200px] border-none shadow-none focus:ring-0 font-mono text-xs font-semibold uppercase">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft" className="font-mono text-xs uppercase">Draft</SelectItem>
-              <SelectItem value="ready-for-submission" className="font-mono text-xs uppercase text-purple-400">Ready</SelectItem>
-              <SelectItem value="in-review" className="font-mono text-xs uppercase text-blue-400">In Review</SelectItem>
-              <SelectItem value="needs-revision" className="font-mono text-xs uppercase text-amber-500">Needs Revision</SelectItem>
-              <SelectItem value="approved" className="font-mono text-xs uppercase text-green-500">Approved</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-md w-full sm:w-auto shrink-0">
+            <Select value={app.status} onValueChange={handleStatusChange}>
+              <SelectTrigger className="w-full sm:w-[180px] border-none shadow-none focus:ring-0 font-mono text-xs font-semibold uppercase">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft" className="font-mono text-xs uppercase">Draft</SelectItem>
+                <SelectItem value="ready-for-submission" className="font-mono text-xs uppercase text-purple-400">Ready</SelectItem>
+                <SelectItem value="in-review" className="font-mono text-xs uppercase text-blue-400">In Review</SelectItem>
+                <SelectItem value="needs-revision" className="font-mono text-xs uppercase text-amber-500">Needs Revision</SelectItem>
+                <SelectItem value="approved" className="font-mono text-xs uppercase text-green-500">Approved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
       {/* Persistent sync bar */}
-      <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-xl border border-border/40 bg-muted/10 text-xs font-mono">
-        <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Submission Data</span>
-        <span className="text-muted-foreground/30 mr-2">·</span>
+      <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-xl border border-border/40 bg-muted/10 text-xs font-mono overflow-x-auto scrollbar-none">
+        <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider shrink-0">Fields</span>
+        <span className="text-muted-foreground/30">·</span>
         <button
           onClick={handleSyncFromBuild}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-semibold transition-all ${
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-semibold transition-all shrink-0 ${
             syncPulse
               ? "bg-green-500/15 border-green-500/30 text-green-400"
               : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
@@ -355,44 +354,58 @@ export default function AppDetail() {
           data-testid="sync-bar-sync"
         >
           <RefreshCw className={`h-3 w-3 ${syncPulse ? "animate-spin" : ""}`} />
-          {syncPulse ? "Synced!" : "Sync From Build"}
+          <span className="hidden sm:inline">{syncPulse ? "Synced!" : "Sync From Build"}</span>
+          <span className="sm:hidden">{syncPulse ? "Synced!" : "Sync"}</span>
         </button>
         <button
           onClick={() => {
             applyAllDetectedValues();
             toast({ title: "Detected Values Applied", description: "All detected fields have been filled in." });
           }}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors font-semibold"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors font-semibold shrink-0"
           data-testid="sync-bar-apply"
         >
           <ChevronsDown className="h-3 w-3" />
-          Apply All Detected
+          <span className="hidden sm:inline">Apply All Detected</span>
+          <span className="sm:hidden">Apply All</span>
         </button>
-        <span className="ml-auto text-muted-foreground/40">
-          {fieldIssues.filter(f => f.fieldStatus === "missing").length} missing · {fieldIssues.filter(f => f.fieldStatus === "modified").length} modified
+        <span className="ml-auto text-muted-foreground/40 shrink-0 pl-2">
+          <span className="hidden sm:inline">{fieldIssues.filter(f => f.fieldStatus === "missing").length} missing · {fieldIssues.filter(f => f.fieldStatus === "modified").length} modified</span>
+          <span className="sm:hidden">{fieldIssues.filter(f => f.fieldStatus === "missing").length}↓ {fieldIssues.filter(f => f.fieldStatus === "modified").length}△</span>
         </span>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-        <TabsList className="bg-card border border-border rounded-lg p-1 w-full justify-start h-auto flex-wrap gap-0.5">
-          <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-            <CheckSquare className="mr-2 h-4 w-4" /> Operations Checklist
-            {!isLoadingChecklist && totalItems > 0 && (
-              <span className="ml-2 font-mono text-[10px] bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
-                {completedItems}/{totalItems}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="submission" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400">
-            <FileText className="mr-2 h-4 w-4" /> Submission Data
-          </TabsTrigger>
-          <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500">
-            <ShieldAlert className="mr-2 h-4 w-4" /> Review Logs
-          </TabsTrigger>
-          <TabsTrigger value="apple" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400">
-            <AppWindow className="mr-2 h-4 w-4" /> Apple Connect
-          </TabsTrigger>
-        </TabsList>
+        {/* Tab bar — scrolls horizontally on mobile, wraps on desktop */}
+        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+          <TabsList className="bg-card border border-border rounded-lg p-1 h-auto gap-0.5 flex flex-nowrap w-max sm:w-full sm:flex-wrap">
+            <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary whitespace-nowrap">
+              <CheckSquare className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Operations Checklist</span>
+              <span className="sm:hidden">Checklist</span>
+              {!isLoadingChecklist && totalItems > 0 && (
+                <span className="ml-1.5 font-mono text-[10px] bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                  {completedItems}/{totalItems}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="submission" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400 whitespace-nowrap">
+              <FileText className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Submission Data</span>
+              <span className="sm:hidden">Submission</span>
+            </TabsTrigger>
+            <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500 whitespace-nowrap">
+              <ShieldAlert className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Review Logs</span>
+              <span className="sm:hidden">Reviews</span>
+            </TabsTrigger>
+            <TabsTrigger value="apple" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 whitespace-nowrap">
+              <AppWindow className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Apple Connect</span>
+              <span className="sm:hidden">Connect</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="checklist" className="mt-6">
           {isLoadingChecklist ? (

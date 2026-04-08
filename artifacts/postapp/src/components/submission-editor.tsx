@@ -155,7 +155,7 @@ export function SubmissionEditor({ onSave, isSaving, onReset }: SubmissionEditor
           <Button
             onClick={onSave}
             disabled={isSaving}
-            className="font-mono text-xs uppercase tracking-wider"
+            className="w-full sm:w-auto font-mono text-xs uppercase tracking-wider"
           >
             {isSaving ? "Saving…" : "Save to App"}
           </Button>

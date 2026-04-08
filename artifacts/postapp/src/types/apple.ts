@@ -26,4 +26,16 @@ export interface AppleVersion {
   attributes: AppleVersionAttributes;
 }
 
+export interface AppleBuildAttributes {
+  version: string;
+  processingState: string;
+  uploadedDate: string;
+}
+
+export interface AppleBuild {
+  id: string;
+  type: "builds";
+  attributes: AppleBuildAttributes;
+}
+
 export type AppleConnectionStatus = "unconfigured" | "loading" | "connected" | "error";

@@ -34,6 +34,21 @@ router.get("/apple/apps", async (_req, res) => {
   }
 });
 
+router.get("/apple/apps/:appleId/builds", async (req, res) => {
+  const { appleId } = req.params as { appleId: string };
+  try {
+    const data = await ascFetch(
+      `/builds?filter[app]=${appleId}&sort=-uploadedDate&limit=5&fields[builds]=version,processingState,uploadedDate`,
+    );
+    res.status(200).json(data);
+    return;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(502).json({ error: message });
+    return;
+  }
+});
+
 router.get("/apple/apps/:appleId/versions", async (req, res) => {
   const { appleId } = req.params as { appleId: string };
   try {

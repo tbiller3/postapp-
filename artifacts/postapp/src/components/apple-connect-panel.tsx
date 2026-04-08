@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, ExternalLink, Link2,
-  Layers, Clock,
+  Layers, Clock, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AppleVersion } from "@/types/apple";
@@ -152,7 +152,7 @@ function ThreeWayRow({ label, local, detected, apple }: CompareField) {
 // Main panel
 // ---------------------------------------------------------------------------
 export function AppleConnectPanel() {
-  const { status, apps, selectedAppId, versions, checkStatus, selectApp } = useAppleConnectStore();
+  const { status, apps, selectedAppId, versions, builds, checkStatus, selectApp, syncToSubmission, isSyncing } = useAppleConnectStore();
   const { fields, detected } = useSubmissionStore();
 
   useEffect(() => {
@@ -161,6 +161,8 @@ export function AppleConnectPanel() {
 
   const selectedApp = useMemo(() => apps.find((a) => a.id === selectedAppId) ?? null, [apps, selectedAppId]);
 
+  const latestBuildNumber = builds[0]?.attributes.version ?? "";
+
   const compareFields: CompareField[] = useMemo(() => {
     if (!selectedApp) return [];
     const attr = selectedApp.attributes;
@@ -168,8 +170,9 @@ export function AppleConnectPanel() {
       { label: "Name", local: fields.appName, detected: detected.appName ?? "", apple: attr.name },
       { label: "Bundle ID", local: fields.bundleId, detected: detected.bundleId ?? "", apple: attr.bundleId },
       { label: "Version", local: fields.version, detected: detected.version ?? "", apple: versions[0]?.attributes.versionString ?? "" },
+      { label: "Build #", local: fields.buildNumber, detected: detected.buildNumber ?? "", apple: latestBuildNumber },
     ];
-  }, [selectedApp, fields, detected, versions]);
+  }, [selectedApp, fields, detected, versions, builds, latestBuildNumber]);
 
   return (
     <div className="space-y-5">
@@ -210,10 +213,27 @@ export function AppleConnectPanel() {
           {selectedApp && (
             <Card className="bg-card border-border overflow-hidden">
               <CardHeader className="py-3 px-4 border-b border-border/60">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <Layers className="h-3.5 w-3.5" />
-                  Three-Way Verification
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5" />
+                    Three-Way Verification
+                  </CardTitle>
+                  <button
+                    onClick={syncToSubmission}
+                    disabled={isSyncing}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border transition-all",
+                      isSyncing
+                        ? "bg-green-500/15 border-green-500/30 text-green-400"
+                        : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
+                    )}
+                  >
+                    {isSyncing
+                      ? <><CheckCircle2 className="h-3 w-3" />Synced!</>
+                      : <><Download className="h-3 w-3" />Sync Bundle ID &amp; Build #</>
+                    }
+                  </button>
+                </div>
               </CardHeader>
               <div className="grid grid-cols-4 gap-2 py-2 px-4 border-b border-border/60 bg-muted/10">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/40">Field</span>

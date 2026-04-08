@@ -1,17 +1,22 @@
 import { create } from "zustand";
-import type { AppleApp, AppleVersion, AppleConnectionStatus } from "@/types/apple";
+import type { AppleApp, AppleBuild, AppleVersion, AppleConnectionStatus } from "@/types/apple";
+import { useSubmissionStore } from "@/state/submission-store";
 
 type AppleConnectStore = {
   status: AppleConnectionStatus;
   apps: AppleApp[];
   selectedAppId: string | null;
   versions: AppleVersion[];
+  builds: AppleBuild[];
   error: string | null;
+  isSyncing: boolean;
 
   checkStatus: () => Promise<void>;
   fetchApps: () => Promise<void>;
   selectApp: (appId: string) => void;
   fetchVersions: (appId: string) => Promise<void>;
+  fetchBuilds: (appId: string) => Promise<void>;
+  syncToSubmission: () => void;
   reset: () => void;
 };
 
@@ -31,7 +36,9 @@ export const useAppleConnectStore = create<AppleConnectStore>((set, get) => ({
   apps: [],
   selectedAppId: null,
   versions: [],
+  builds: [],
   error: null,
+  isSyncing: false,
 
   checkStatus: async () => {
     try {
@@ -56,8 +63,9 @@ export const useAppleConnectStore = create<AppleConnectStore>((set, get) => ({
   },
 
   selectApp: (appId) => {
-    set({ selectedAppId: appId, versions: [] });
+    set({ selectedAppId: appId, versions: [], builds: [] });
     get().fetchVersions(appId);
+    get().fetchBuilds(appId);
   },
 
   fetchVersions: async (appId) => {
@@ -69,5 +77,39 @@ export const useAppleConnectStore = create<AppleConnectStore>((set, get) => ({
     }
   },
 
-  reset: () => set({ apps: [], selectedAppId: null, versions: [], error: null }),
+  fetchBuilds: async (appId) => {
+    try {
+      const data = await apiFetch<{ data: AppleBuild[] }>(`/apple/apps/${appId}/builds`);
+      set({ builds: data.data ?? [] });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : "Unknown error" });
+    }
+  },
+
+  syncToSubmission: () => {
+    const { apps, selectedAppId, builds } = get();
+    const selectedApp = apps.find((a) => a.id === selectedAppId);
+    if (!selectedApp) return;
+
+    set({ isSyncing: true });
+
+    const bundleId = selectedApp.attributes.bundleId;
+    const latestBuild = builds[0]?.attributes.version ?? "";
+
+    const { syncDetected, setField } = useSubmissionStore.getState();
+
+    const current = useSubmissionStore.getState().detected;
+    syncDetected({
+      ...current,
+      ...(bundleId ? { bundleId } : {}),
+      ...(latestBuild ? { buildNumber: latestBuild } : {}),
+    });
+
+    if (bundleId) setField("bundleId", bundleId);
+    if (latestBuild) setField("buildNumber", latestBuild);
+
+    setTimeout(() => set({ isSyncing: false }), 1500);
+  },
+
+  reset: () => set({ apps: [], selectedAppId: null, versions: [], builds: [], error: null }),
 }));

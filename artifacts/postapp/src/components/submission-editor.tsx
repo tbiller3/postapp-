@@ -1,13 +1,22 @@
-import { useSubmissionStore } from "@/state/submission-store";
+import { useSubmissionStore, SubmissionFields } from "@/state/submission-store";
 import { FieldRow } from "@/components/field-row";
 import { PricingEditor } from "@/components/pricing-editor";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { verifyField, VerificationState } from "@/utils/verification-engine";
-import { FileText, Cpu, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { getFieldStatus } from "@/utils/source-sync";
+import {
+  FileText,
+  Cpu,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+  ChevronsDown,
+  FlaskConical,
+} from "lucide-react";
 import { useMemo } from "react";
 
-type FieldKey = keyof Omit<ReturnType<typeof useSubmissionStore.getState>["data"], "pricing">;
+type FieldKey = keyof SubmissionFields;
 
 const FIELDS: Array<{
   label: string;
@@ -26,34 +35,27 @@ const FIELDS: Array<{
   { label: "Keywords", fieldKey: "keywords", placeholder: "comma,separated,keywords (max 100 chars)", hint: "Do not repeat your app name. Use the full 100 characters." },
   { label: "Support URL", fieldKey: "supportUrl", placeholder: "https://yoursite.com/support" },
   { label: "Privacy Policy URL", fieldKey: "privacyPolicyUrl", placeholder: "https://yoursite.com/privacy", hint: "Must be a live, publicly accessible URL that reviewers can open." },
-  { label: "Description", fieldKey: "description", placeholder: "What your app does, written for App Store customers...", multiline: true },
 ];
 
+const STATUS_CONFIG = [
+  { key: "verified" as const, icon: CheckCircle2, label: "Verified", color: "text-green-400" },
+  { key: "manual" as const, icon: Clock, label: "Manual", color: "text-blue-400" },
+  { key: "modified" as const, icon: AlertTriangle, label: "Modified", color: "text-amber-400" },
+  { key: "missing" as const, icon: XCircle, label: "Missing", color: "text-red-400" },
+] as const;
+
 function ReadinessBar() {
-  const { data, detected } = useSubmissionStore();
+  const { fields, detected, getCompletionStats } = useSubmissionStore();
+  const stats = getCompletionStats();
 
-  const statuses: VerificationState[] = useMemo(
-    () =>
-      FIELDS.map(({ fieldKey }) =>
-        verifyField(
-          String(data[fieldKey] ?? ""),
-          detected[fieldKey] ? String(detected[fieldKey]) : "",
-        ),
-      ),
-    [data, detected],
-  );
-
-  const counts = statuses.reduce(
-    (acc, s) => {
-      acc[s] = (acc[s] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<VerificationState, number>,
-  );
-
-  const complete = counts.complete ?? 0;
-  const total = FIELDS.length;
-  const pct = Math.round((complete / total) * 100);
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    FIELDS.forEach(({ fieldKey }) => {
+      const s = getFieldStatus(fields[fieldKey], detected[fieldKey]);
+      counts[s] = (counts[s] ?? 0) + 1;
+    });
+    return counts;
+  }, [fields, detected]);
 
   return (
     <div className="rounded-xl border border-border/50 bg-muted/10 p-4 space-y-3">
@@ -64,32 +66,25 @@ function ReadinessBar() {
             Field Readiness
           </span>
         </div>
-        <span className="text-xs font-mono font-bold text-primary">{pct}%</span>
+        <span className="text-xs font-mono font-bold text-primary">{stats.percent}%</span>
       </div>
 
-      <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-muted/40 rounded-full overflow-hidden">
         <div
-          className="h-full bg-primary transition-all duration-500 rounded-full"
-          style={{ width: `${pct}%` }}
+          className="h-full bg-gradient-to-r from-primary to-blue-400 transition-all duration-500 rounded-full"
+          style={{ width: `${stats.percent}%` }}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            { state: "complete" as const, icon: CheckCircle2, label: "Complete", style: "text-green-400" },
-            { state: "needs-review" as const, icon: Clock, label: "Needs Review", style: "text-blue-400" },
-            { state: "mismatch" as const, icon: AlertTriangle, label: "Mismatch", style: "text-amber-400" },
-            { state: "missing" as const, icon: XCircle, label: "Missing", style: "text-red-400" },
-          ] as const
-        )
-          .filter(({ state }) => (counts[state] ?? 0) > 0)
-          .map(({ state, icon: Icon, label, style }) => (
-            <span key={state} className={`inline-flex items-center gap-1 text-[11px] font-mono ${style}`}>
+      <div className="flex flex-wrap gap-3">
+        {STATUS_CONFIG.filter(({ key }) => (statusCounts[key] ?? 0) > 0).map(
+          ({ key, icon: Icon, label, color }) => (
+            <span key={key} className={`inline-flex items-center gap-1 text-[11px] font-mono ${color}`}>
               <Icon className="h-3 w-3" />
-              {counts[state]} {label}
+              {statusCounts[key]} {label}
             </span>
-          ))}
+          ),
+        )}
       </div>
     </div>
   );
@@ -101,10 +96,53 @@ interface SubmissionEditorProps {
 }
 
 export function SubmissionEditor({ onSave, isSaving }: SubmissionEditorProps) {
+  const { syncDetected, applyAllDetectedValues, loadDemoSubmission } = useSubmissionStore();
+
+  function handleSyncFromBuild() {
+    const { fields } = useSubmissionStore.getState();
+    syncDetected({
+      appName: fields.appName || undefined,
+      bundleId: fields.bundleId || undefined,
+      version: fields.version || undefined,
+      buildNumber: fields.buildNumber || undefined,
+      supportUrl: fields.supportUrl || undefined,
+      privacyPolicyUrl: fields.privacyPolicyUrl || undefined,
+    });
+  }
+
   return (
     <div className="space-y-6">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={handleSyncFromBuild}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
+          data-testid="btn-sync-from-build"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Sync From Build
+        </button>
+        <button
+          onClick={applyAllDetectedValues}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          data-testid="btn-apply-all"
+        >
+          <ChevronsDown className="h-3 w-3" />
+          Apply All Detected
+        </button>
+        <button
+          onClick={loadDemoSubmission}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          data-testid="btn-load-demo"
+        >
+          <FlaskConical className="h-3 w-3" />
+          Load Demo Submission
+        </button>
+      </div>
+
       <ReadinessBar />
 
+      {/* Metadata fields */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <FileText className="h-3.5 w-3.5 text-muted-foreground" />
@@ -114,14 +152,17 @@ export function SubmissionEditor({ onSave, isSaving }: SubmissionEditorProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {FIELDS.filter((f) => !f.multiline).map((f) => (
+          {FIELDS.map((f) => (
             <FieldRow key={f.fieldKey} {...f} />
           ))}
         </div>
 
-        {FIELDS.filter((f) => f.multiline).map((f) => (
-          <FieldRow key={f.fieldKey} {...f} />
-        ))}
+        <FieldRow
+          fieldKey="description"
+          label="Description"
+          placeholder="What your app does, written for App Store customers..."
+          multiline
+        />
       </div>
 
       <PricingEditor />

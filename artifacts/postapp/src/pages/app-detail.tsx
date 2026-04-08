@@ -75,17 +75,17 @@ export default function AppDetail() {
   const updateChecklistItem = useUpdateChecklistItem();
 
   const handleSaveSubmission = async () => {
-    const { data: storeData } = useSubmissionStore.getState();
+    const { fields } = useSubmissionStore.getState();
     setIsSavingSubmission(true);
     updateApp.mutate(
       {
         id: appId,
         data: {
-          name: storeData.appName || app?.name || "",
-          bundleId: storeData.bundleId || undefined,
-          version: storeData.version || undefined,
-          description: storeData.description || undefined,
-          category: storeData.category || undefined,
+          name: fields.appName || app?.name || "",
+          bundleId: fields.bundleId || undefined,
+          version: fields.version || undefined,
+          description: fields.description || undefined,
+          category: fields.category || undefined,
         },
       },
       {

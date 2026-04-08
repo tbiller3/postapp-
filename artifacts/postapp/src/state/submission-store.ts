@@ -1,8 +1,9 @@
 import { create } from "zustand";
 
 export type PricingModel = "free" | "paid" | "freemium" | "subscription";
+export type Plan = "free" | "pro" | "studio";
 
-export type SubmissionData = {
+export type SubmissionFields = {
   appName: string;
   subtitle: string;
   bundleId: string;
@@ -14,33 +15,42 @@ export type SubmissionData = {
   privacyPolicyUrl: string;
   category: string;
   ageRating: string;
-  pricing: {
-    model: PricingModel;
-    priceTier: string;
-    hasIAP: boolean;
-    subscription: boolean;
-    trialOffered: boolean;
-    terms: string;
+};
+
+export type DetectedData = Partial<SubmissionFields>;
+
+export type PricingState = {
+  model: PricingModel;
+  priceTier: string;
+  hasIAP: boolean;
+  hasSubscriptions: boolean;
+  freeTrial: boolean;
+  notes: string;
+};
+
+type SubmissionStore = {
+  plan: Plan;
+  fields: SubmissionFields;
+  detected: DetectedData;
+  pricing: PricingState;
+
+  setField: (key: keyof SubmissionFields, value: string) => void;
+  setPricingField: <K extends keyof PricingState>(key: K, value: PricingState[K]) => void;
+  syncDetected: (payload: DetectedData) => void;
+  applyDetectedValue: (key: keyof SubmissionFields) => void;
+  applyAllDetectedValues: () => void;
+  loadDemoSubmission: () => void;
+  seedFromApp: (app: Partial<DetectedData>) => void;
+  reset: () => void;
+  getCompletionStats: () => {
+    complete: number;
+    missing: number;
+    total: number;
+    percent: number;
   };
 };
 
-export type DetectedData = Partial<Omit<SubmissionData, "pricing">>;
-
-type SubmissionStore = {
-  data: SubmissionData;
-  detected: DetectedData;
-  setField: (key: keyof Omit<SubmissionData, "pricing">, value: string) => void;
-  setDetected: (payload: DetectedData) => void;
-  setPricingField: <K extends keyof SubmissionData["pricing"]>(
-    key: K,
-    value: SubmissionData["pricing"][K],
-  ) => void;
-  useDetectedValue: (key: keyof DetectedData) => void;
-  seedFromApp: (app: Partial<DetectedData>) => void;
-  reset: () => void;
-};
-
-const defaultData: SubmissionData = {
+const emptyFields: SubmissionFields = {
   appName: "",
   subtitle: "",
   bundleId: "",
@@ -52,43 +62,78 @@ const defaultData: SubmissionData = {
   privacyPolicyUrl: "",
   category: "",
   ageRating: "",
-  pricing: {
-    model: "free",
-    priceTier: "",
-    hasIAP: false,
-    subscription: false,
-    trialOffered: false,
-    terms: "",
-  },
+};
+
+const defaultPricing: PricingState = {
+  model: "free",
+  priceTier: "",
+  hasIAP: false,
+  hasSubscriptions: false,
+  freeTrial: false,
+  notes: "",
 };
 
 export const useSubmissionStore = create<SubmissionStore>((set, get) => ({
-  data: { ...defaultData },
+  plan: "pro",
+  fields: { ...emptyFields },
   detected: {},
+  pricing: { ...defaultPricing },
 
   setField: (key, value) =>
-    set((state) => ({ data: { ...state.data, [key]: value } })),
-
-  setDetected: (payload) => set({ detected: payload }),
+    set((s) => ({ fields: { ...s.fields, [key]: value } })),
 
   setPricingField: (key, value) =>
-    set((state) => ({
-      data: {
-        ...state.data,
-        pricing: { ...state.data.pricing, [key]: value },
+    set((s) => ({ pricing: { ...s.pricing, [key]: value } })),
+
+  syncDetected: (payload) =>
+    set({ detected: payload }),
+
+  applyDetectedValue: (key) =>
+    set((s) => {
+      const v = s.detected[key];
+      if (!v) return s;
+      return { fields: { ...s.fields, [key]: v } };
+    }),
+
+  applyAllDetectedValues: () =>
+    set((s) => {
+      const merged = { ...s.fields };
+      (Object.keys(s.fields) as (keyof SubmissionFields)[]).forEach((k) => {
+        const d = s.detected[k];
+        if (d && d.trim()) merged[k] = d;
+      });
+      return { fields: merged };
+    }),
+
+  loadDemoSubmission: () =>
+    set({
+      fields: {
+        appName: "WAIT Recovery Companion",
+        subtitle: "Pause through urges",
+        bundleId: "com.wait.recovery",
+        version: "1.0.0",
+        buildNumber: "1",
+        category: "Health & Fitness",
+        ageRating: "17+",
+        keywords: "recovery,addiction,sobriety,calm,urge support,mental health",
+        supportUrl: "https://wait.example.com/support",
+        privacyPolicyUrl: "https://wait.example.com/privacy",
+        description:
+          "WAIT Recovery Companion helps users pause through cravings and urges with guided support, calming tools, and progress tracking.",
       },
-    })),
+      detected: {
+        appName: "WAIT Recovery Companion",
+        version: "1.0.0",
+        buildNumber: "1",
+        bundleId: "com.wait.recovery",
+      },
+      pricing: { ...defaultPricing },
+    }),
 
-  useDetectedValue: (key) => {
-    const val = get().detected[key];
-    if (typeof val === "undefined") return;
-    set((state) => ({ data: { ...state.data, [key]: val } }));
-  },
-
-  seedFromApp: (app) => {
-    set((state) => ({
-      data: {
-        ...state.data,
+  seedFromApp: (app) =>
+    set((s) => ({
+      fields: {
+        ...s.fields,
         ...(app.appName ? { appName: app.appName } : {}),
         ...(app.bundleId ? { bundleId: app.bundleId } : {}),
         ...(app.version ? { version: app.version } : {}),
@@ -106,8 +151,16 @@ export const useSubmissionStore = create<SubmissionStore>((set, get) => ({
         ...(app.description ? { description: app.description } : {}),
         ...(app.category ? { category: app.category } : {}),
       },
-    }));
-  },
+    })),
 
-  reset: () => set({ data: { ...defaultData }, detected: {} }),
+  reset: () =>
+    set({ fields: { ...emptyFields }, detected: {}, pricing: { ...defaultPricing } }),
+
+  getCompletionStats: () => {
+    const { fields } = get();
+    const keys = Object.keys(fields) as (keyof SubmissionFields)[];
+    const complete = keys.filter((k) => String(fields[k]).trim()).length;
+    const total = keys.length;
+    return { complete, missing: total - complete, total, percent: Math.round((complete / total) * 100) };
+  },
 }));

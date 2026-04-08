@@ -1,10 +1,11 @@
 import { ChecklistStatus, ChecklistAction, MODAL_LIBRARY } from "@/data/checklist-meta";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ExternalLink, Info, ArrowRight, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { ExternalLink, Info, ArrowRight, AlertTriangle, CheckCircle2, Clock, XCircle, Zap } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useSubmissionStore, SubmissionFields } from "@/state/submission-store";
+import { getFieldStatus } from "@/utils/source-sync";
 
 interface ChecklistItemCardProps {
   id: number;
@@ -14,11 +15,12 @@ interface ChecklistItemCardProps {
   blocker: boolean;
   helpText: string;
   actions: ChecklistAction[];
+  fieldKey?: string;
   onToggle: (id: number, checked: boolean) => void;
   onInternalNav: (target: string) => void;
 }
 
-function StatusChip({ status }: { status: ChecklistStatus }) {
+function ChecklistStatusChip({ status }: { status: ChecklistStatus }) {
   if (status === "complete") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20">
@@ -43,6 +45,29 @@ function StatusChip({ status }: { status: ChecklistStatus }) {
   );
 }
 
+function LiveDataChip({ fieldKey }: { fieldKey: string }) {
+  const { fields, detected } = useSubmissionStore();
+  const current = (fields as Record<string, string>)[fieldKey] ?? "";
+  const det = (detected as Record<string, string>)[fieldKey] ?? "";
+  const s = getFieldStatus(current, det);
+
+  const CONFIGS = {
+    verified: { icon: CheckCircle2, label: "Synced", cls: "bg-green-500/10 text-green-400 border-green-500/20" },
+    modified: { icon: AlertTriangle, label: "Modified", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    manual: { icon: Zap, label: "Filled", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    missing: { icon: XCircle, label: "No Data", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+  } as const;
+
+  const { icon: Icon, label, cls } = CONFIGS[s];
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider border ${cls}`}>
+      <Icon className="h-2.5 w-2.5" />
+      {label}
+    </span>
+  );
+}
+
 export function ChecklistItemCard({
   id,
   label,
@@ -51,6 +76,7 @@ export function ChecklistItemCard({
   blocker,
   helpText,
   actions,
+  fieldKey,
   onToggle,
   onInternalNav,
 }: ChecklistItemCardProps) {
@@ -96,7 +122,10 @@ export function ChecklistItemCard({
             >
               {label}
             </label>
-            <StatusChip status={status} />
+            <div className="flex items-center gap-1.5 shrink-0">
+              {fieldKey && <LiveDataChip fieldKey={fieldKey} />}
+              <ChecklistStatusChip status={status} />
+            </div>
           </div>
 
           {helpText && !completed && (
@@ -127,6 +156,15 @@ export function ChecklistItemCard({
                   {action.label}
                 </button>
               ))}
+              {fieldKey && (
+                <button
+                  onClick={() => onInternalNav("submission")}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-mono font-medium transition-colors border bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20"
+                >
+                  <ArrowRight className="h-2.5 w-2.5" />
+                  Edit in Submission Data
+                </button>
+              )}
             </div>
           )}
         </div>

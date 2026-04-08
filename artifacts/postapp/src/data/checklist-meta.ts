@@ -12,6 +12,7 @@ export interface ChecklistItemMeta {
   helpText: string;
   actions: ChecklistAction[];
   modalContent?: { title: string; body: string };
+  fieldKey?: string;
 }
 
 export interface ModalContent {
@@ -77,6 +78,7 @@ export const MODAL_LIBRARY: Record<string, ModalContent> = {
 const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
   "App name follows App Store guidelines": {
     blocker: false,
+    fieldKey: "appName",
     helpText: "Names must not contain pricing info, generic terms used as the full title, or terms that could mislead users about the app's functionality.",
     actions: [
       { type: "external", label: "Apple naming guidelines", target: "https://developer.apple.com/app-store/review/guidelines/#metadata" },
@@ -84,6 +86,7 @@ const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
   },
   "App description is accurate and complete": {
     blocker: false,
+    fieldKey: "description",
     helpText: "The description must accurately reflect the app's current functionality. Future feature promises can cause rejection.",
     actions: [
       { type: "external", label: "Metadata guidelines", target: "https://developer.apple.com/app-store/review/guidelines/#metadata" },
@@ -107,6 +110,7 @@ const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
   },
   "Keywords are optimized and within 100 characters": {
     blocker: false,
+    fieldKey: "keywords",
     helpText: "Keywords directly affect App Store discoverability. Avoid repeating your app name. Use the full 100 characters if possible.",
     actions: [
       { type: "external", label: "ASO tips", target: "https://developer.apple.com/app-store/search/" },
@@ -114,6 +118,7 @@ const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
   },
   "Privacy policy URL is valid and accessible": {
     blocker: true,
+    fieldKey: "privacyPolicyUrl",
     helpText: "Apple reviewers will open this URL. A 404 or redirect to a login page will result in rejection.",
     actions: [
       { type: "modal", label: "What to include", target: "privacyPolicyHelp" },
@@ -130,6 +135,7 @@ const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
   },
   "Age rating is accurate": {
     blocker: false,
+    fieldKey: "ageRating",
     helpText: "Setting an age rating lower than your content warrants is a policy violation and can lead to app removal.",
     actions: [
       { type: "modal", label: "Rating guidance", target: "ageRatingHelp" },

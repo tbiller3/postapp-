@@ -30,8 +30,10 @@ import { ChecklistItemCard } from "@/components/checklist-item-card";
 import { FixPanel } from "@/components/fix-panel";
 import { SubmissionEditor } from "@/components/submission-editor";
 import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } from "@/data/checklist-meta";
-import { useSubmissionStore } from "@/state/submission-store";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText } from "lucide-react";
+import { useSubmissionStore, SubmissionFields } from "@/state/submission-store";
+import { getFieldStatus } from "@/utils/source-sync";
+import { FieldIssue } from "@/components/fix-panel";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown } from "lucide-react";
 import { format } from "date-fns";
 
 type FilterMode = "all" | "critical" | "review";
@@ -55,7 +57,9 @@ export default function AppDetail() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
 
-  const { seedFromApp, reset } = useSubmissionStore();
+  const { seedFromApp, reset, syncDetected, applyAllDetectedValues } = useSubmissionStore();
+  const storeFields = useSubmissionStore((s) => s.fields);
+  const storeDetected = useSubmissionStore((s) => s.detected);
 
   // Seed submission store from DB data when app loads, reset on unmount
   useEffect(() => {
@@ -156,6 +160,26 @@ export default function AppDetail() {
     [enrichedChecklist],
   );
 
+  const FIELD_LABELS: Record<keyof SubmissionFields, string> = {
+    appName: "App Name", subtitle: "Subtitle", bundleId: "Bundle ID",
+    version: "Version", buildNumber: "Build Number", description: "Description",
+    keywords: "Keywords", supportUrl: "Support URL",
+    privacyPolicyUrl: "Privacy Policy URL", category: "Category", ageRating: "Age Rating",
+  };
+
+  // Compute missing/modified submission fields for the Fix panel
+  const fieldIssues: FieldIssue[] = useMemo(() => {
+    const keys = Object.keys(storeFields) as (keyof SubmissionFields)[];
+    return keys
+      .map((k) => {
+        const s = getFieldStatus(storeFields[k], storeDetected[k]);
+        if (s === "missing") return { key: k, label: FIELD_LABELS[k], fieldStatus: "missing" as const };
+        if (s === "modified") return { key: k, label: FIELD_LABELS[k], fieldStatus: "modified" as const };
+        return null;
+      })
+      .filter((x): x is FieldIssue => x !== null);
+  }, [storeFields, storeDetected]);
+
   // Apply filter then group by category
   const groupedChecklist = useMemo(() => {
     const filtered = enrichedChecklist.filter((item) => {
@@ -240,7 +264,32 @@ export default function AppDetail() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
+      {/* Persistent sync bar */}
+      <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-xl border border-border/40 bg-muted/10 text-xs font-mono">
+        <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Submission Data</span>
+        <span className="text-muted-foreground/30 mr-2">·</span>
+        <button
+          onClick={() => syncDetected({ appName: storeFields.appName || undefined, bundleId: storeFields.bundleId || undefined, version: storeFields.version || undefined, buildNumber: storeFields.buildNumber || undefined, supportUrl: storeFields.supportUrl || undefined, privacyPolicyUrl: storeFields.privacyPolicyUrl || undefined })}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors font-semibold"
+          data-testid="sync-bar-sync"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Sync From Build
+        </button>
+        <button
+          onClick={applyAllDetectedValues}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors font-semibold"
+          data-testid="sync-bar-apply"
+        >
+          <ChevronsDown className="h-3 w-3" />
+          Apply All Detected
+        </button>
+        <span className="ml-auto text-muted-foreground/40">
+          {fieldIssues.filter(f => f.fieldStatus === "missing").length} missing · {fieldIssues.filter(f => f.fieldStatus === "modified").length} modified
+        </span>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
         <TabsList className="bg-card border border-border rounded-lg p-1 w-full justify-start h-auto flex-wrap gap-0.5">
           <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
             <CheckSquare className="mr-2 h-4 w-4" /> Operations Checklist
@@ -286,10 +335,11 @@ export default function AppDetail() {
                 ))}
               </div>
 
-              {/* Fix Critical Issues panel */}
+              {/* Fix This Next panel */}
               {filterMode !== "review" && (
                 <FixPanel
                   blockers={blockers}
+                  fieldIssues={fieldIssues}
                   onInternalNav={(target) => setActiveTab(target)}
                 />
               )}
@@ -326,6 +376,7 @@ export default function AppDetail() {
                                 blocker={item.blocker}
                                 helpText={item.helpText}
                                 actions={item.actions}
+                                fieldKey={item.fieldKey}
                                 onToggle={handleChecklistToggle}
                                 onInternalNav={(target) => setActiveTab(target)}
                               />

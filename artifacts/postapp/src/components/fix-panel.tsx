@@ -1,7 +1,13 @@
-import { AlertTriangle, ExternalLink, ArrowRight, Info } from "lucide-react";
+import { AlertTriangle, ExternalLink, ArrowRight, Info, XCircle, Zap } from "lucide-react";
 import { ChecklistAction, MODAL_LIBRARY } from "@/data/checklist-meta";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
+
+export type FieldIssue = {
+  key: string;
+  label: string;
+  fieldStatus: "missing" | "modified";
+};
 
 interface BlockerItem {
   id: number;
@@ -11,14 +17,33 @@ interface BlockerItem {
 
 interface FixPanelProps {
   blockers: BlockerItem[];
+  fieldIssues?: FieldIssue[];
   onInternalNav: (target: string) => void;
 }
 
-export function FixPanel({ blockers, onInternalNav }: FixPanelProps) {
+type UnifiedIssue =
+  | { kind: "field-missing"; label: string; fieldKey: string }
+  | { kind: "field-modified"; label: string; fieldKey: string }
+  | { kind: "checklist"; label: string; actions: ChecklistAction[] };
+
+export function FixPanel({ blockers, fieldIssues = [], onInternalNav }: FixPanelProps) {
   const [modalKey, setModalKey] = useState<string | null>(null);
   const modal = modalKey ? MODAL_LIBRARY[modalKey] : null;
 
-  if (blockers.length === 0) return null;
+  const unified: UnifiedIssue[] = [
+    ...fieldIssues
+      .filter((f) => f.fieldStatus === "missing")
+      .map((f): UnifiedIssue => ({ kind: "field-missing", label: f.label, fieldKey: f.key })),
+    ...fieldIssues
+      .filter((f) => f.fieldStatus === "modified")
+      .map((f): UnifiedIssue => ({ kind: "field-modified", label: f.label, fieldKey: f.key })),
+    ...blockers.map((b): UnifiedIssue => ({ kind: "checklist", label: b.label, actions: b.actions })),
+  ];
+
+  if (unified.length === 0) return null;
+
+  const total = unified.length;
+  const top = unified.slice(0, 3);
 
   function handleAction(action: ChecklistAction) {
     if (action.type === "external") {
@@ -30,8 +55,6 @@ export function FixPanel({ blockers, onInternalNav }: FixPanelProps) {
     }
   }
 
-  const top = blockers.slice(0, 3);
-
   return (
     <>
       <div className="rounded-xl border border-red-500/30 bg-red-500/5 overflow-hidden mb-6">
@@ -39,25 +62,45 @@ export function FixPanel({ blockers, onInternalNav }: FixPanelProps) {
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-red-400" />
             <span className="font-mono text-sm font-semibold text-red-400 uppercase tracking-wider">
-              Fix Critical Issues
+              Fix This Next
             </span>
           </div>
           <span className="font-mono text-xs font-bold text-red-400 bg-red-500/20 border border-red-500/30 rounded-full px-2 py-0.5">
-            {blockers.length} blocker{blockers.length !== 1 ? "s" : ""}
+            {total} issue{total !== 1 ? "s" : ""}
           </span>
         </div>
 
         <div className="divide-y divide-red-500/10">
-          {top.map((item) => (
-            <div key={item.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium leading-snug">{item.label}</p>
+          {top.map((issue, idx) => (
+            <div key={idx} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex-1 min-w-0 flex items-start gap-2">
+                {issue.kind === "field-missing" && <XCircle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />}
+                {issue.kind === "field-modified" && <Zap className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />}
+                {issue.kind === "checklist" && <AlertTriangle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />}
+                <div>
+                  <p className="text-sm font-medium leading-snug">{issue.label}</p>
+                  {issue.kind === "field-missing" && (
+                    <p className="text-[11px] font-mono text-red-400/60 mt-0.5">Field is empty — required for submission</p>
+                  )}
+                  {issue.kind === "field-modified" && (
+                    <p className="text-[11px] font-mono text-amber-400/60 mt-0.5">Value changed from detected — review before submitting</p>
+                  )}
+                </div>
               </div>
-              {item.actions.length > 0 && (
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  {item.actions.slice(0, 2).map((action, idx) => (
+              <div className="flex flex-wrap gap-2 shrink-0">
+                {issue.kind !== "checklist" && (
+                  <button
+                    onClick={() => onInternalNav("submission")}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-colors"
+                  >
+                    <ArrowRight className="h-2.5 w-2.5" />
+                    Open Submission Data
+                  </button>
+                )}
+                {issue.kind === "checklist" &&
+                  issue.actions.slice(0, 2).map((action, i) => (
                     <button
-                      key={idx}
+                      key={i}
                       onClick={() => handleAction(action)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 transition-colors"
                     >
@@ -67,14 +110,13 @@ export function FixPanel({ blockers, onInternalNav }: FixPanelProps) {
                       {action.label}
                     </button>
                   ))}
-                </div>
-              )}
+              </div>
             </div>
           ))}
 
-          {blockers.length > 3 && (
+          {total > 3 && (
             <div className="px-4 py-2.5 text-xs font-mono text-red-400/60 text-center">
-              +{blockers.length - 3} more critical issue{blockers.length - 3 !== 1 ? "s" : ""} — resolve above first
+              +{total - 3} more issue{total - 3 !== 1 ? "s" : ""} — resolve above first
             </div>
           )}
         </div>

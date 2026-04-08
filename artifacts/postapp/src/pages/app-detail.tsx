@@ -31,7 +31,7 @@ import { FixPanel } from "@/components/fix-panel";
 import { SubmissionEditor } from "@/components/submission-editor";
 import { AppleConnectPanel } from "@/components/apple-connect-panel";
 import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } from "@/data/checklist-meta";
-import { useSubmissionStore, SubmissionFields } from "@/state/submission-store";
+import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
 import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow } from "lucide-react";
@@ -82,14 +82,25 @@ export default function AppDetail() {
 
   const handleSyncFromBuild = () => {
     if (!app) return;
-    const detected = {
-      appName: app.name ?? undefined,
-      bundleId: app.bundleId ?? undefined,
-      version: app.version ?? undefined,
-      description: app.description ?? undefined,
-      category: app.category ?? undefined,
+    const current = useSubmissionStore.getState().fields;
+    const detected: Record<string, string> = {};
+    const fromApp: Record<string, string | null | undefined> = {
+      appName: app.name,
+      bundleId: app.bundleId,
+      version: app.version,
+      description: app.description,
+      category: app.category,
     };
-    syncDetected(detected);
+    (Object.keys(fromApp) as (keyof typeof fromApp)[]).forEach((k) => {
+      if (fromApp[k]) detected[k] = fromApp[k] as string;
+    });
+    const manualKeys: (keyof typeof current)[] = [
+      "subtitle", "buildNumber", "keywords", "supportUrl", "privacyPolicyUrl", "ageRating",
+    ];
+    manualKeys.forEach((k) => {
+      if (current[k] && current[k].trim()) detected[k] = current[k];
+    });
+    syncDetected(detected as DetectedData);
     setSyncPulse(true);
     setTimeout(() => setSyncPulse(false), 1800);
     const count = Object.values(detected).filter(Boolean).length;

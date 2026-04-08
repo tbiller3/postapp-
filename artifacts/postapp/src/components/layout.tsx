@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Terminal, Plus, Activity, LayoutDashboard, Settings } from "lucide-react";
+import { Terminal, Plus, Activity, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -36,11 +36,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </Link>
         </nav>
 
-        <div className="mt-auto pt-8 border-t border-border">
+        <div className="mt-auto pt-4 border-t border-border space-y-3">
           <div className="flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground">
             <Activity className="h-4 w-4 text-green-500" />
             <span>Systems Normal</span>
           </div>
+          <p className="px-2 text-[10px] font-mono text-muted-foreground/40 leading-relaxed">
+            © {new Date().getFullYear()} Timothy Biller<br />
+            All rights reserved.
+          </p>
         </div>
       </aside>
 

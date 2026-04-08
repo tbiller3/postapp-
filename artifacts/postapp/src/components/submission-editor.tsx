@@ -132,11 +132,11 @@ export function SubmissionEditor({ onSave, isSaving }: SubmissionEditorProps) {
         </button>
         <button
           onClick={loadDemoSubmission}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors"
           data-testid="btn-load-demo"
         >
           <FlaskConical className="h-3 w-3" />
-          Load Demo Submission
+          Load Wait Wise Data
         </button>
       </div>
 

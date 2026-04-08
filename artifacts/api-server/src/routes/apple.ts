@@ -64,4 +64,23 @@ router.get("/apple/apps/:appleId/versions", async (req, res) => {
   }
 });
 
+router.get("/apple/apps/:appleId/localizations", async (req, res) => {
+  const { appleId } = req.params as { appleId: string };
+  try {
+    const data = await ascFetch(
+      `/apps/${appleId}/appInfos?include=appInfoLocalizations&fields[appInfoLocalizations]=locale,name,subtitle,description,keywords,supportUrl,marketingUrl,privacyPolicyUrl&limit=1`,
+    );
+    const localizations = (data.included ?? []).filter(
+      (item: { type: string }) => item.type === "appInfoLocalizations",
+    );
+    res.status(200).json({ data: localizations });
+    return;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    res.status(502).json({ error: message });
+    return;
+  }
+});
+
 export default router;
+

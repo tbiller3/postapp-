@@ -34,7 +34,7 @@ import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } f
 import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks } from "lucide-react";
 import { format } from "date-fns";
 
 type FilterMode = "all" | "critical" | "review";
@@ -58,6 +58,7 @@ export default function AppDetail() {
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
   const [syncPulse, setSyncPulse] = useState(false);
+  const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
 
   const { seedFromApp, reset, syncDetected, applyAllDetectedValues } = useSubmissionStore();
   const storeFields = useSubmissionStore((s) => s.fields);
@@ -111,6 +112,24 @@ export default function AppDetail() {
     setTimeout(() => setSyncPulse(false), 1800);
     const count = Object.values(detected).filter(Boolean).length;
     toast({ title: "Build Synced", description: `${count} field${count !== 1 ? "s" : ""} detected from your app record.` });
+  };
+
+  const handleResolveRevision = async (revisionId: number, resolved: boolean) => {
+    setResolvingIds((prev) => new Set(prev).add(revisionId));
+    try {
+      const res = await fetch(`/api/revisions/${revisionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resolved }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      await queryClient.invalidateQueries({ queryKey: getListRevisionsQueryKey(appId) });
+      toast({ title: resolved ? "Revision Resolved" : "Revision Reopened", description: resolved ? "Marked as resolved." : "Marked as active again." });
+    } catch {
+      toast({ title: "Error", description: "Could not update revision status.", variant: "destructive" });
+    } finally {
+      setResolvingIds((prev) => { const s = new Set(prev); s.delete(revisionId); return s; });
+    }
   };
 
   const handleResetSubmission = () => {
@@ -474,28 +493,55 @@ export default function AppDetail() {
               {isLoadingRevisions ? (
                 <Skeleton className="h-32 w-full rounded-xl" />
               ) : revisions && revisions.length > 0 ? (
-                revisions.map((rev) => (
-                  <Card key={rev.id} className={`border-border ${rev.source === 'Apple Review' ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-blue-500'}`}>
-                    <CardHeader className="py-3 px-4 flex flex-row items-center justify-between bg-muted/20">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={`font-mono text-[10px] ${rev.source === 'Apple Review' ? 'text-amber-500 border-amber-500/30' : 'text-blue-400 border-blue-400/30'}`}>
-                          {rev.source}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground font-mono">
-                          {format(new Date(rev.createdAt), "MMM d, HH:mm")}
-                        </span>
-                      </div>
-                      {rev.resolved ? (
-                        <span className="text-xs font-mono text-green-500 border border-green-500/30 bg-green-500/10 px-2 py-0.5 rounded">RESOLVED</span>
-                      ) : (
-                        <span className="text-xs font-mono text-amber-500 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded">ACTIVE</span>
-                      )}
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <p className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{rev.note}</p>
-                    </CardContent>
-                  </Card>
-                ))
+                revisions.map((rev) => {
+                  const isResolving = resolvingIds.has(rev.id);
+                  const sourceColor = rev.source === 'Apple Review'
+                    ? 'border-l-amber-500'
+                    : rev.source === 'Tester'
+                    ? 'border-l-purple-500'
+                    : 'border-l-blue-500';
+                  return (
+                    <Card key={rev.id} className={`border-border border-l-4 ${sourceColor} ${rev.resolved ? 'opacity-60' : ''} transition-opacity`}>
+                      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between bg-muted/20">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`font-mono text-[10px] ${
+                            rev.source === 'Apple Review' ? 'text-amber-500 border-amber-500/30'
+                            : rev.source === 'Tester' ? 'text-purple-400 border-purple-400/30'
+                            : 'text-blue-400 border-blue-400/30'
+                          }`}>
+                            {rev.source}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {format(new Date(rev.createdAt), "MMM d, HH:mm")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {rev.resolved ? (
+                            <span className="text-xs font-mono text-green-500 border border-green-500/30 bg-green-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />RESOLVED
+                            </span>
+                          ) : (
+                            <span className="text-xs font-mono text-amber-500 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded">ACTIVE</span>
+                          )}
+                          <button
+                            onClick={() => handleResolveRevision(rev.id, !rev.resolved)}
+                            disabled={isResolving}
+                            className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-all ${
+                              rev.resolved
+                                ? 'text-muted-foreground border-border hover:border-amber-500/40 hover:text-amber-400'
+                                : 'text-green-400 border-green-500/20 bg-green-500/5 hover:bg-green-500/15'
+                            } disabled:opacity-40`}
+                          >
+                            {isResolving ? '…' : rev.resolved ? 'Reopen' : 'Resolve'}
+                          </button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4">
+                        <p className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{rev.note}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               ) : (
                 <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">
                   <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
@@ -505,7 +551,11 @@ export default function AppDetail() {
               )}
             </div>
 
-            <div>
+            <div className="space-y-4">
+              {/* Pre-submission readiness card */}
+              <PreSubmissionCard revisions={revisions ?? []} checklist={checklist ?? []} />
+
+              {/* New entry form */}
               <Card className="bg-card border-border sticky top-4">
                 <CardHeader>
                   <CardTitle className="text-sm font-mono uppercase tracking-wider flex items-center gap-2">
@@ -579,4 +629,102 @@ function Badge({ children, variant, className }: { children: React.ReactNode, va
       {children}
     </div>
   )
+}
+
+type RevisionItem = { id: number; resolved: boolean; source: string };
+type ChecklistItem = { id: number; status: string };
+
+function PreSubmissionCard({ revisions, checklist }: { revisions: RevisionItem[]; checklist: ChecklistItem[] }) {
+  const fields = useSubmissionStore((s) => s.fields);
+
+  const activeRevisions = revisions.filter((r) => !r.resolved);
+  const appleRejections = activeRevisions.filter((r) => r.source === "Apple Review");
+
+  const requiredFields: { label: string; value: string | undefined | null }[] = [
+    { label: "App Name", value: fields.appName },
+    { label: "Bundle ID", value: fields.bundleId },
+    { label: "Version", value: fields.version },
+    { label: "Build #", value: fields.buildNumber },
+    { label: "Description", value: fields.description },
+    { label: "Keywords", value: fields.keywords },
+    { label: "Support URL", value: fields.supportUrl },
+    { label: "Privacy URL", value: fields.privacyPolicyUrl },
+    { label: "Category", value: fields.category },
+    { label: "Age Rating", value: fields.ageRating },
+  ];
+  const filledFields = requiredFields.filter((f) => f.value?.trim());
+  const missingFields = requiredFields.filter((f) => !f.value?.trim());
+
+  const checklistTotal = checklist.length;
+  const checklistDone = checklist.filter((c) => c.status === "complete").length;
+  const checklistPct = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
+
+  const isReady = appleRejections.length === 0 && missingFields.length === 0 && checklistPct === 100;
+  const blockers = [
+    ...appleRejections.length > 0 ? [`${appleRejections.length} unresolved Apple rejection${appleRejections.length > 1 ? 's' : ''}`] : [],
+    ...missingFields.map((f) => `${f.label} missing`),
+    ...checklistPct < 100 ? [`Checklist ${checklistPct}% complete`] : [],
+  ];
+
+  return (
+    <Card className={`border ${isReady ? 'border-green-500/30 bg-green-500/5' : 'border-amber-500/20 bg-amber-500/5'}`}>
+      <CardHeader className="py-3 px-4 border-b border-border/40">
+        <CardTitle className="text-xs font-mono uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+          <BarChart2 className="h-3.5 w-3.5" />
+          Submission Readiness
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 space-y-3">
+        {/* Verdict */}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono font-semibold ${
+          isReady
+            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+            : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+        }`}>
+          {isReady ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+          {isReady ? 'Ready to Submit' : `${blockers.length} issue${blockers.length > 1 ? 's' : ''} blocking`}
+        </div>
+
+        {/* Blockers list */}
+        {blockers.length > 0 && (
+          <div className="space-y-1">
+            {blockers.map((b) => (
+              <div key={b} className="flex items-start gap-2 text-[11px] font-mono text-muted-foreground">
+                <XCircle className="h-3 w-3 text-red-400 shrink-0 mt-0.5" />
+                {b}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className="text-center p-2 rounded-lg bg-background/40 border border-border/30">
+            <div className="text-base font-mono font-bold text-foreground">{filledFields.length}/{requiredFields.length}</div>
+            <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 mt-0.5">Fields</div>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/40 border border-border/30">
+            <div className={`text-base font-mono font-bold ${checklistPct === 100 ? 'text-green-400' : 'text-foreground'}`}>{checklistPct}%</div>
+            <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 mt-0.5">Checklist</div>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-background/40 border border-border/30">
+            <div className={`text-base font-mono font-bold ${appleRejections.length > 0 ? 'text-red-400' : 'text-green-400'}`}>{appleRejections.length}</div>
+            <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 mt-0.5">Rejections</div>
+          </div>
+        </div>
+
+        {/* Revision summary */}
+        <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground/70 pt-1 border-t border-border/30">
+          <div className="flex items-center gap-1.5">
+            <ListChecks className="h-3 w-3" />
+            {revisions.length} total log entries
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="h-3 w-3 text-green-400" />
+            {revisions.filter((r) => r.resolved).length} resolved
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }

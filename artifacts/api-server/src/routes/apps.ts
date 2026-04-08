@@ -172,6 +172,29 @@ router.post("/apps/:id/revisions", async (req, res): Promise<void> => {
   res.status(201).json(revision);
 });
 
+router.patch("/revisions/:revisionId", async (req, res): Promise<void> => {
+  const revisionId = parseInt(req.params.revisionId, 10);
+  if (isNaN(revisionId)) {
+    res.status(400).json({ error: "Invalid revision ID" });
+    return;
+  }
+  const { resolved } = req.body as { resolved: boolean };
+  if (typeof resolved !== "boolean") {
+    res.status(400).json({ error: "resolved must be a boolean" });
+    return;
+  }
+  const [revision] = await db
+    .update(revisionsTable)
+    .set({ resolved })
+    .where(eq(revisionsTable.id, revisionId))
+    .returning();
+  if (!revision) {
+    res.status(404).json({ error: "Revision not found" });
+    return;
+  }
+  res.json(revision);
+});
+
 router.get("/apps/:id/checklist", async (req, res): Promise<void> => {
   const params = GetChecklistParams.safeParse(req.params);
   if (!params.success) {

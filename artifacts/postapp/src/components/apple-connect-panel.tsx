@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppleConnectStore } from "@/state/apple-connect-store";
 import { useSubmissionStore } from "@/state/submission-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, ExternalLink, Link2,
-  Layers, Clock, Download,
+  Layers, Clock, Download, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AppleVersion } from "@/types/apple";
@@ -128,21 +128,37 @@ function VersionRow({ v }: { v: AppleVersion }) {
 // ---------------------------------------------------------------------------
 // Three-way comparison table
 // ---------------------------------------------------------------------------
-type CompareField = { label: string; local: string; detected: string; apple: string };
+type CompareField = { label: string; local: string; detected: string; apple: string; long?: boolean };
 
-function ThreeWayRow({ label, local, detected, apple }: CompareField) {
-  const localMatchesApple = local && apple && local.trim() === apple.trim();
-  const detectedMatchesApple = detected && apple && detected.trim() === apple.trim();
+function ThreeWayRow({ label, local, detected, apple, long }: CompareField) {
+  const [expanded, setExpanded] = useState(false);
+  const localMatchesApple = !!(local && apple && local.trim() === apple.trim());
+  const mismatch = !!(local && apple && !localMatchesApple);
+
+  const display = (val: string) => {
+    if (!val) return <span className="text-muted-foreground/30 italic">—</span>;
+    if (long && !expanded && val.length > 60) {
+      return (
+        <button onClick={() => setExpanded(true)} className="text-left text-blue-400/70 hover:text-blue-400 transition-colors">
+          {val.slice(0, 60)}<span className="opacity-50">… show more</span>
+        </button>
+      );
+    }
+    return <span className={expanded ? "whitespace-pre-wrap" : "truncate"}>{val}</span>;
+  };
 
   return (
-    <div className="grid grid-cols-4 gap-2 py-2.5 px-4 text-xs font-mono border-b border-border/30 last:border-0">
+    <div className={cn(
+      "grid grid-cols-4 gap-2 py-2.5 px-4 text-xs font-mono border-b border-border/30 last:border-0",
+      long && expanded && "items-start",
+    )}>
       <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider pt-0.5">{label}</span>
-      <span className={cn("truncate", !local && "text-muted-foreground/30 italic")}>{local || "—"}</span>
-      <span className={cn("truncate", !detected && "text-muted-foreground/30 italic")}>{detected || "—"}</span>
-      <div className="flex items-center gap-1.5">
-        <span className={cn("truncate", !apple && "text-muted-foreground/30 italic")}>{apple || "—"}</span>
-        {localMatchesApple && <CheckCircle2 className="h-3 w-3 text-green-400 shrink-0" />}
-        {!localMatchesApple && local && apple && <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />}
+      <span className={cn(long ? "" : "truncate")}>{display(local)}</span>
+      <span className={cn(long ? "" : "truncate")}>{display(detected)}</span>
+      <div className={cn("flex gap-1.5", long ? "items-start" : "items-center")}>
+        <span className={cn(long ? "" : "truncate")}>{display(apple)}</span>
+        {localMatchesApple && <CheckCircle2 className="h-3 w-3 text-green-400 shrink-0 mt-0.5" />}
+        {mismatch && <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />}
       </div>
     </div>
   );
@@ -152,27 +168,67 @@ function ThreeWayRow({ label, local, detected, apple }: CompareField) {
 // Main panel
 // ---------------------------------------------------------------------------
 export function AppleConnectPanel() {
-  const { status, apps, selectedAppId, versions, builds, checkStatus, selectApp, syncToSubmission, isSyncing } = useAppleConnectStore();
+  const {
+    status, apps, selectedAppId, versions, builds, localizations,
+    checkStatus, selectApp, syncToSubmission, isSyncing, autoMatchedAppId, tryAutoMatch,
+  } = useAppleConnectStore();
   const { fields, detected } = useSubmissionStore();
 
   useEffect(() => {
     checkStatus();
   }, []);
 
+  useEffect(() => {
+    if (status === "connected" && apps.length > 0) {
+      tryAutoMatch();
+    }
+  }, [status, apps.length, fields.bundleId]);
+
   const selectedApp = useMemo(() => apps.find((a) => a.id === selectedAppId) ?? null, [apps, selectedAppId]);
 
+  const primaryLocale = selectedApp?.attributes.primaryLocale ?? "en-US";
+  const localization = useMemo(
+    () => localizations.find((l) => l.attributes.locale === primaryLocale) ?? localizations[0] ?? null,
+    [localizations, primaryLocale],
+  );
+
   const latestBuildNumber = builds[0]?.attributes.version ?? "";
+  const appleVersion = versions[0]?.attributes.versionString ?? "";
 
   const compareFields: CompareField[] = useMemo(() => {
     if (!selectedApp) return [];
     const attr = selectedApp.attributes;
+    const la = localization?.attributes;
     return [
-      { label: "Name", local: fields.appName, detected: detected.appName ?? "", apple: attr.name },
-      { label: "Bundle ID", local: fields.bundleId, detected: detected.bundleId ?? "", apple: attr.bundleId },
-      { label: "Version", local: fields.version, detected: detected.version ?? "", apple: versions[0]?.attributes.versionString ?? "" },
-      { label: "Build #", local: fields.buildNumber, detected: detected.buildNumber ?? "", apple: latestBuildNumber },
+      { label: "Name",        local: fields.appName,       detected: detected.appName ?? "",       apple: la?.name ?? attr.name },
+      { label: "Subtitle",    local: fields.subtitle ?? "", detected: detected.subtitle ?? "",       apple: la?.subtitle ?? "" },
+      { label: "Bundle ID",   local: fields.bundleId,      detected: detected.bundleId ?? "",       apple: attr.bundleId },
+      { label: "Version",     local: fields.version,       detected: detected.version ?? "",        apple: appleVersion },
+      { label: "Build #",     local: fields.buildNumber ?? "", detected: detected.buildNumber ?? "", apple: latestBuildNumber },
+      { label: "Category",    local: fields.category ?? "", detected: detected.category ?? "",      apple: "" },
+      { label: "Age Rating",  local: fields.ageRating ?? "", detected: detected.ageRating ?? "",    apple: "" },
+      { label: "Keywords",    local: fields.keywords ?? "", detected: detected.keywords ?? "",       apple: la?.keywords ?? "", long: true },
+      { label: "Description", local: fields.description,   detected: detected.description ?? "",    apple: la?.description ?? "", long: true },
+      { label: "Support URL", local: fields.supportUrl ?? "", detected: detected.supportUrl ?? "", apple: la?.supportUrl ?? "" },
+      { label: "Privacy URL", local: fields.privacyPolicyUrl ?? "", detected: detected.privacyPolicyUrl ?? "", apple: la?.privacyPolicyUrl ?? "" },
     ];
-  }, [selectedApp, fields, detected, versions, builds, latestBuildNumber]);
+  }, [selectedApp, fields, detected, localization, appleVersion, latestBuildNumber]);
+
+  const syncableCount = useMemo(() => {
+    if (!selectedApp) return 0;
+    const attr = selectedApp.attributes;
+    const la = localization?.attributes;
+    return [
+      attr.bundleId,
+      attr.name,
+      latestBuildNumber,
+      la?.subtitle,
+      la?.description,
+      la?.keywords,
+      la?.supportUrl,
+      la?.privacyPolicyUrl,
+    ].filter(Boolean).length;
+  }, [selectedApp, localization, latestBuildNumber]);
 
   return (
     <div className="space-y-5">
@@ -183,10 +239,18 @@ export function AppleConnectPanel() {
           {/* App selector */}
           <Card className="bg-card border-border">
             <CardHeader className="py-3 px-4 border-b border-border/60">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Link2 className="h-3.5 w-3.5" />
-                Select Apple App
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Link2 className="h-3.5 w-3.5" />
+                  Select Apple App
+                </CardTitle>
+                {autoMatchedAppId && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-[10px] font-mono text-green-400">
+                    <Zap className="h-3 w-3" />
+                    Auto-matched by Bundle ID
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-4">
               {apps.length === 0 ? (
@@ -213,7 +277,7 @@ export function AppleConnectPanel() {
           {selectedApp && (
             <Card className="bg-card border-border overflow-hidden">
               <CardHeader className="py-3 px-4 border-b border-border/60">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <CardTitle className="text-xs font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5" />
                     Three-Way Verification
@@ -222,16 +286,17 @@ export function AppleConnectPanel() {
                     onClick={syncToSubmission}
                     disabled={isSyncing}
                     className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border transition-all",
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border transition-all shrink-0",
                       isSyncing
                         ? "bg-green-500/15 border-green-500/30 text-green-400"
                         : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
                     )}
                   >
-                    {isSyncing
-                      ? <><CheckCircle2 className="h-3 w-3" />Synced!</>
-                      : <><Download className="h-3 w-3" />Sync Bundle ID &amp; Build #</>
-                    }
+                    {isSyncing ? (
+                      <><CheckCircle2 className="h-3 w-3" />All Fields Synced!</>
+                    ) : (
+                      <><Download className="h-3 w-3" />Sync All from Apple ({syncableCount} fields)</>
+                    )}
                   </button>
                 </div>
               </CardHeader>
@@ -244,6 +309,12 @@ export function AppleConnectPanel() {
               <div className="divide-y divide-border/20">
                 {compareFields.map((f) => <ThreeWayRow key={f.label} {...f} />)}
               </div>
+              {localizations.length === 0 && (
+                <div className="px-4 py-3 border-t border-border/40 bg-muted/5 text-[11px] font-mono text-muted-foreground/50 flex items-center gap-2">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Fetching localizations from App Store Connect…
+                </div>
+              )}
             </Card>
           )}
 

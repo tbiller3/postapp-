@@ -38,4 +38,21 @@ export interface AppleBuild {
   attributes: AppleBuildAttributes;
 }
 
+export interface AppleLocalizationAttributes {
+  locale: string;
+  name: string;
+  subtitle: string | null;
+  description: string | null;
+  keywords: string | null;
+  supportUrl: string | null;
+  marketingUrl: string | null;
+  privacyPolicyUrl: string | null;
+}
+
+export interface AppleLocalization {
+  id: string;
+  type: "appInfoLocalizations";
+  attributes: AppleLocalizationAttributes;
+}
+
 export type AppleConnectionStatus = "unconfigured" | "loading" | "connected" | "error";

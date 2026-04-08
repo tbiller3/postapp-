@@ -29,11 +29,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { ChecklistItemCard } from "@/components/checklist-item-card";
 import { FixPanel } from "@/components/fix-panel";
 import { SubmissionEditor } from "@/components/submission-editor";
+import { AppleConnectPanel } from "@/components/apple-connect-panel";
 import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } from "@/data/checklist-meta";
 import { useSubmissionStore, SubmissionFields } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow } from "lucide-react";
 import { format } from "date-fns";
 
 type FilterMode = "all" | "critical" | "review";
@@ -305,6 +306,9 @@ export default function AppDetail() {
           <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500">
             <ShieldAlert className="mr-2 h-4 w-4" /> Review Logs
           </TabsTrigger>
+          <TabsTrigger value="apple" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400">
+            <AppWindow className="mr-2 h-4 w-4" /> Apple Connect
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="checklist" className="mt-6">
@@ -495,6 +499,10 @@ export default function AppDetail() {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="apple" className="mt-6">
+          <AppleConnectPanel />
         </TabsContent>
       </Tabs>
     </div>

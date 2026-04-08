@@ -32,6 +32,8 @@ export interface App {
   /** @nullable */
   privacyPolicyUrl: string | null;
   /** @nullable */
+  reviewNotes: string | null;
+  /** @nullable */
   replitUrl: string | null;
   createdAt: string;
   updatedAt: string;

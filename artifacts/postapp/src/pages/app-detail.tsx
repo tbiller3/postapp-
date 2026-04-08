@@ -57,6 +57,7 @@ export default function AppDetail() {
   const [activeTab, setActiveTab] = useState("checklist");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
+  const [syncPulse, setSyncPulse] = useState(false);
 
   const { seedFromApp, reset, syncDetected, applyAllDetectedValues } = useSubmissionStore();
   const storeFields = useSubmissionStore((s) => s.fields);
@@ -78,6 +79,22 @@ export default function AppDetail() {
   const updateApp = useUpdateApp();
   const createRevision = useCreateRevision();
   const updateChecklistItem = useUpdateChecklistItem();
+
+  const handleSyncFromBuild = () => {
+    if (!app) return;
+    const detected = {
+      appName: app.name ?? undefined,
+      bundleId: app.bundleId ?? undefined,
+      version: app.version ?? undefined,
+      description: app.description ?? undefined,
+      category: app.category ?? undefined,
+    };
+    syncDetected(detected);
+    setSyncPulse(true);
+    setTimeout(() => setSyncPulse(false), 1800);
+    const count = Object.values(detected).filter(Boolean).length;
+    toast({ title: "Build Synced", description: `${count} field${count !== 1 ? "s" : ""} detected from your app record.` });
+  };
 
   const handleSaveSubmission = async () => {
     const { fields } = useSubmissionStore.getState();
@@ -270,15 +287,22 @@ export default function AppDetail() {
         <span className="text-muted-foreground/60 font-semibold uppercase tracking-wider mr-1">Submission Data</span>
         <span className="text-muted-foreground/30 mr-2">·</span>
         <button
-          onClick={() => syncDetected({ appName: storeFields.appName || undefined, bundleId: storeFields.bundleId || undefined, version: storeFields.version || undefined, buildNumber: storeFields.buildNumber || undefined, supportUrl: storeFields.supportUrl || undefined, privacyPolicyUrl: storeFields.privacyPolicyUrl || undefined })}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors font-semibold"
+          onClick={handleSyncFromBuild}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border font-semibold transition-all ${
+            syncPulse
+              ? "bg-green-500/15 border-green-500/30 text-green-400"
+              : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
+          }`}
           data-testid="sync-bar-sync"
         >
-          <RefreshCw className="h-3 w-3" />
-          Sync From Build
+          <RefreshCw className={`h-3 w-3 ${syncPulse ? "animate-spin" : ""}`} />
+          {syncPulse ? "Synced!" : "Sync From Build"}
         </button>
         <button
-          onClick={applyAllDetectedValues}
+          onClick={() => {
+            applyAllDetectedValues();
+            toast({ title: "Detected Values Applied", description: "All detected fields have been filled in." });
+          }}
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors font-semibold"
           data-testid="sync-bar-apply"
         >

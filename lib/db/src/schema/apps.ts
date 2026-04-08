@@ -17,6 +17,7 @@ export const appsTable = pgTable("apps", {
   keywords: text("keywords"),
   supportUrl: text("support_url"),
   privacyPolicyUrl: text("privacy_policy_url"),
+  reviewNotes: text("review_notes"),
   replitUrl: text("replit_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

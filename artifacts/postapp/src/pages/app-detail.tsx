@@ -59,6 +59,8 @@ export default function AppDetail() {
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
   const [syncPulse, setSyncPulse] = useState(false);
   const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [isSavingReviewNotes, setIsSavingReviewNotes] = useState(false);
 
   const { seedFromApp, reset, syncDetected, applyAllDetectedValues } = useSubmissionStore();
   const storeFields = useSubmissionStore((s) => s.fields);
@@ -80,6 +82,7 @@ export default function AppDetail() {
       supportUrl: app.supportUrl ?? "",
       privacyPolicyUrl: app.privacyPolicyUrl ?? "",
     });
+    setReviewNotes(app.reviewNotes ?? "");
     return () => reset();
   }, [app?.id]);
 
@@ -178,6 +181,24 @@ export default function AppDetail() {
         onError: () => {
           toast({ title: "Save Failed", description: "Could not save submission data.", variant: "destructive" });
           setIsSavingSubmission(false);
+        },
+      },
+    );
+  };
+
+  const handleSaveReviewNotes = () => {
+    setIsSavingReviewNotes(true);
+    updateApp.mutate(
+      { id: appId, data: { reviewNotes } },
+      {
+        onSuccess: () => {
+          toast({ title: "Review Notes Saved", description: "Reviewer notes updated successfully." });
+          queryClient.invalidateQueries({ queryKey: getGetAppQueryKey(appId) });
+          setIsSavingReviewNotes(false);
+        },
+        onError: () => {
+          toast({ title: "Save Failed", description: "Could not save review notes.", variant: "destructive" });
+          setIsSavingReviewNotes(false);
         },
       },
     );
@@ -496,8 +517,47 @@ export default function AppDetail() {
           )}
         </TabsContent>
 
-        <TabsContent value="submission" className="mt-6">
+        <TabsContent value="submission" className="mt-6 space-y-6">
           <SubmissionEditor onSave={handleSaveSubmission} isSaving={isSavingSubmission} onReset={handleResetSubmission} />
+
+          {/* Reviewer Notes */}
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-mono uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-violet-400" />
+                  Notes for Reviewer
+                </CardTitle>
+                <span className="text-[10px] font-mono text-muted-foreground border border-border px-2 py-0.5 rounded">
+                  App Store Connect → Notes
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                This text goes in the "Notes" field when you submit for review. Explain navigation, optional features, and anything the reviewer should know.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="Describe how to navigate the app, any special features, test accounts, or optional functionality the reviewer should know about..."
+                className="font-mono text-sm min-h-[160px] resize-y bg-background/50"
+              />
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {reviewNotes.length} chars
+                </span>
+                <Button
+                  size="sm"
+                  onClick={handleSaveReviewNotes}
+                  disabled={isSavingReviewNotes}
+                  className="font-mono text-xs"
+                >
+                  {isSavingReviewNotes ? "Saving…" : "Save Notes"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="revisions" className="mt-6">

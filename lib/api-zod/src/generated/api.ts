@@ -47,6 +47,7 @@ export const ListAppsResponseItem = zod.object({
   keywords: zod.string().nullable(),
   supportUrl: zod.string().nullable(),
   privacyPolicyUrl: zod.string().nullable(),
+  reviewNotes: zod.string().nullable(),
   replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -95,6 +96,7 @@ export const GetAppResponse = zod.object({
   keywords: zod.string().nullable(),
   supportUrl: zod.string().nullable(),
   privacyPolicyUrl: zod.string().nullable(),
+  reviewNotes: zod.string().nullable(),
   replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -121,6 +123,7 @@ export const UpdateAppBody = zod.object({
   keywords: zod.string().nullish(),
   supportUrl: zod.string().nullish(),
   privacyPolicyUrl: zod.string().nullish(),
+  reviewNotes: zod.string().nullish(),
   replitUrl: zod.string().nullish(),
 });
 
@@ -139,6 +142,7 @@ export const UpdateAppResponse = zod.object({
   keywords: zod.string().nullable(),
   supportUrl: zod.string().nullable(),
   privacyPolicyUrl: zod.string().nullable(),
+  reviewNotes: zod.string().nullable(),
   replitUrl: zod.string().nullable(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

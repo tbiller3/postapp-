@@ -31,5 +31,7 @@ export interface UpdateAppBody {
   /** @nullable */
   privacyPolicyUrl?: string | null;
   /** @nullable */
+  reviewNotes?: string | null;
+  /** @nullable */
   replitUrl?: string | null;
 }

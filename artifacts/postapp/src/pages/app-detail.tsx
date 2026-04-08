@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -28,8 +28,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { ChecklistItemCard } from "@/components/checklist-item-card";
 import { FixPanel } from "@/components/fix-panel";
+import { SubmissionEditor } from "@/components/submission-editor";
 import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } from "@/data/checklist-meta";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink } from "lucide-react";
+import { useSubmissionStore } from "@/state/submission-store";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 type FilterMode = "all" | "critical" | "review";
@@ -51,10 +53,54 @@ export default function AppDetail() {
 
   const [activeTab, setActiveTab] = useState("checklist");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [isSavingSubmission, setIsSavingSubmission] = useState(false);
+
+  const { seedFromApp, reset } = useSubmissionStore();
+
+  // Seed submission store from DB data when app loads, reset on unmount
+  useEffect(() => {
+    if (!app) return;
+    seedFromApp({
+      appName: app.name ?? "",
+      bundleId: app.bundleId ?? "",
+      version: app.version ?? "",
+      description: app.description ?? "",
+      category: app.category ?? "",
+    });
+    return () => reset();
+  }, [app?.id]);
 
   const updateApp = useUpdateApp();
   const createRevision = useCreateRevision();
   const updateChecklistItem = useUpdateChecklistItem();
+
+  const handleSaveSubmission = async () => {
+    const { data: storeData } = useSubmissionStore.getState();
+    setIsSavingSubmission(true);
+    updateApp.mutate(
+      {
+        id: appId,
+        data: {
+          name: storeData.appName || app?.name || "",
+          bundleId: storeData.bundleId || undefined,
+          version: storeData.version || undefined,
+          description: storeData.description || undefined,
+          category: storeData.category || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Submission Data Saved", description: "App metadata updated successfully." });
+          queryClient.invalidateQueries({ queryKey: getGetAppQueryKey(appId) });
+          setIsSavingSubmission(false);
+        },
+        onError: () => {
+          toast({ title: "Save Failed", description: "Could not save submission data.", variant: "destructive" });
+          setIsSavingSubmission(false);
+        },
+      },
+    );
+  };
 
   const revisionForm = useForm<z.infer<typeof revisionSchema>>({
     resolver: zodResolver(revisionSchema),
@@ -195,7 +241,7 @@ export default function AppDetail() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-        <TabsList className="bg-card border border-border rounded-lg p-1 w-full justify-start h-auto">
+        <TabsList className="bg-card border border-border rounded-lg p-1 w-full justify-start h-auto flex-wrap gap-0.5">
           <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
             <CheckSquare className="mr-2 h-4 w-4" /> Operations Checklist
             {!isLoadingChecklist && totalItems > 0 && (
@@ -203,6 +249,9 @@ export default function AppDetail() {
                 {completedItems}/{totalItems}
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="submission" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400">
+            <FileText className="mr-2 h-4 w-4" /> Submission Data
           </TabsTrigger>
           <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500">
             <ShieldAlert className="mr-2 h-4 w-4" /> Review Logs
@@ -294,6 +343,10 @@ export default function AppDetail() {
               )}
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="submission" className="mt-6">
+          <SubmissionEditor onSave={handleSaveSubmission} isSaving={isSavingSubmission} />
         </TabsContent>
 
         <TabsContent value="revisions" className="mt-6">

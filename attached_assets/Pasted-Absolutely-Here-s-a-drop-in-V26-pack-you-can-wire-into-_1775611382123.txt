@@ -1,0 +1,746 @@
+Absolutely. Here’s a drop-in V26 pack you can wire into your current POSTAPP build.
+
+This version adds:
+	•	connected submission fields
+	•	editable metadata
+	•	pricing editor
+	•	detected-value matching
+	•	checklist field linkage
+	•	“use detected value” actions
+	•	mismatch / missing / verified statuses
+
+Assumption: your app is already React/Vite-based from V25.
+
+⸻
+
+1. Create these files
+
+src/state/submissionStore.ts
+
+import { create } from "zustand";
+
+export type PricingModel = "free" | "paid" | "subscription" | "freemium";
+
+export type SubmissionData = {
+  appName: string;
+  subtitle: string;
+  bundleId: string;
+  version: string;
+  buildNumber: string;
+  description: string;
+  keywords: string;
+  supportUrl: string;
+  privacyPolicyUrl: string;
+  category: string;
+  ageRating: string;
+  pricing: {
+    model: PricingModel;
+    priceTier: string;
+    hasIAP: boolean;
+    subscription: boolean;
+    trialOffered: boolean;
+    terms: string;
+  };
+};
+
+export type DetectedData = Partial<{
+  appName: string;
+  subtitle: string;
+  bundleId: string;
+  version: string;
+  buildNumber: string;
+  description: string;
+  keywords: string;
+  supportUrl: string;
+  privacyPolicyUrl: string;
+  category: string;
+  ageRating: string;
+}>;
+
+type SubmissionStore = {
+  data: SubmissionData;
+  detected: DetectedData;
+  setField: (key: keyof SubmissionData, value: any) => void;
+  setDetected: (payload: DetectedData) => void;
+  setPricingField: (
+    key: keyof SubmissionData["pricing"],
+    value: SubmissionData["pricing"][keyof SubmissionData["pricing"]]
+  ) => void;
+  useDetectedValue: (key: keyof DetectedData) => void;
+  seedDemoSubmission: () => void;
+};
+
+export const useSubmissionStore = create<SubmissionStore>((set, get) => ({
+  data: {
+    appName: "",
+    subtitle: "",
+    bundleId: "",
+    version: "",
+    buildNumber: "",
+    description: "",
+    keywords: "",
+    supportUrl: "",
+    privacyPolicyUrl: "",
+    category: "",
+    ageRating: "",
+    pricing: {
+      model: "free",
+      priceTier: "",
+      hasIAP: false,
+      subscription: false,
+      trialOffered: false,
+      terms: ""
+    }
+  },
+
+  detected: {},
+
+  setField: (key, value) =>
+    set((state) => ({
+      data: {
+        ...state.data,
+        [key]: value
+      }
+    })),
+
+  setDetected: (payload) =>
+    set(() => ({
+      detected: payload
+    })),
+
+  setPricingField: (key, value) =>
+    set((state) => ({
+      data: {
+        ...state.data,
+        pricing: {
+          ...state.data.pricing,
+          [key]: value
+        }
+      }
+    })),
+
+  useDetectedValue: (key) => {
+    const detectedValue = get().detected[key];
+    if (typeof detectedValue === "undefined") return;
+
+    set((state) => ({
+      data: {
+        ...state.data,
+        [key]: detectedValue
+      }
+    }));
+  },
+
+  seedDemoSubmission: () =>
+    set(() => ({
+      data: {
+        appName: "POSTAPP",
+        subtitle: "iOS Submission Assistant",
+        bundleId: "com.postapp.app",
+        version: "1.0.0",
+        buildNumber: "22",
+        description:
+          "POSTAPP helps iOS developers get apps ready for App Store submission.",
+        keywords: "app store,submission,ios,review,metadata",
+        supportUrl: "https://example.com/support",
+        privacyPolicyUrl: "https://example.com/privacy",
+        category: "Developer Tools",
+        ageRating: "4+",
+        pricing: {
+          model: "freemium",
+          priceTier: "",
+          hasIAP: true,
+          subscription: false,
+          trialOffered: false,
+          terms: ""
+        }
+      },
+      detected: {
+        appName: "POSTAPP",
+        bundleId: "com.postapp.app",
+        version: "1.0.0",
+        buildNumber: "22"
+      }
+    }))
+}));
+
+
+⸻
+
+src/utils/verificationEngine.ts
+
+export type VerificationState =
+  | "missing"
+  | "needs-review"
+  | "complete"
+  | "mismatch";
+
+export function verifyField(current?: string, detected?: string): VerificationState {
+  const cleanCurrent = (current || "").trim();
+  const cleanDetected = (detected || "").trim();
+
+  if (!cleanCurrent) return "missing";
+  if (!cleanDetected) return "needs-review";
+  if (cleanCurrent === cleanDetected) return "complete";
+  return "mismatch";
+}
+
+export function verifyBoolean(current: boolean, expected?: boolean): VerificationState {
+  if (typeof expected === "undefined") return "needs-review";
+  return current === expected ? "complete" : "mismatch";
+}
+
+
+⸻
+
+src/data/fieldMap.ts
+
+export const fieldMap = {
+  "app-name": "appName",
+  "subtitle": "subtitle",
+  "bundle-id": "bundleId",
+  "version": "version",
+  "build-number": "buildNumber",
+  "description": "description",
+  "keywords": "keywords",
+  "support-url": "supportUrl",
+  "privacy-policy": "privacyPolicyUrl",
+  "category": "category",
+  "age-rating": "ageRating"
+} as const;
+
+
+⸻
+
+src/components/FieldRow.tsx
+
+import { useSubmissionStore } from "../state/submissionStore";
+import { verifyField } from "../utils/verificationEngine";
+
+type Props = {
+  label: string;
+  fieldKey: keyof Omit<
+    ReturnType<typeof useSubmissionStore.getState>["data"],
+    "pricing"
+  >;
+  placeholder?: string;
+  multiline?: boolean;
+};
+
+export default function FieldRow({
+  label,
+  fieldKey,
+  placeholder,
+  multiline = false
+}: Props) {
+  const { data, detected, setField, useDetectedValue } = useSubmissionStore();
+
+  const currentValue = String(data[fieldKey] ?? "");
+  const detectedValue = detected[fieldKey] ? String(detected[fieldKey]) : "";
+  const status = verifyField(currentValue, detectedValue);
+
+  return (
+    <div className="v26-field-row">
+      <div className="v26-field-top">
+        <div>
+          <div className="v26-field-label">{label}</div>
+          {detectedValue ? (
+            <div className="v26-field-detected">
+              Detected: <code>{detectedValue}</code>
+            </div>
+          ) : (
+            <div className="v26-field-detected muted">No detected value yet</div>
+          )}
+        </div>
+
+        <div className={`v26-status-chip ${status}`}>{status}</div>
+      </div>
+
+      {multiline ? (
+        <textarea
+          className="v26-input v26-textarea"
+          value={currentValue}
+          placeholder={placeholder}
+          onChange={(e) => setField(fieldKey as any, e.target.value)}
+        />
+      ) : (
+        <input
+          className="v26-input"
+          value={currentValue}
+          placeholder={placeholder}
+          onChange={(e) => setField(fieldKey as any, e.target.value)}
+        />
+      )}
+
+      <div className="v26-field-actions">
+        {detectedValue && (
+          <button
+            type="button"
+            className="v26-secondary-btn"
+            onClick={() => useDetectedValue(fieldKey)}
+          >
+            Use detected value
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+⸻
+
+src/components/PricingEditor.tsx
+
+import { useSubmissionStore } from "../state/submissionStore";
+
+export default function PricingEditor() {
+  const { data, setPricingField } = useSubmissionStore();
+  const pricing = data.pricing;
+
+  return (
+    <div className="v26-panel">
+      <div className="v26-panel-head">
+        <h3>Pricing</h3>
+      </div>
+
+      <div className="v26-grid">
+        <div>
+          <label className="v26-label">Pricing model</label>
+          <select
+            className="v26-input"
+            value={pricing.model}
+            onChange={(e) => setPricingField("model", e.target.value as any)}
+          >
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
+            <option value="freemium">Freemium</option>
+            <option value="subscription">Subscription</option>
+          </select>
+        </div>
+
+        {(pricing.model === "paid" || pricing.model === "subscription") && (
+          <div>
+            <label className="v26-label">Price tier</label>
+            <input
+              className="v26-input"
+              value={pricing.priceTier}
+              placeholder="Example: Tier 1"
+              onChange={(e) => setPricingField("priceTier", e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="v26-checkbox-list">
+        <label className="v26-checkbox-row">
+          <input
+            type="checkbox"
+            checked={pricing.hasIAP}
+            onChange={(e) => setPricingField("hasIAP", e.target.checked)}
+          />
+          <span>Includes in-app purchases</span>
+        </label>
+
+        <label className="v26-checkbox-row">
+          <input
+            type="checkbox"
+            checked={pricing.subscription}
+            onChange={(e) => setPricingField("subscription", e.target.checked)}
+          />
+          <span>Uses subscriptions</span>
+        </label>
+
+        <label className="v26-checkbox-row">
+          <input
+            type="checkbox"
+            checked={pricing.trialOffered}
+            onChange={(e) => setPricingField("trialOffered", e.target.checked)}
+          />
+          <span>Free trial offered</span>
+        </label>
+      </div>
+
+      {(pricing.subscription || pricing.model === "subscription") && (
+        <div>
+          <label className="v26-label">Subscription terms</label>
+          <textarea
+            className="v26-input v26-textarea"
+            value={pricing.terms}
+            placeholder="Describe billing cycle, trial, renewal terms, restore purchases, etc."
+            onChange={(e) => setPricingField("terms", e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+⸻
+
+src/components/SubmissionEditor.tsx
+
+import FieldRow from "./FieldRow";
+import PricingEditor from "./PricingEditor";
+import { useSubmissionStore } from "../state/submissionStore";
+
+export default function SubmissionEditor() {
+  const { seedDemoSubmission, setDetected } = useSubmissionStore();
+
+  return (
+    <div className="v26-layout">
+      <div className="v26-panel">
+        <div className="v26-panel-head">
+          <h2>Submission Data</h2>
+          <div className="v26-head-actions">
+            <button className="v26-secondary-btn" onClick={seedDemoSubmission}>
+              Load demo data
+            </button>
+            <button
+              className="v26-secondary-btn"
+              onClick={() =>
+                setDetected({
+                  appName: "POSTAPP",
+                  bundleId: "com.postapp.app",
+                  version: "1.0.0",
+                  buildNumber: "22",
+                  supportUrl: "https://example.com/support",
+                  privacyPolicyUrl: "https://example.com/privacy"
+                })
+              }
+            >
+              Simulate detected values
+            </button>
+          </div>
+        </div>
+
+        <div className="v26-grid">
+          <FieldRow label="App Name" fieldKey="appName" placeholder="App name" />
+          <FieldRow label="Subtitle" fieldKey="subtitle" placeholder="Subtitle" />
+          <FieldRow label="Bundle ID" fieldKey="bundleId" placeholder="com.example.app" />
+          <FieldRow label="Version" fieldKey="version" placeholder="1.0.0" />
+          <FieldRow label="Build Number" fieldKey="buildNumber" placeholder="1" />
+          <FieldRow label="Keywords" fieldKey="keywords" placeholder="comma,separated,keywords" />
+          <FieldRow label="Support URL" fieldKey="supportUrl" placeholder="https://..." />
+          <FieldRow
+            label="Privacy Policy URL"
+            fieldKey="privacyPolicyUrl"
+            placeholder="https://..."
+          />
+          <FieldRow label="Category" fieldKey="category" placeholder="Category" />
+          <FieldRow label="Age Rating" fieldKey="ageRating" placeholder="4+" />
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <FieldRow
+            label="Description"
+            fieldKey="description"
+            placeholder="App description"
+            multiline
+          />
+        </div>
+      </div>
+
+      <PricingEditor />
+    </div>
+  );
+}
+
+
+⸻
+
+2. Add styles
+
+Append this to your main stylesheet, or put it in src/styles-v26.css and import it.
+
+src/styles-v26.css
+
+.v26-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.v26-panel {
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.v26-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.v26-panel-head h2,
+.v26-panel-head h3 {
+  margin: 0;
+}
+
+.v26-head-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.v26-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.v26-field-row {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.v26-field-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.v26-field-label {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.v26-field-detected {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.v26-field-detected.muted {
+  opacity: 0.55;
+}
+
+.v26-status-chip {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.v26-status-chip.complete {
+  background: rgba(34,197,94,0.18);
+  color: #86efac;
+}
+
+.v26-status-chip.missing {
+  background: rgba(239,68,68,0.18);
+  color: #fca5a5;
+}
+
+.v26-status-chip.mismatch {
+  background: rgba(245,158,11,0.18);
+  color: #fcd34d;
+}
+
+.v26-status-chip.needs-review {
+  background: rgba(59,130,246,0.18);
+  color: #93c5fd;
+}
+
+.v26-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.v26-input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  color: white;
+  padding: 12px 14px;
+}
+
+.v26-textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.v26-field-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.v26-secondary-btn {
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.v26-checkbox-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.v26-checkbox-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 800px) {
+  .v26-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+⸻
+
+3. Mount it into your app
+
+Wherever you want the V26 editor to appear, import it.
+
+For example in App.tsx or your submission page:
+
+import SubmissionEditor from "./components/SubmissionEditor";
+import "./styles-v26.css";
+
+export default function App() {
+  return (
+    <div>
+      <SubmissionEditor />
+    </div>
+  );
+}
+
+
+⸻
+
+4. Hook it into checklist items
+
+In your checklist data, add a fieldKey where appropriate.
+
+Example:
+
+{
+  id: "privacy-policy",
+  label: "Privacy policy URL is valid",
+  fieldKey: "privacyPolicyUrl"
+}
+
+Then in your checklist item component, pull current value from store:
+
+import { useSubmissionStore } from "../state/submissionStore";
+
+const { data } = useSubmissionStore();
+const currentValue = fieldKey ? data[fieldKey] : null;
+
+Suggested simple status logic:
+	•	empty field → missing
+	•	populated but no detected value → needs-review
+	•	field matches detected value → complete
+	•	field differs from detected value → mismatch
+
+⸻
+
+5. Pricing estimate: my take vs Claude
+
+Claude’s estimate is thoughtful, but I’d position this slightly differently.
+
+Where I agree
+
+The market timing is real, and the problem is valuable. A hybrid model can work.
+
+Where I differ
+
+I would not lead with a heavy service-first model unless you personally want to operate a submission agency.
+
+Your product is evolving into:
+	•	software first
+	•	optional assist second
+
+That matters because software scales better and is easier to defend.
+
+My recommended launch pricing
+
+Free
+	•	1 project
+	•	demo project
+	•	limited checklist
+	•	limited analyzer
+
+Pro — $24/month to $39/month
+	•	unlimited projects
+	•	full checklist
+	•	submission editor
+	•	pricing editor
+	•	readiness scoring
+	•	exportable reports
+
+Studio — $79/month to $129/month
+	•	team use
+	•	multiple active apps
+	•	advanced analyzer
+	•	saved histories
+	•	agency workflow
+
+Optional add-on
+	•	submission assist: $99 to $249 per app
+	•	only if you want to offer hands-on help
+
+Compared to Claude
+
+Claude’s proposal is stronger for a done-for-you service.
+Mine is stronger for a product-led SaaS.
+
+If your goal is:
+	•	lower-friction adoption
+	•	broader user base
+	•	faster growth
+
+I’d start with the SaaS-first model.
+
+If your goal is:
+	•	higher revenue per customer immediately
+	•	fewer customers
+	•	more hands-on involvement
+
+Then Claude’s hybrid service model is solid.
+
+My honest recommendation
+
+Launch with:
+	•	Free
+	•	Pro at $29/month
+	•	optional concierge add-on later
+
+That gives you the best balance.
+
+⸻
+
+6. Best next step
+
+Drop this V26 in now, then test:
+	•	load demo data
+	•	simulate detected values
+	•	use detected value buttons
+	•	pricing model changes
+	•	checklist linkage
+
+When that’s working, send me:
+	•	one screenshot of the new Submission Data screen
+	•	one screenshot of a checklist item linked to a field
+
+Then I’ll help you shape V27 live Apple-listing sync architecture.

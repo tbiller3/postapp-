@@ -12,7 +12,7 @@ import {
   AlertTriangle,
   RefreshCw,
   ChevronsDown,
-  FlaskConical,
+  RotateCcw,
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -93,35 +93,16 @@ function ReadinessBar() {
 interface SubmissionEditorProps {
   onSave?: () => void;
   isSaving?: boolean;
+  onReset?: () => void;
 }
 
-export function SubmissionEditor({ onSave, isSaving }: SubmissionEditorProps) {
-  const { syncDetected, applyAllDetectedValues, loadDemoSubmission } = useSubmissionStore();
-
-  function handleSyncFromBuild() {
-    const { fields } = useSubmissionStore.getState();
-    syncDetected({
-      appName: fields.appName || undefined,
-      bundleId: fields.bundleId || undefined,
-      version: fields.version || undefined,
-      buildNumber: fields.buildNumber || undefined,
-      supportUrl: fields.supportUrl || undefined,
-      privacyPolicyUrl: fields.privacyPolicyUrl || undefined,
-    });
-  }
+export function SubmissionEditor({ onSave, isSaving, onReset }: SubmissionEditorProps) {
+  const { applyAllDetectedValues } = useSubmissionStore();
 
   return (
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={handleSyncFromBuild}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
-          data-testid="btn-sync-from-build"
-        >
-          <RefreshCw className="h-3 w-3" />
-          Sync From Build
-        </button>
         <button
           onClick={applyAllDetectedValues}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -130,14 +111,16 @@ export function SubmissionEditor({ onSave, isSaving }: SubmissionEditorProps) {
           <ChevronsDown className="h-3 w-3" />
           Apply All Detected
         </button>
-        <button
-          onClick={loadDemoSubmission}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 transition-colors"
-          data-testid="btn-load-demo"
-        >
-          <FlaskConical className="h-3 w-3" />
-          Load Wait Wise Data
-        </button>
+        {onReset && (
+          <button
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/20 border border-border/40 text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            data-testid="btn-reset-saved"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reset to Saved
+          </button>
+        )}
       </div>
 
       <ReadinessBar />

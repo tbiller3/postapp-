@@ -39,7 +39,6 @@ type SubmissionStore = {
   syncDetected: (payload: DetectedData) => void;
   applyDetectedValue: (key: keyof SubmissionFields) => void;
   applyAllDetectedValues: () => void;
-  loadDemoSubmission: () => void;
   seedFromApp: (app: Partial<DetectedData>) => void;
   reset: () => void;
   getCompletionStats: () => {
@@ -103,35 +102,6 @@ export const useSubmissionStore = create<SubmissionStore>((set, get) => ({
         if (d && d.trim()) merged[k] = d;
       });
       return { fields: merged };
-    }),
-
-  loadDemoSubmission: () =>
-    set({
-      fields: {
-        appName: "Wait Wise",
-        subtitle: "Pause Through Urges",
-        bundleId: "",
-        version: "1.0",
-        buildNumber: "",
-        category: "Health & Fitness",
-        ageRating: "17+",
-        keywords: "recovery,sobriety,addiction,urge,craving,pause,sober,relapse,mindful,calm,habit,breathe",
-        supportUrl: "",
-        privacyPolicyUrl: "",
-        description:
-          "Wait Wise helps you pause through cravings, urges, and compulsive moments before acting on them.\n\nWhen the urge hits, Wait Wise gives you structured pause techniques, guided breathing, grounding prompts, and urge tracking — so you can observe the moment without surrendering to it.\n\nFEATURES\n• Guided urge-surfing sessions\n• Calming breathing exercises\n• Craving journal with timestamps\n• Streak and milestone tracking\n• Progress dashboard\n• Private and offline-capable\n\nWAIT stands for: Why Am I Tempted?\n\nDesigned for anyone working through recovery from substance use, behavioral addiction, or compulsive habits. Intended to support — not replace — professional care.",
-      },
-      detected: {
-        appName: "Wait Wise",
-        subtitle: "Pause Through Urges",
-        version: "1.0",
-        category: "Health & Fitness",
-        ageRating: "17+",
-        keywords: "recovery,sobriety,addiction,urge,craving,pause,sober,relapse,mindful,calm,habit,breathe",
-        description:
-          "Wait Wise helps you pause through cravings, urges, and compulsive moments before acting on them.\n\nWhen the urge hits, Wait Wise gives you structured pause techniques, guided breathing, grounding prompts, and urge tracking — so you can observe the moment without surrendering to it.\n\nFEATURES\n• Guided urge-surfing sessions\n• Calming breathing exercises\n• Craving journal with timestamps\n• Streak and milestone tracking\n• Progress dashboard\n• Private and offline-capable\n\nWAIT stands for: Why Am I Tempted?\n\nDesigned for anyone working through recovery from substance use, behavioral addiction, or compulsive habits. Intended to support — not replace — professional care.",
-      },
-      pricing: { ...defaultPricing },
     }),
 
   seedFromApp: (app) =>

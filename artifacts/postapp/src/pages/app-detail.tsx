@@ -113,6 +113,23 @@ export default function AppDetail() {
     toast({ title: "Build Synced", description: `${count} field${count !== 1 ? "s" : ""} detected from your app record.` });
   };
 
+  const handleResetSubmission = () => {
+    if (!app) return;
+    seedFromApp({
+      appName: app.name ?? "",
+      subtitle: app.subtitle ?? "",
+      bundleId: app.bundleId ?? "",
+      version: app.version ?? "",
+      buildNumber: app.buildNumber ?? "",
+      description: app.description ?? "",
+      category: app.category ?? "",
+      ageRating: app.ageRating ?? "",
+      keywords: app.keywords ?? "",
+      supportUrl: app.supportUrl ?? "",
+      privacyPolicyUrl: app.privacyPolicyUrl ?? "",
+    });
+  };
+
   const handleSaveSubmission = async () => {
     const { fields } = useSubmissionStore.getState();
     setIsSavingSubmission(true);
@@ -448,7 +465,7 @@ export default function AppDetail() {
         </TabsContent>
 
         <TabsContent value="submission" className="mt-6">
-          <SubmissionEditor onSave={handleSaveSubmission} isSaving={isSavingSubmission} />
+          <SubmissionEditor onSave={handleSaveSubmission} isSaving={isSavingSubmission} onReset={handleResetSubmission} />
         </TabsContent>
 
         <TabsContent value="revisions" className="mt-6">

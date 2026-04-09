@@ -77,3 +77,9 @@ id = "LZlG6v0LDTr_yaO_KGyae"
 uri = "file://screenshots/icon-original.jpg"
 type = "image"
 title = "POSTAPP Icon — refined proportions"
+
+[[outputs]]
+id = "sToUvAHfP9lhnr8F5kCHu"
+uri = "file://postapp-source.tar.gz"
+type = "unspecified"
+title = "POSTAPP Source Code (postapp-source.tar.gz)"

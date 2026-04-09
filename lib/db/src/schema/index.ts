@@ -5,3 +5,4 @@ export * from "./auth";
 export * from "./screenshots";
 export * from "./conversations";
 export * from "./messages";
+export * from "./wrap-configs";

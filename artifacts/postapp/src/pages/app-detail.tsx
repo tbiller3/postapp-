@@ -34,10 +34,11 @@ import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } f
 import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon, Smartphone } from "lucide-react";
 import { format } from "date-fns";
 import { AssetsPanel } from "@/components/assets-panel";
 import { AiAssistant } from "@/components/ai-assistant";
+import { WrapTab } from "@/components/wrap-tab";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -432,6 +433,11 @@ export default function AppDetail() {
               <span className="hidden sm:inline">Apple Connect</span>
               <span className="sm:hidden">Connect</span>
             </TabsTrigger>
+            <TabsTrigger value="wrap" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 whitespace-nowrap">
+              <Smartphone className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Native Wrap</span>
+              <span className="sm:hidden">Wrap</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -701,6 +707,16 @@ export default function AppDetail() {
 
         <TabsContent value="apple" className="mt-6">
           <AppleConnectPanel />
+        </TabsContent>
+
+        <TabsContent value="wrap" className="mt-6">
+          {app && (
+            <WrapTab
+              appId={appId}
+              app={{ name: app.name, bundleId: app.bundleId, replitUrl: app.replitUrl }}
+              onChecklistRefresh={() => queryClient.invalidateQueries({ queryKey: getGetChecklistQueryKey(appId) })}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

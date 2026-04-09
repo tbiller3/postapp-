@@ -5,6 +5,7 @@ import appsRouter from "./apps";
 import workspaceRouter from "./workspace";
 import appleRouter from "./apple";
 import assistantRouter from "./assistant/index.js";
+import wrapRouter from "./wrap/index.js";
 
 const router: IRouter = Router();
 
@@ -23,5 +24,6 @@ router.use(appsRouter);
 router.use(workspaceRouter);
 router.use(appleRouter);
 router.use(assistantRouter);
+router.use(wrapRouter);
 
 export default router;

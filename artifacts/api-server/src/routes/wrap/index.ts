@@ -1,0 +1,247 @@
+import { Router } from "express";
+import { db } from "@workspace/db";
+import { wrapConfigsTable, checklistTable } from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
+
+const router = Router();
+
+// GET /api/apps/:id/wrap — get wrap config for an app
+router.get("/apps/:id/wrap", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+    const [config] = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
+    if (!config) {
+      res.status(404).json({ error: "No wrap config found" });
+      return;
+    }
+    res.json(config);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch wrap config" });
+  }
+});
+
+// POST /api/apps/:id/wrap — create or update wrap config
+router.post("/apps/:id/wrap", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions } = req.body;
+
+    const [existing] = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
+
+    if (existing) {
+      const [updated] = await db
+        .update(wrapConfigsTable)
+        .set({ webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions })
+        .where(eq(wrapConfigsTable.appId, appId))
+        .returning();
+      res.json(updated);
+    } else {
+      const [created] = await db
+        .insert(wrapConfigsTable)
+        .values({ appId, webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions })
+        .returning();
+      res.status(201).json(created);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to save wrap config" });
+  }
+});
+
+// POST /api/apps/:id/wrap/generate — generate Capacitor project files
+router.post("/apps/:id/wrap/generate", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+    const [config] = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
+    if (!config) {
+      res.status(404).json({ error: "No wrap config found. Save configuration first." });
+      return;
+    }
+
+    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions } = config;
+
+    const allowNav = (allowNavigation as string[] || []);
+    const perms = (permissions as string[] || []);
+
+    // Build capacitor.config.ts
+    const capacitorConfig = `import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: '${bundleId}',
+  appName: '${appName}',
+  webDir: 'www',
+  server: {
+    url: '${webUrl}',
+    cleartext: false,
+    allowNavigation: [${allowNav.map(d => `'${d}'`).join(", ")}],
+  },
+  ios: {
+    backgroundColor: '${backgroundColor}',
+    statusBarStyle: '${statusBarStyle}',
+    minimumOsVersion: '${minIosVersion}',
+    contentInset: 'automatic',
+  },
+};
+
+export default config;
+`;
+
+    // Build package.json
+    const packageJson = JSON.stringify({
+      name: appName.toLowerCase().replace(/\s+/g, "-"),
+      version: "1.0.0",
+      private: true,
+      scripts: {
+        "build": "echo 'Web app is served remotely — no build needed'",
+        "cap:ios": "npx cap add ios && npx cap sync",
+        "cap:open": "npx cap open ios",
+        "cap:sync": "npx cap sync",
+      },
+      dependencies: {
+        "@capacitor/core": "^6.0.0",
+        "@capacitor/ios": "^6.0.0",
+        ...(perms.includes("camera") ? { "@capacitor/camera": "^6.0.0" } : {}),
+        ...(perms.includes("microphone") ? { "@capacitor/microphone": "^6.0.0" } : {}),
+        ...(perms.includes("location") ? { "@capacitor/geolocation": "^6.0.0" } : {}),
+        ...(perms.includes("push-notifications") ? { "@capacitor/push-notifications": "^6.0.0" } : {}),
+        ...(perms.includes("haptics") ? { "@capacitor/haptics": "^6.0.0" } : {}),
+      },
+      devDependencies: {
+        "@capacitor/cli": "^6.0.0",
+      },
+    }, null, 2);
+
+    // Build Info.plist additions (permissions)
+    const plistEntries: string[] = [];
+    if (perms.includes("camera")) {
+      plistEntries.push(`  <key>NSCameraUsageDescription</key>\n  <string>This app uses the camera.</string>`);
+    }
+    if (perms.includes("microphone")) {
+      plistEntries.push(`  <key>NSMicrophoneUsageDescription</key>\n  <string>This app uses the microphone.</string>`);
+    }
+    if (perms.includes("location")) {
+      plistEntries.push(`  <key>NSLocationWhenInUseUsageDescription</key>\n  <string>This app uses your location.</string>`);
+    }
+    if (perms.includes("photos")) {
+      plistEntries.push(`  <key>NSPhotoLibraryUsageDescription</key>\n  <string>This app accesses your photo library.</string>`);
+    }
+
+    const infoPlistAdditions = plistEntries.length > 0
+      ? `<!-- Add these keys to your ios/App/App/Info.plist inside the <dict> block -->\n${plistEntries.join("\n")}`
+      : `<!-- No special permissions required -->`;
+
+    // Build codemagic.yaml
+    const codemagicYaml = `workflows:
+  ios-workflow:
+    name: ${appName} iOS Build
+    environment:
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Add iOS platform
+        script: npx cap add ios || true
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Build iOS
+        script: |
+          xcode-project build-ipa \\
+            --workspace ios/App/App.xcworkspace \\
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        api_key: \$APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: \$APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: \$APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+`;
+
+    // Build README
+    const readme = `# ${appName} — Native iOS Wrapper
+
+This is a Capacitor wrapper for ${webUrl}.
+
+## Setup
+
+1. Install dependencies:
+   \`\`\`bash
+   npm install
+   \`\`\`
+
+2. Add iOS platform and sync:
+   \`\`\`bash
+   npm run cap:ios
+   \`\`\`
+
+3. Open in Xcode:
+   \`\`\`bash
+   npm run cap:open
+   \`\`\`
+
+4. In Xcode:
+   - Select your Team in Signing & Capabilities
+   - Set Bundle Identifier to \`${bundleId}\`
+   - Set Minimum Deployments to iOS ${minIosVersion}
+   - Build → Product → Archive → Distribute App → App Store Connect
+
+## Cloud Build (No Mac Required)
+
+Use the included \`codemagic.yaml\` with [Codemagic](https://codemagic.io):
+1. Push this project to a GitHub/GitLab repo
+2. Connect to Codemagic (free at codemagic.io)
+3. Import the repo — Codemagic auto-detects the yaml
+4. Configure code signing in Codemagic dashboard
+5. Trigger a build — IPA goes straight to TestFlight
+
+## App Details
+- Bundle ID: \`${bundleId}\`
+- Web URL: ${webUrl}
+- Min iOS: ${minIosVersion}
+- Background: ${backgroundColor}
+`;
+
+    res.json({
+      files: [
+        { name: "capacitor.config.ts", content: capacitorConfig, language: "typescript" },
+        { name: "package.json", content: packageJson, language: "json" },
+        { name: "codemagic.yaml", content: codemagicYaml, language: "yaml" },
+        { name: "Info.plist (additions)", content: infoPlistAdditions, language: "xml" },
+        { name: "README.md", content: readme, language: "markdown" },
+      ],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate project files" });
+  }
+});
+
+// POST /api/apps/:id/wrap/complete — mark wrap checklist items done
+router.post("/apps/:id/wrap/complete", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+    // Mark native wrap checklist items as complete (items labeled with "native" or "binary" or "minimum")
+    const items = await db.select().from(checklistTable).where(eq(checklistTable.appId, appId));
+
+    const wrapKeywords = ["native", "binary", "minimum", "wrapper", "wrapped"];
+    const toComplete = items.filter(item =>
+      wrapKeywords.some(kw => item.label?.toLowerCase().includes(kw)) && !item.completed
+    );
+
+    for (const item of toComplete) {
+      await db.update(checklistTable).set({ completed: true }).where(eq(checklistTable.id, item.id));
+    }
+
+    res.json({ completed: toComplete.map(i => i.id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to complete checklist items" });
+  }
+});
+
+export default router;

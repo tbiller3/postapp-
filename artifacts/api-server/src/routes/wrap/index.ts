@@ -830,18 +830,29 @@ module.exports = config;
       }
     }
 
+    // Inject App Store Connect credentials if stored in settings
+    const ascVars: Record<string, string> = {};
+    if (settings.appStoreIssuerId) ascVars["APP_STORE_CONNECT_ISSUER_ID"] = settings.appStoreIssuerId;
+    if (settings.appStoreKeyId) ascVars["APP_STORE_CONNECT_KEY_IDENTIFIER"] = settings.appStoreKeyId;
+    if (settings.appStorePrivateKey) ascVars["APP_STORE_CONNECT_PRIVATE_KEY"] = settings.appStorePrivateKey;
+
     // Trigger Codemagic build
+    const buildPayload: Record<string, unknown> = {
+      appId: cfg.codemagicAppId,
+      workflowId: "ios-workflow",
+      branch: "main",
+    };
+    if (Object.keys(ascVars).length > 0) {
+      buildPayload.environment = { variables: ascVars };
+    }
+
     const buildRes = await fetch("https://api.codemagic.io/builds", {
       method: "POST",
       headers: {
         "x-auth-token": settings.codemagicApiKey!,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        appId: cfg.codemagicAppId,
-        workflowId: "ios-workflow",
-        branch: "main",
-      }),
+      body: JSON.stringify(buildPayload),
     });
 
     if (!buildRes.ok) {

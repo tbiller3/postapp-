@@ -4,6 +4,7 @@ export const modules: ModuleMap = {
   "./components/mockups/postapp-icons/AppGrid.tsx": () => import("../components/mockups/postapp-icons/AppGrid.tsx"),
   "./components/mockups/postapp-icons/Checklist.tsx": () => import("../components/mockups/postapp-icons/Checklist.tsx"),
   "./components/mockups/postapp-icons/CodeStamp.tsx": () => import("../components/mockups/postapp-icons/CodeStamp.tsx"),
+  "./components/mockups/postapp-icons/OriginalIcon.tsx": () => import("../components/mockups/postapp-icons/OriginalIcon.tsx"),
   "./components/mockups/postapp-icons/RocketLaunch.tsx": () => import("../components/mockups/postapp-icons/RocketLaunch.tsx"),
   "./components/mockups/postapp-icons/SubmitArrow.tsx": () => import("../components/mockups/postapp-icons/SubmitArrow.tsx"),
   "./components/mockups/postapp-icons/TerminalPrompt.tsx": () => import("../components/mockups/postapp-icons/TerminalPrompt.tsx")

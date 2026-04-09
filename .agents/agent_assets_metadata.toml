@@ -71,3 +71,9 @@ id = "LCuWOPE1uoaGct4f0MEBu"
 uri = "file://screenshots/icon-6-codestamp.jpg"
 type = "image"
 title = "Option 6 — Code Stamp (<POST/> terminal green)"
+
+[[outputs]]
+id = "LZlG6v0LDTr_yaO_KGyae"
+uri = "file://screenshots/icon-original.jpg"
+type = "image"
+title = "POSTAPP Icon — your design recreated"

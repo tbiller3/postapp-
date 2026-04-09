@@ -35,3 +35,39 @@ id = "O1a0kqvnzG0SQJLZE8UxB"
 uri = "file://attached_assets/waitwise_icon_hand.png"
 type = "image"
 title = "Option 3 — Open Hand (Burgundy/Rose)"
+
+[[outputs]]
+id = "ue4qMx12XsbgSYlhSL2S9"
+uri = "file://screenshots/icon-1-terminal.jpg"
+type = "image"
+title = "Option 1 — Terminal Prompt (violet >_ glow)"
+
+[[outputs]]
+id = "zSGVmTNAeZHd6vhdnGCqW"
+uri = "file://screenshots/icon-2-rocket.jpg"
+type = "image"
+title = "Option 2 — Rocket Launch (purple rocket, stars)"
+
+[[outputs]]
+id = "YlSUGH-t5gHn1J5su44B0"
+uri = "file://screenshots/icon-3-checklist.jpg"
+type = "image"
+title = "Option 3 — Checklist (green checkmarks, glass card)"
+
+[[outputs]]
+id = "ZdNLZuOe-mts-6UDlC4lG"
+uri = "file://screenshots/icon-4-arrow.jpg"
+type = "image"
+title = "Option 4 — Submit Arrow (deep purple, upward arrow)"
+
+[[outputs]]
+id = "-COwo77s8PkXf1juThizp"
+uri = "file://screenshots/icon-5-appgrid.jpg"
+type = "image"
+title = "Option 5 — App Grid (four apps with status badges)"
+
+[[outputs]]
+id = "LCuWOPE1uoaGct4f0MEBu"
+uri = "file://screenshots/icon-6-codestamp.jpg"
+type = "image"
+title = "Option 6 — Code Stamp (<POST/> terminal green)"

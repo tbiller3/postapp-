@@ -173,6 +173,30 @@ const CHECKLIST_META: Record<string, ChecklistItemMeta> = {
       { type: "external", label: "iOS version stats", target: "https://developer.apple.com/support/app-store/" },
     ],
   },
+  "App works on the minimum supported iOS version": {
+    blocker: false,
+    helpText: "Test on a real device or simulator running your declared minimum iOS version. Capacitor apps often depend on WKWebView APIs — verify the web content renders and functions correctly on older OS versions.",
+    actions: [
+      { type: "external", label: "iOS version stats", target: "https://developer.apple.com/support/app-store/" },
+      { type: "internal", label: "Set min iOS in Wrap config", target: "wrap" },
+    ],
+  },
+  "Web app wrapped as native iOS app (Capacitor or equivalent)": {
+    blocker: false,
+    helpText: "Use the Wrap tab to generate your Capacitor project files, sync them to GitHub, and trigger an automated build. Once the build succeeds and produces an IPA, this step is complete.",
+    actions: [
+      { type: "internal", label: "Go to Wrap tab", target: "wrap" },
+    ],
+  },
+  "Binary uploaded to App Store Connect via EAS Build or equivalent": {
+    blocker: false,
+    helpText: "After a successful Codemagic build, download the IPA and upload it via Transporter or Xcode Organizer — or configure Codemagic's publishing section to push directly to App Store Connect.",
+    actions: [
+      { type: "internal", label: "Go to Wrap tab", target: "wrap" },
+      { type: "external", label: "Codemagic publishing docs", target: "https://docs.codemagic.io/yaml-publishing/app-store-connect/" },
+      { type: "external", label: "Transporter app", target: "https://apps.apple.com/us/app/transporter/id1450874784" },
+    ],
+  },
   "No references to competing platforms": {
     blocker: false,
     helpText: "Search your app's text and screenshots for mentions of Android, Google Play, or other competing platforms and remove them.",
@@ -223,6 +247,7 @@ export function getItemMeta(label: string): ChecklistItemMeta {
 }
 
 export const SECTION_ACCENTS: Record<string, string> = {
+  General: "bg-slate-500",
   Metadata: "bg-violet-500",
   Legal: "bg-amber-500",
   Monetization: "bg-green-500",
@@ -231,6 +256,7 @@ export const SECTION_ACCENTS: Record<string, string> = {
 };
 
 export const SECTION_TEXT_ACCENTS: Record<string, string> = {
+  General: "text-slate-400",
   Metadata: "text-violet-400",
   Legal: "text-amber-400",
   Monetization: "text-green-400",

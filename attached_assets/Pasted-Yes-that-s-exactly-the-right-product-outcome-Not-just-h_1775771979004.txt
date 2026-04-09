@@ -1,0 +1,125 @@
+Yes — that’s exactly the right product outcome.
+
+Not just “help upload apps.”
+
+A fully automated app-posting system that:
+	•	takes in a prototype or web app
+	•	wraps it properly
+	•	checks for rejection risks
+	•	builds what Apple expects
+	•	guides or triggers submission
+	•	keeps the whole thing simple enough that non-experts can actually use it
+
+That is the right vision.
+
+What POSTAPP should become
+
+The cleanest end-state is:
+
+Input
+	•	app URL, ZIP, GitHub repo, or Replit project
+
+Engine
+	•	detect framework and structure
+	•	generate wrapper/native shell
+	•	configure Capacitor and iOS project
+	•	inspect app for App Store risks
+	•	build metadata package
+	•	validate screenshots/icons/privacy requirements
+	•	prepare signing/build handoff
+	•	submit or hand off to Apple-approved upload path
+
+Output
+	•	“ready to submit”
+	•	or “fix these 3 things first”
+
+That is the real product.
+
+V25 should be the analyzer engine
+
+This is the part that turns POSTAPP from “automation utility” into a submission intelligence platform.
+
+V25 core job
+
+When a user uploads an app, POSTAPP should answer:
+	•	What is this app?
+	•	Can it be wrapped cleanly?
+	•	What will break in App Review?
+	•	What is missing?
+	•	What should be fixed next?
+	•	How close is it to submission-ready?
+
+V25 engine structure
+
+Here’s the right internal architecture:
+
+1. Intake analyzer
+
+Reads:
+	•	URL
+	•	ZIP
+	•	repo
+	•	folder structure
+
+Detects:
+	•	static site
+	•	React/Vite
+	•	Next export
+	•	plain HTML/CSS/JS
+	•	unsupported server-only app
+
+2. Wrapper readiness analyzer
+
+Checks:
+	•	is it renderable inside a WebView shell
+	•	are there route issues
+	•	are there external dependencies likely to fail
+	•	offline assumptions
+	•	mobile viewport behavior
+	•	splash/icon assets
+
+3. App Review risk analyzer
+
+Flags likely rejection problems:
+	•	missing privacy policy
+	•	missing support URL
+	•	no test credentials if login exists
+	•	misleading placeholder content
+	•	broken core flow
+	•	“website in a wrapper with no native value”
+	•	account deletion requirement if account creation exists
+	•	subscription wording issues
+	•	tracking/ATT mismatch
+	•	crash-risk patterns
+	•	empty screens / unfinished sections
+
+4. Metadata analyzer
+
+Checks:
+	•	app name
+	•	subtitle
+	•	description
+	•	keywords
+	•	category
+	•	age rating inputs
+	•	copyright
+	•	bundle ID
+	•	version consistency
+
+5. Asset analyzer
+
+Checks:
+	•	app icon presence
+	•	1024 icon compliance
+	•	screenshot counts
+	•	screenshot dimensions
+	•	device display coverage
+	•	visual quality / placeholder detection
+
+6. Readiness scorer
+
+Produces:
+	•	overall score
+	•	severity buckets
+	•	blocker list
+	•	recommended next actions

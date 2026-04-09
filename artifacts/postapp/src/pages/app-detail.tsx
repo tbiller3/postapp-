@@ -39,6 +39,7 @@ import { format } from "date-fns";
 import { AssetsPanel } from "@/components/assets-panel";
 import { AiAssistant } from "@/components/ai-assistant";
 import { WrapTab } from "@/components/wrap-tab";
+import { AnalyzeTab } from "@/components/analyze-tab";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -438,6 +439,11 @@ export default function AppDetail() {
               <span className="hidden sm:inline">Native Wrap</span>
               <span className="sm:hidden">Wrap</span>
             </TabsTrigger>
+            <TabsTrigger value="analyze" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400 whitespace-nowrap">
+              <BarChart2 className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">V25 Analyze</span>
+              <span className="sm:hidden">Analyze</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -717,6 +723,10 @@ export default function AppDetail() {
               onChecklistRefresh={() => queryClient.invalidateQueries({ queryKey: getGetChecklistQueryKey(appId) })}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="analyze" className="mt-6">
+          <AnalyzeTab appId={appId} />
         </TabsContent>
       </Tabs>
 

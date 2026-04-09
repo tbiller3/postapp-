@@ -8,6 +8,7 @@ import assistantRouter from "./assistant/index.js";
 import wrapRouter from "./wrap/index.js";
 import settingsRouter from "./settings/index.js";
 import stripeRouter from "./stripe/index.js";
+import analyzeRouter from "./analyze/index.js";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(appleRouter);
 router.use(assistantRouter);
 router.use(wrapRouter);
 router.use(settingsRouter);
+router.use(analyzeRouter);
 
 export default router;

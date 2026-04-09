@@ -7,6 +7,7 @@ import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import AppNew from "@/pages/app-new";
 import AppDetail from "@/pages/app-detail";
+import PrivacyPolicy from "@/pages/privacy";
 import { useEffect } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -93,9 +94,14 @@ function App() {
       <ThemeProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AuthGate>
-              <Router />
-            </AuthGate>
+            <Switch>
+              <Route path="/privacy" component={PrivacyPolicy} />
+              <Route>
+                <AuthGate>
+                  <Router />
+                </AuthGate>
+              </Route>
+            </Switch>
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

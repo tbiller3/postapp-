@@ -64,17 +64,16 @@ router.post("/apps/:id/wrap/generate", async (req, res) => {
     const allowNav = (allowNavigation as string[] || []);
     const perms = (permissions as string[] || []);
 
-    // Build capacitor.config.ts
-    const capacitorConfig = `import type { CapacitorConfig } from '@capacitor/cli';
-
-const config: CapacitorConfig = {
+    // Build capacitor.config.js (plain JS avoids TypeScript dependency)
+    const capacitorConfig = `/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
   appId: '${bundleId}',
   appName: '${appName}',
   webDir: 'www',
   server: {
     url: '${webUrl}',
     cleartext: false,
-    allowNavigation: [${allowNav.map(d => `'${d}'`).join(", ")}],
+    allowNavigation: [${allowNav.map((d: string) => `'${d}'`).join(", ")}],
   },
   ios: {
     backgroundColor: '${backgroundColor}',
@@ -84,7 +83,7 @@ const config: CapacitorConfig = {
   },
 };
 
-export default config;
+module.exports = config;
 `;
 
     // Build package.json
@@ -286,9 +285,8 @@ router.post("/apps/:id/wrap/push-github", async (req, res) => {
     const repo = await createRes.json() as { html_url: string; full_name: string };
 
     // Build the files
-    const capacitorConfig = `import type { CapacitorConfig } from '@capacitor/cli';
-
-const config: CapacitorConfig = {
+    const capacitorConfig = `/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
   appId: '${bundleId}',
   appName: '${appName}',
   webDir: 'www',
@@ -305,7 +303,7 @@ const config: CapacitorConfig = {
   },
 };
 
-export default config;
+module.exports = config;
 `;
 
     const packageJson = JSON.stringify({
@@ -385,7 +383,7 @@ npm run cap:open
 `;
 
     const filesToPush = [
-      { path: "capacitor.config.ts", content: capacitorConfig },
+      { path: "capacitor.config.js", content: capacitorConfig },
       { path: "package.json", content: packageJson },
       { path: "codemagic.yaml", content: codemagicYaml },
       { path: "README.md", content: readme },

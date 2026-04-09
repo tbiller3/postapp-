@@ -4,6 +4,7 @@ import authRouter from "./auth";
 import appsRouter from "./apps";
 import workspaceRouter from "./workspace";
 import appleRouter from "./apple";
+import assistantRouter from "./assistant/index.js";
 
 const router: IRouter = Router();
 
@@ -21,5 +22,6 @@ router.use(requireAuth);
 router.use(appsRouter);
 router.use(workspaceRouter);
 router.use(appleRouter);
+router.use(assistantRouter);
 
 export default router;

@@ -76,6 +76,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@workspace/integrations-openai-ai-react": "workspace:*",
     "zustand": "^5.0.12"
   }
 }

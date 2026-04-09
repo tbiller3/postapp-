@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import AppNew from "@/pages/app-new";
 import AppDetail from "@/pages/app-detail";
 import PrivacyPolicy from "@/pages/privacy";
+import { AiAssistant } from "@/components/ai-assistant";
 import { useEffect } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -72,7 +73,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <LoginScreen />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AiAssistant />
+    </>
+  );
 }
 
 function Router() {

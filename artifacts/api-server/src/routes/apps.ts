@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
-import { db, appsTable, checklistTable, revisionsTable } from "@workspace/db";
+import { db, appsTable, checklistTable, revisionsTable, screenshotsTable } from "@workspace/db";
 import {
   CreateAppBody,
   UpdateAppBody,
@@ -37,6 +37,20 @@ const APP_STORE_CHECKLIST = [
   { label: "Demo video provided (if app requires special setup)", category: "Review" },
 ];
 
+const IOS_SCREENSHOT_SLOTS = [
+  { deviceType: "6.9-inch", label: "iPhone 16 Pro Max (6.9\")", requiredSize: "1320 × 2868 px" },
+  { deviceType: "6.5-inch", label: "iPhone 14 Plus (6.5\")", requiredSize: "1284 × 2778 px" },
+  { deviceType: "5.5-inch", label: "iPhone 8 Plus (5.5\")", requiredSize: "1242 × 2208 px" },
+  { deviceType: "ipad-13", label: "iPad Pro 13\"", requiredSize: "2064 × 2752 px" },
+  { deviceType: "ipad-11", label: "iPad Pro 11\"", requiredSize: "1668 × 2388 px" },
+];
+
+const ANDROID_SCREENSHOT_SLOTS = [
+  { deviceType: "phone", label: "Android Phone", requiredSize: "1080 × 1920 px" },
+  { deviceType: "tablet-7", label: "7-inch Tablet", requiredSize: "1200 × 1920 px" },
+  { deviceType: "tablet-10", label: "10-inch Tablet", requiredSize: "1920 × 1200 px" },
+];
+
 router.get("/apps/summary", async (_req, res): Promise<void> => {
   const apps = await db.select().from(appsTable);
   const summary = {
@@ -52,7 +66,25 @@ router.get("/apps/summary", async (_req, res): Promise<void> => {
 
 router.get("/apps", async (_req, res): Promise<void> => {
   const apps = await db.select().from(appsTable).orderBy(appsTable.createdAt);
-  res.json(apps);
+
+  const progressRows = await db
+    .select({
+      appId: checklistTable.appId,
+      total: sql<number>`count(*)::int`,
+      done: sql<number>`count(*) filter (where ${checklistTable.completed})::int`,
+    })
+    .from(checklistTable)
+    .groupBy(checklistTable.appId);
+
+  const progressMap = new Map(progressRows.map((r) => [r.appId, { total: r.total, done: r.done }]));
+
+  const result = apps.map((app) => ({
+    ...app,
+    checklistTotal: progressMap.get(app.id)?.total ?? 0,
+    checklistDone: progressMap.get(app.id)?.done ?? 0,
+  }));
+
+  res.json(result);
 });
 
 router.post("/apps", async (req, res): Promise<void> => {
@@ -71,6 +103,15 @@ router.post("/apps", async (req, res): Promise<void> => {
       category: item.category,
       completed: false,
     }))
+  );
+
+  const platform = (parsed.data.platform ?? "iOS").toLowerCase();
+  const slots = platform === "android" ? ANDROID_SCREENSHOT_SLOTS
+    : platform === "both" ? [...IOS_SCREENSHOT_SLOTS, ...ANDROID_SCREENSHOT_SLOTS]
+    : IOS_SCREENSHOT_SLOTS;
+
+  await db.insert(screenshotsTable).values(
+    slots.map((slot) => ({ appId: app.id, ...slot, status: "pending" }))
   );
 
   res.status(201).json(app);
@@ -234,6 +275,38 @@ router.patch("/checklist/:itemId", async (req, res): Promise<void> => {
     return;
   }
 
+  res.json(item);
+});
+
+router.get("/apps/:id/screenshots", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid app ID" });
+    return;
+  }
+  const items = await db
+    .select()
+    .from(screenshotsTable)
+    .where(eq(screenshotsTable.appId, id));
+  res.json(items);
+});
+
+router.patch("/screenshots/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid screenshot ID" });
+    return;
+  }
+  const { status, notes } = req.body as { status?: string; notes?: string };
+  const [item] = await db
+    .update(screenshotsTable)
+    .set({ ...(status !== undefined ? { status } : {}), ...(notes !== undefined ? { notes } : {}) })
+    .where(eq(screenshotsTable.id, id))
+    .returning();
+  if (!item) {
+    res.status(404).json({ error: "Screenshot slot not found" });
+    return;
+  }
   res.json(item);
 });
 

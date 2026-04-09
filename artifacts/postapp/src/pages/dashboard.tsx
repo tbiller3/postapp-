@@ -7,6 +7,17 @@ import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkspaceImport } from "@/components/workspace-import";
 
+type AppWithProgress = {
+  id: number;
+  name: string;
+  platform: string;
+  status: string;
+  version?: string | null;
+  bundleId?: string | null;
+  checklistTotal?: number;
+  checklistDone?: number;
+};
+
 export default function Dashboard() {
   const { data: apps, isLoading: isLoadingApps } = useListApps();
   const { data: summary, isLoading: isLoadingSummary } = useGetAppsSummary();
@@ -91,54 +102,64 @@ export default function Dashboard() {
         {isLoadingApps ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-lg bg-muted/50" />
+              <Skeleton key={i} className="h-24 w-full rounded-lg bg-muted/50" />
             ))}
           </div>
         ) : apps && apps.length > 0 ? (
           <div className="grid gap-3">
-            {apps.map((app) => (
-              <Link key={app.id} href={`/apps/${app.id}`}>
-                <div className="group block rounded-lg border border-border/50 bg-card/40 p-4 hover:bg-card/80 hover:border-primary/50 transition-all cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-lg">{app.name}</span>
-                        <StatusBadge status={app.status} />
-                        <span className="text-xs font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/30 border border-border/50">
-                          {app.platform}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">
-                        <span className="flex items-center gap-1">
-                          v{app.version || "1.0.0"}
-                        </span>
-                        {app.bundleId && (
-                          <span className="flex items-center gap-1 opacity-70">
-                            {app.bundleId}
+            {(apps as AppWithProgress[]).map((app) => {
+              const total = app.checklistTotal ?? 0;
+              const done = app.checklistDone ?? 0;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const allDone = total > 0 && done === total;
+
+              return (
+                <Link key={app.id} href={`/apps/${app.id}`}>
+                  <div className="group block rounded-lg border border-border/50 bg-card/40 p-4 hover:bg-card/80 hover:border-primary/50 transition-all cursor-pointer">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-lg">{app.name}</span>
+                          <StatusBadge status={app.status} />
+                          <span className="text-xs font-mono text-muted-foreground px-2 py-0.5 rounded bg-muted/30 border border-border/50">
+                            {app.platform}
                           </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">
+                          <span>v{app.version || "1.0.0"}</span>
+                          {app.bundleId && (
+                            <span className="opacity-70 truncate">{app.bundleId}</span>
+                          )}
+                        </div>
+                        {total > 0 && (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-mono text-muted-foreground">
+                                Checklist {done}/{total}
+                              </span>
+                              <span className={`text-[11px] font-mono font-semibold ${allDone ? "text-green-500" : pct >= 75 ? "text-amber-400" : "text-muted-foreground"}`}>
+                                {pct}%
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${allDone ? "bg-green-500" : pct >= 75 ? "bg-amber-400" : "bg-primary"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
                         )}
                       </div>
-                    </div>
-                    <div className="text-muted-foreground/50 group-hover:text-primary transition-colors">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M5 12h14" />
-                        <path d="m12 5 7 7-7 7" />
-                      </svg>
+                      <div className="text-muted-foreground/50 group-hover:text-primary transition-colors shrink-0 mt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">

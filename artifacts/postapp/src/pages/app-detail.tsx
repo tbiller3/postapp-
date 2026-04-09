@@ -34,8 +34,9 @@ import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } f
 import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
+import { AssetsPanel } from "@/components/assets-panel";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -420,6 +421,11 @@ export default function AppDetail() {
               <span className="hidden sm:inline">Review Logs</span>
               <span className="sm:hidden">Reviews</span>
             </TabsTrigger>
+            <TabsTrigger value="assets" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 whitespace-nowrap">
+              <ImageIcon className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Assets</span>
+              <span className="sm:hidden">Assets</span>
+            </TabsTrigger>
             <TabsTrigger value="apple" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 whitespace-nowrap">
               <AppWindow className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
               <span className="hidden sm:inline">Apple Connect</span>
@@ -686,6 +692,10 @@ export default function AppDetail() {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="assets" className="mt-6">
+          <AssetsPanel appId={appId} />
         </TabsContent>
 
         <TabsContent value="apple" className="mt-6">

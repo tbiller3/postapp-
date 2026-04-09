@@ -22,28 +22,34 @@ export function OriginalIcon() {
           background: "radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 70%)",
         }} />
 
-        {/* iPhone silhouette + arrow — enlarged to fill more of the tile */}
+        {/* iPhone silhouette — widened to align with POSTAPP text below */}
         <div style={{ position: "relative", zIndex: 1 }}>
-          <svg width="158" height="188" viewBox="0 0 110 160" fill="none">
+          {/* viewBox 0 0 130 160: iPhone center at x=65 */}
+          <svg width="182" height="188" viewBox="0 0 130 160" fill="none">
             {/* iPhone outer body */}
-            <rect x="8" y="2" width="94" height="156" rx="18" ry="18"
+            <rect x="5" y="2" width="120" height="156" rx="20" ry="20"
               fill="none" stroke="white" strokeWidth="7"/>
-            {/* Speaker slot */}
-            <rect x="36" y="10" width="38" height="5" rx="2.5" fill="white" opacity="0.9"/>
+            {/* Speaker slot — centered at x=65 */}
+            <rect x="44" y="10" width="42" height="5" rx="2.5" fill="white" opacity="0.9"/>
             {/* Front camera dot */}
-            <circle cx="28" cy="12" r="3" fill="white" opacity="0.9"/>
+            <circle cx="29" cy="12" r="3" fill="white" opacity="0.9"/>
             {/* Screen area */}
-            <rect x="14" y="24" width="82" height="110" rx="4"
+            <rect x="13" y="24" width="104" height="110" rx="4"
               fill="rgba(30,100,220,0.6)"/>
             {/* Home button */}
-            <circle cx="55" cy="148" r="9" fill="none" stroke="white" strokeWidth="5"/>
+            <circle cx="65" cy="148" r="9" fill="none" stroke="white" strokeWidth="5"/>
 
-            {/* Upload arrow — head + longer stem filling more of screen */}
+            {/*
+              Arrow centered at x=65
+              Head: wider triangle — tip at (65,30), wings at x=38 and x=92
+              Stem: 22px wide — x=54 to x=76
+              Stem bottom at y=112, notch to y=124
+            */}
             <polygon
-              points="55,32 76,60 63,60 63,112 47,112 47,60 34,60"
+              points="65,30 92,62 76,62 76,112 54,112 54,62 38,62"
               fill="white" opacity="0.95"/>
             {/* Chevron notch at tail bottom */}
-            <polygon points="47,112 55,122 63,112"
+            <polygon points="54,112 65,124 76,112"
               fill="rgba(30,100,220,0.6)"/>
           </svg>
         </div>

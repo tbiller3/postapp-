@@ -12,6 +12,7 @@ export function OriginalIcon() {
         boxShadow: "0 0 60px rgba(59,158,255,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
+        gap: 4,
         position: "relative", overflow: "hidden",
       }}>
         {/* Light halo at bottom */}
@@ -21,9 +22,9 @@ export function OriginalIcon() {
           background: "radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 70%)",
         }} />
 
-        {/* iPhone silhouette + arrow group */}
-        <div style={{ position: "relative", zIndex: 1, marginBottom: 6 }}>
-          <svg width="110" height="130" viewBox="0 0 110 160" fill="none">
+        {/* iPhone silhouette + arrow — enlarged to fill more of the tile */}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <svg width="158" height="188" viewBox="0 0 110 160" fill="none">
             {/* iPhone outer body */}
             <rect x="8" y="2" width="94" height="156" rx="18" ry="18"
               fill="none" stroke="white" strokeWidth="7"/>
@@ -37,12 +38,12 @@ export function OriginalIcon() {
             {/* Home button */}
             <circle cx="55" cy="148" r="9" fill="none" stroke="white" strokeWidth="5"/>
 
-            {/* Upload arrow inside screen */}
-            {/* Arrow head */}
-            <polygon points="55,34 75,62 63,62 63,74 47,74 47,62 35,62"
+            {/* Upload arrow — head + longer stem filling more of screen */}
+            <polygon
+              points="55,32 76,60 63,60 63,112 47,112 47,60 34,60"
               fill="white" opacity="0.95"/>
-            {/* Arrow notch (chevron tail) */}
-            <polygon points="47,74 55,82 63,74"
+            {/* Chevron notch at tail bottom */}
+            <polygon points="47,112 55,122 63,112"
               fill="rgba(30,100,220,0.6)"/>
           </svg>
         </div>

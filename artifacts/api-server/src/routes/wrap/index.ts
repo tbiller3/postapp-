@@ -135,9 +135,16 @@ export default config;
     const codemagicYaml = `workflows:
   ios-workflow:
     name: ${appName} iOS Build
+    max_build_duration: 60
     environment:
       xcode: latest
       cocoapods: default
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "${bundleId}"
+        XCODE_SCHEME: App
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
     scripts:
       - name: Install dependencies
         script: npm install
@@ -145,21 +152,19 @@ export default config;
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Set up code signing
-        script: xcode-project use-profiles
-      - name: Build iOS
+      - name: Set up automatic code signing
+        script: |
+          xcode-project use-profiles \\
+            --type development || true
+      - name: Build iOS IPA
         script: |
           xcode-project build-ipa \\
-            --workspace ios/App/App.xcworkspace \\
-            --scheme App
+            --workspace "$XCODE_WORKSPACE" \\
+            --scheme "$XCODE_SCHEME" \\
+            --config Release
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        api_key: \$APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: \$APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: \$APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
+      - /tmp/xcodebuild_logs/*.log
 `;
 
     // Build README
@@ -327,9 +332,16 @@ export default config;
     const codemagicYaml = `workflows:
   ios-workflow:
     name: ${appName} iOS Build
+    max_build_duration: 60
     environment:
       xcode: latest
       cocoapods: default
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "${bundleId}"
+        XCODE_SCHEME: App
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
     scripts:
       - name: Install dependencies
         script: npm install
@@ -337,21 +349,19 @@ export default config;
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Set up code signing
-        script: xcode-project use-profiles
-      - name: Build iOS
+      - name: Set up automatic code signing
+        script: |
+          xcode-project use-profiles \\
+            --type development || true
+      - name: Build iOS IPA
         script: |
           xcode-project build-ipa \\
-            --workspace ios/App/App.xcworkspace \\
-            --scheme App
+            --workspace "$XCODE_WORKSPACE" \\
+            --scheme "$XCODE_SCHEME" \\
+            --config Release
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        api_key: \$APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: \$APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: \$APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
+      - /tmp/xcodebuild_logs/*.log
 `;
 
     const readme = `# ${appName} — Native iOS Wrapper

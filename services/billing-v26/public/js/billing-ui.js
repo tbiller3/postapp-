@@ -137,25 +137,11 @@ async function grantDevCredit(projectId) {
 }
 
 async function runAnalyzer() {
-  const resultsEl = document.getElementById("analysisResults");
-  if (resultsEl) resultsEl.textContent = "Running…";
+  const res = await fetch("/api/analyzer/analyze");
+  const data = await res.json();
 
-  try {
-    const res = await fetch("/api/analyzer/analyze");
-    const data = await res.json();
-
-    const lines = [
-      `Score: ${data.score} — ${data.readiness} Readiness`,
-      "",
-      ...data.issues.map(i => `[${i.type.toUpperCase()}] ${i.message} → fix: ${i.fix}`)
-    ];
-
-    if (resultsEl) resultsEl.textContent = lines.join("\n");
-    addUiLog(`Analyzer complete. Score: ${data.score}`);
-  } catch (err) {
-    if (resultsEl) resultsEl.textContent = "Analyzer failed.";
-    addUiLog("Analyzer request failed.");
-  }
+  document.getElementById("analysisResults").innerHTML =
+    JSON.stringify(data, null, 2);
 }
 
 document.addEventListener("DOMContentLoaded", () => {

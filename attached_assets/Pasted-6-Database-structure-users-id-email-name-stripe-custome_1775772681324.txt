@@ -1,0 +1,171 @@
+6. Database structure
+
+users
+	•	id
+	•	email
+	•	name
+	•	stripe_customer_id
+	•	created_at
+
+subscriptions
+	•	id
+	•	user_id
+	•	stripe_subscription_id
+	•	plan_name
+	•	status
+	•	current_period_end
+
+app_projects
+	•	id
+	•	user_id
+	•	name
+	•	platform
+	•	status
+	•	readiness_score
+	•	created_at
+
+purchases
+	•	id
+	•	user_id
+	•	stripe_payment_intent_id
+	•	purchase_type
+	•	amount
+	•	project_id
+	•	created_at
+
+submission_credits
+	•	id
+	•	user_id
+	•	project_id
+	•	type
+	•	status
+	•	expires_at
+
+⸻
+
+7. UI screens you need
+
+A. Pricing page
+
+Show:
+	•	Free / Solo / Builder / Studio
+	•	clean comparison table
+	•	“per-app fee applies at submission stage”
+	•	FAQ on fairness
+
+B. Upgrade modal
+
+Trigger when user hits:
+	•	full analyzer
+	•	second project
+	•	submission workflow
+
+Copy should say:
+
+Unlock full POSTAPP analysis and submission workflow.
+
+C. Submission checkout modal
+
+When user hits final submission:
+	•	show project name
+	•	show standard vs complex submission
+	•	show included services
+	•	confirm purchase
+
+D. Billing settings page
+
+User can:
+	•	view plan
+	•	upgrade/downgrade
+	•	buy submission credits
+	•	view invoice history
+
+⸻
+
+8. Recommended copy
+
+Pricing headline
+
+From prototype to App Store approval — without the usual chaos
+
+Subscription explainer
+
+Choose a plan for platform access, then pay only when you’re ready to push an app through the real submission workflow.
+
+Submission fee explainer
+
+Submission fees are charged only when you move into final App Store pipeline orchestration.
+
+⸻
+
+9. Conversion strategy
+
+Best funnel
+	1.	Land on homepage
+	2.	Start free analyzer
+	3.	Upload project
+	4.	Get score
+	5.	See blockers
+	6.	Upgrade to unlock full fix flow
+	7.	Pay submission fee only at final stage
+
+This is strong because users feel the value before paying.
+
+⸻
+
+10. Trust strategy
+
+Your strongest trust lever
+
+Offer:
+
+“If your app is rejected and POSTAPP cannot identify a path forward, we’ll credit your submission fee.”
+
+That is better than a vague promise and feels concrete.
+
+⸻
+
+11. Revenue logic
+
+Example with small traction
+
+100 paid Solo users:
+	•	100 × $49 = $4,900/month
+
+40 submissions/month at average $199:
+	•	$7,960/month
+
+Total:
+	•	$12,860/month
+
+That’s before Builder/Studio tiers and add-ons.
+
+⸻
+
+12. Technical implementation path
+
+Phase 1
+	•	Stripe subscriptions
+	•	one-time submission payments
+	•	billing settings page
+	•	basic entitlement checks
+
+Phase 2
+	•	credits system
+	•	add-ons
+	•	coupon/referral support
+	•	usage tracking by plan
+
+Phase 3
+	•	teams
+	•	agency billing
+	•	client-specific workspaces
+	•	white-label exports
+
+⸻
+
+13. Backend rules
+
+Example gating logic
+
+If free user tries full analyzer

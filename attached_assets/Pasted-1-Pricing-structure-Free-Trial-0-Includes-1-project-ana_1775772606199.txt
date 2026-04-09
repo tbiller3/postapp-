@@ -1,0 +1,160 @@
+1. Pricing structure
+
+Free Trial
+
+$0
+Includes:
+	•	1 project
+	•	analyzer preview
+	•	readiness score
+	•	limited wizard access
+	•	no final submission automation
+
+Purpose:
+	•	let users see the value before paying
+	•	create the “aha” moment
+
+⸻
+
+Solo
+
+$49/month
+Includes:
+	•	1 active app pipeline
+	•	full analyzer engine
+	•	wizard + checklist
+	•	metadata workspace
+	•	App Store readiness scoring
+	•	1 team member
+
+Plus:
+	•	$199 per app submission
+
+Best for:
+	•	indie builders
+	•	first-time app publishers
+
+⸻
+
+Builder
+
+$99/month
+Includes:
+	•	up to 3 active app pipelines
+	•	everything in Solo
+	•	faster processing queue
+	•	saved templates
+	•	reusable metadata blocks
+	•	3 team members
+
+Plus:
+	•	$179 per app submission
+
+Best for:
+	•	repeat creators
+	•	freelancers
+	•	small studios
+
+⸻
+
+Studio
+
+$249/month
+Includes:
+	•	unlimited active pipelines
+	•	everything in Builder
+	•	team workspace
+	•	priority support
+	•	client/project separation
+	•	white-label reporting
+
+Plus:
+	•	$149 per app submission
+
+Best for:
+	•	agencies
+	•	serious vibe coders
+	•	product studios
+
+⸻
+
+Optional add-ons
+	•	Rejection/resubmission support: $99
+	•	Complex app handling: +$149 to +$299
+	•	Screenshot pack generation: $49
+	•	Metadata optimization pack: $79
+	•	Review-response drafting: $29
+
+⸻
+
+2. What gets paywalled
+
+Free users can:
+	•	upload or connect a project
+	•	see a partial analyzer report
+	•	view top-level blockers
+	•	preview readiness score
+	•	create one sandbox project
+
+Paid users can:
+	•	unlock full analyzer results
+	•	use the guided fix flow
+	•	generate packaging/wrapper output
+	•	connect GitHub / Codemagic / App Store Connect
+	•	save multiple projects
+	•	run pre-submission validation
+	•	submit through POSTAPP workflows
+
+Per-app submission fee triggers when user:
+	•	starts final submission orchestration
+	•	generates final submission package
+	•	triggers production build handoff
+	•	uses submission/resubmission workflow
+
+⸻
+
+3. Product logic
+
+Recommended gating rule
+
+Do not charge too early.
+
+Best sequence:
+	1.	User uploads app
+	2.	POSTAPP analyzes it
+	3.	User sees value
+	4.	User upgrades to continue
+	5.	User pays per-app fee only when moving into final submission pipeline
+
+That way the system feels fair.
+
+⸻
+
+4. Stripe structure
+
+Use Stripe with:
+
+Products
+	•	POSTAPP Solo Monthly
+	•	POSTAPP Builder Monthly
+	•	POSTAPP Studio Monthly
+
+Metered / one-time products
+	•	Standard Submission Credit
+	•	Complex Submission Credit
+	•	Resubmission Credit
+	•	Screenshot Pack
+	•	Metadata Pack
+
+Customer model
+
+Each user gets:
+	•	one Stripe customer
+	•	one active subscription
+	•	a balance/history of one-time purchases
+
+⸻
+
+5. Internal entitlement model
+
+You need a simple entitlement layer in POSTAPP.

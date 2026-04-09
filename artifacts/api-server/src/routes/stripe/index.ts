@@ -1,6 +1,9 @@
 import { Router, type IRouter } from 'express';
 import { stripeStorage } from '../../stripeStorage';
 import { getUncachableStripeClient, getStripePublishableKey } from '../../stripeClient';
+import { db } from '@workspace/db';
+import { usersTable, submissionCreditsTable } from '@workspace/db/schema';
+import { eq } from 'drizzle-orm';
 
 const router: IRouter = Router();
 
@@ -48,7 +51,7 @@ router.get('/stripe/plans', async (_req, res) => {
   }
 });
 
-// POST /api/stripe/checkout — create a Stripe Checkout session
+// POST /api/stripe/checkout — create a subscription checkout session
 router.post('/stripe/checkout', async (req: any, res) => {
   try {
     const { priceId } = req.body;
@@ -59,22 +62,95 @@ router.post('/stripe/checkout', async (req: any, res) => {
 
     const stripe = await getUncachableStripeClient();
     const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    const userId = req.user?.id;
+    const userEmail = req.user?.email;
 
-    const session = await stripe.checkout.sessions.create({
+    let existingCustomerId: string | undefined;
+    if (userId) {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+      if (user?.stripeCustomerId) existingCustomerId = user.stripeCustomerId;
+    }
+
+    const sessionParams: any = {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${baseUrl}/pricing?success=1`,
       cancel_url: `${baseUrl}/pricing?canceled=1`,
-      metadata: {
-        userId: req.user?.id?.toString() || 'anonymous',
-      },
-    });
+      metadata: { userId: userId || 'anonymous' },
+    };
 
+    if (existingCustomerId) {
+      sessionParams.customer = existingCustomerId;
+    } else if (userEmail) {
+      sessionParams.customer_email = userEmail;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Failed to create checkout session' });
+  }
+});
+
+// POST /api/stripe/checkout/submission — one-time submission payment
+router.post('/stripe/checkout/submission', async (req: any, res) => {
+  try {
+    const { appId, submissionType = 'standard' } = req.body;
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const stripe = await getUncachableStripeClient();
+    const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+
+    const SUBMISSION_PRICES: Record<string, { amount: number; label: string }> = {
+      standard: { amount: 19900, label: 'Standard App Submission' },
+      complex: { amount: 34900, label: 'Complex App Submission' },
+      resubmission: { amount: 9900, label: 'Resubmission / Appeal Support' },
+    };
+
+    const pricing = SUBMISSION_PRICES[submissionType] || SUBMISSION_PRICES.standard;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+
+    const sessionParams: any = {
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: pricing.label,
+            description: `POSTAPP submission service — App ID: ${appId || 'N/A'}`,
+          },
+          unit_amount: pricing.amount,
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${baseUrl}/apps/${appId}?submission_success=1`,
+      cancel_url: `${baseUrl}/apps/${appId}`,
+      metadata: {
+        userId,
+        appId: appId?.toString() || '',
+        submissionType,
+      },
+    };
+
+    if (user?.stripeCustomerId) {
+      sessionParams.customer = user.stripeCustomerId;
+    } else if (user?.email) {
+      sessionParams.customer_email = user.email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    res.json({ url: session.url });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Failed to create submission checkout' });
   }
 });
 

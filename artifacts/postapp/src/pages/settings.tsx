@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useBilling } from "@/hooks/use-billing";
+import { useLocation } from "wouter";
 import {
   Save, Eye, EyeOff, Key, Github, Zap, CheckCircle2,
   ExternalLink, AlertCircle, Loader2, RefreshCw, ShieldCheck,
+  CreditCard, ArrowUpRight, Crown,
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -46,8 +49,25 @@ const STEPS = [
   },
 ];
 
+const PLAN_LABELS: Record<string, string> = {
+  free: "Free",
+  solo: "Solo",
+  builder: "Builder",
+  studio: "Studio",
+};
+
+const PLAN_COLORS: Record<string, string> = {
+  free: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+  solo: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+  builder: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+  studio: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+};
+
 export default function Settings() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const billing = useBilling();
+  const [portalLoading, setPortalLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -136,6 +156,20 @@ export default function Settings() {
     }
   };
 
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/billing/portal`, { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (data.url) window.open(data.url, "_blank");
+      else throw new Error(data.error || "Failed");
+    } catch (err: any) {
+      toast({ title: "Billing portal failed", description: err.message, variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const readiness = [
     { label: "Codemagic API", ok: validation ? validation.codemagic.ok : status.hasCodemagicApiKey },
     { label: "GitHub Token", ok: validation ? validation.github.ok : status.hasGithubToken },
@@ -163,6 +197,81 @@ export default function Settings() {
           Enter your credentials once — every build after that is fully automatic.
         </p>
       </div>
+
+      {/* Billing Card */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-violet-400" />
+            Plan & Billing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crown className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Current Plan</span>
+            </div>
+            <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full border ${PLAN_COLORS[billing.plan]}`}>
+              {PLAN_LABELS[billing.plan] ?? "Free"}
+            </span>
+          </div>
+
+          {billing.subscription && (
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div className="flex justify-between">
+                <span>Status</span>
+                <span className={billing.subscription.status === "active" ? "text-green-400" : "text-amber-400"}>
+                  {billing.subscription.status}
+                </span>
+              </div>
+              {billing.subscription.cancelAtPeriodEnd && (
+                <p className="text-amber-400/80 text-[11px]">
+                  Cancels at end of billing period
+                </p>
+              )}
+            </div>
+          )}
+
+          {!billing.isPaid ? (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+                onClick={() => navigate("/pricing")}
+              >
+                <Zap className="h-3.5 w-3.5 mr-1.5" />
+                Upgrade Plan
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={openPortal}
+                disabled={portalLoading}
+              >
+                {portalLoading
+                  ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  : <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" />
+                }
+                Manage Billing
+              </Button>
+              {billing.plan !== "studio" && (
+                <Button
+                  size="sm"
+                  className="flex-1 bg-violet-600 hover:bg-violet-500 text-white text-xs"
+                  onClick={() => navigate("/pricing")}
+                >
+                  Upgrade
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Readiness Summary */}
       <Card className={`border ${allReady ? "border-green-500/40 bg-green-950/20" : "border-amber-500/30 bg-amber-950/10"}`}>

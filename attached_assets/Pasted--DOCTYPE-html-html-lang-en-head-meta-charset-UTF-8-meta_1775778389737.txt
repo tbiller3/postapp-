@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POSTAPP Billing V26</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-icon">
+          <div class="brand-arrow"></div>
+        </div>
+        <div>
+          <h1>POSTAPP</h1>
+          <p>Billing Engine V26</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="pricingView">Pricing</button>
+        <button class="nav-item" data-view="billingView">Billing</button>
+        <button class="nav-item" data-view="submissionView">Submission</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section id="pricingView" class="view active">
+        <header class="topbar">
+          <div>
+            <h2>Pricing</h2>
+            <p>Choose a plan, then pay per submission when ready.</p>
+          </div>
+        </header>
+
+        <div class="pricing-grid">
+          <div class="panel pricing-card">
+            <h3>Solo</h3>
+            <strong>$49/mo</strong>
+            <p>Indie builders and first-time publishers.</p>
+            <button class="primary-btn" data-plan-button="solo">Get Solo</button>
+          </div>
+
+          <div class="panel pricing-card">
+            <h3>Builder</h3>
+            <strong>$99/mo</strong>
+            <p>Repeat creators and small teams.</p>
+            <button class="primary-btn" data-plan-button="builder">Get Builder</button>
+          </div>
+
+          <div class="panel pricing-card">
+            <h3>Studio</h3>
+            <strong>$249/mo</strong>
+            <p>Studios, agencies, and serious pipelines.</p>
+            <button class="primary-btn" data-plan-button="studio">Get Studio</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="billingView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Billing Status</h2>
+            <p>Your plan and billing readiness.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="status-box">
+            <div class="status-line"><span>Plan</span><strong id="planLabel">Loading...</strong></div>
+            <div class="status-line"><span>Subscription</span><strong id="subscriptionLabel">Loading...</strong></div>
+            <div class="status-line"><span>Customer</span><strong id="customerLabel">Loading...</strong></div>
+          </div>
+
+          <div class="action-row">
+            <button class="secondary-btn" id="refreshBillingBtn">Refresh Billing Status</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="submissionView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Submission Checkout</h2>
+            <p>Test the submission paywall flow.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <label class="label">Project ID</label>
+          <input id="projectIdInput" class="input" type="text" value="proj_123" />
+
+          <label class="label">Project Name</label>
+          <input id="projectNameInput" class="input" type="text" value="POSTAPP iOS Wrapper" />
+
+          <div class="action-row">
+            <button id="openStandardCheckout" class="primary-btn">Open Standard Submission</button>
+            <button id="openComplexCheckout" class="secondary-btn">Open Complex Submission</button>
+            <button id="grantDevCreditBtn" class="ghost-btn">Grant Dev Credit</button>
+          </div>
+
+          <div class="log-box" id="uiLogBox"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="submissionCheckoutModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>POSTAPP Submission</h3>
+      <p id="submissionProjectName">Project: —</p>
+
+      <div class="submission-box">
+        <div class="submission-row">
+          <span>Type</span>
+          <strong id="submissionTypeLabel">Standard App</strong>
+        </div>
+        <div class="submission-row">
+          <span>Includes</span>
+          <strong>Validation + Build + Submit</strong>
+        </div>
+        <div class="submission-row">
+          <span>Support</span>
+          <strong>1 resubmission included</strong>
+        </div>
+        <div class="submission-row">
+          <span>Price</span>
+          <strong id="submissionPriceLabel">$199</strong>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="cancelSubmissionCheckout" class="secondary-btn">Cancel</button>
+        <button id="confirmSubmissionCheckout" class="primary-btn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/billing-ui.js"></script>
+</body>
+</html>

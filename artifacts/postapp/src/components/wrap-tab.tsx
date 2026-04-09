@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import {
   Smartphone, Package, Cloud, Check, Copy, ChevronDown, ChevronRight,
-  ExternalLink, Loader2, Zap, FileCode, Download, CheckCircle2, Globe
+  ExternalLink, Loader2, Zap, FileCode, Download, CheckCircle2, Globe,
+  Github, Lock, Eye, EyeOff, Rocket
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -65,6 +67,13 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
   const [completingItems, setCompletingItems] = useState(false);
+  const [githubOpen, setGithubOpen] = useState(false);
+  const [githubToken, setGithubToken] = useState("");
+  const [githubRepoName, setGithubRepoName] = useState("");
+  const [githubPrivate, setGithubPrivate] = useState(true);
+  const [githubPushing, setGithubPushing] = useState(false);
+  const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
 
   const [config, setConfig] = useState<WrapConfig>({
     webUrl: app.replitUrl || "",
@@ -142,6 +151,33 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
       toast({ title: "Generation failed", variant: "destructive" });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const openGithubDialog = () => {
+    setGithubRepoName(config.appName.toLowerCase().replace(/\s+/g, "-") + "-ios");
+    setGithubRepoUrl(null);
+    setGithubOpen(true);
+  };
+
+  const handleGithubPush = async () => {
+    if (!githubToken || !githubRepoName) return;
+    setGithubPushing(true);
+    try {
+      const res = await fetch(`${BASE}/api/apps/${appId}/wrap/push-github`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ token: githubToken, repoName: githubRepoName, isPrivate: githubPrivate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Push failed");
+      setGithubRepoUrl(data.repoUrl);
+      toast({ title: "Repo created!", description: `${data.repoFullName} is ready on GitHub.` });
+    } catch (err: any) {
+      toast({ title: "GitHub push failed", description: err.message, variant: "destructive" });
+    } finally {
+      setGithubPushing(false);
     }
   };
 
@@ -466,27 +502,56 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
                 <p className="text-xs text-muted-foreground">Build in the cloud without a Mac. Free tier includes 500 minutes/month.</p>
                 <ol className="space-y-2">
                   {[
-                    "Push these files to a GitHub repo",
+                    "Push files to GitHub (use the button below)",
                     "Sign up free at codemagic.io",
                     "Connect your repo — it auto-detects codemagic.yaml",
                     "Add your Apple signing certificates in the dashboard",
                     "Trigger a build → IPA goes to TestFlight",
-                  ].map((step, i) => (
+                  ].map((s, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="font-mono text-primary/70 shrink-0 mt-0.5">{i + 1}.</span>
-                      {step}
+                      <span className={`font-mono shrink-0 mt-0.5 ${i === 0 ? "text-primary/70" : "text-muted-foreground/50"}`}>{i + 1}.</span>
+                      {s}
                     </li>
                   ))}
                 </ol>
-                <a
-                  href="https://codemagic.io/start"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  codemagic.io/start
-                </a>
+
+                {/* GitHub push CTA */}
+                {githubRepoUrl ? (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-green-400 font-semibold">Repo created!</p>
+                      <a
+                        href={githubRepoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-blue-400 hover:underline truncate block"
+                      >
+                        {githubRepoUrl}
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={openGithubDialog}
+                    className="w-full bg-gray-900 hover:bg-gray-800 border border-gray-700 text-white"
+                  >
+                    <Github className="h-4 w-4 mr-2" />
+                    Push to GitHub
+                  </Button>
+                )}
+
+                {githubRepoUrl && (
+                  <a
+                    href="https://codemagic.io/start"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
+                  >
+                    <Rocket className="h-3.5 w-3.5" />
+                    Connect to Codemagic →
+                  </a>
+                )}
               </CardContent>
             </Card>
 
@@ -537,6 +602,92 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
           </Card>
         </div>
       )}
+
+      {/* GitHub Push Dialog */}
+      <Dialog open={githubOpen} onOpenChange={setGithubOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Github className="h-4 w-4" />
+              Push to GitHub
+            </DialogTitle>
+            <DialogDescription>
+              POSTAPP will create a private repo and push all 4 files automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-1">
+            {/* PAT */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-mono text-muted-foreground uppercase">
+                GitHub Personal Access Token
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                <Input
+                  type={showToken ? "text" : "password"}
+                  value={githubToken}
+                  onChange={e => setGithubToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className="pl-9 pr-9 font-mono text-sm"
+                />
+                <button
+                  onClick={() => setShowToken(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+                >
+                  {showToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/60">
+                Need one?{" "}
+                <a
+                  href="https://github.com/settings/tokens/new?scopes=repo&description=POSTAPP"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  Create a token with repo scope ↗
+                </a>
+              </p>
+            </div>
+
+            {/* Repo name */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-mono text-muted-foreground uppercase">Repo Name</Label>
+              <Input
+                value={githubRepoName}
+                onChange={e => setGithubRepoName(e.target.value.replace(/\s+/g, "-").toLowerCase())}
+                placeholder="wait-wise-ios"
+                className="font-mono text-sm"
+              />
+            </div>
+
+            {/* Private toggle */}
+            <button
+              onClick={() => setGithubPrivate(p => !p)}
+              className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg border text-xs font-mono transition-all ${
+                githubPrivate
+                  ? "bg-primary/10 border-primary/30 text-primary"
+                  : "bg-muted/20 border-border/50 text-muted-foreground"
+              }`}
+            >
+              <Lock className={`h-3.5 w-3.5 shrink-0 ${githubPrivate ? "" : "opacity-40"}`} />
+              {githubPrivate ? "Private repo (recommended)" : "Public repo"}
+            </button>
+
+            <Button
+              onClick={handleGithubPush}
+              disabled={githubPushing || !githubToken || !githubRepoName}
+              className="w-full"
+            >
+              {githubPushing
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating repo…</>
+                : <><Github className="h-4 w-4 mr-2" /> Create & Push</>
+              }
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

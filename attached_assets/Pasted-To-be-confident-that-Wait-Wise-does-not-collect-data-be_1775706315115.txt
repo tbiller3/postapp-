@@ -1,0 +1,83 @@
+To be confident that Wait Wise “does not collect data beyond what is declared,” you need to do two things:
+
+1) Verify what the app actually collects/transmits (runtime reality)  
+2) Make the App Privacy answers match that reality (App Store Connect disclosure)
+
+Here’s a practical workflow that usually clears this checklist item and prevents privacy-related rejections.
+
+---
+
+## 1) Inventory what “data collection” means (Apple’s definition)
+Apple considers data “collected” if your app (or SDKs in it) transmits data off-device that can relate to a user/device, including for analytics, advertising, account features, etc. (This maps to App Store Connect’s App Privacy section.)
+
+Common hidden sources:
+- Analytics SDKs (Firebase, Amplitude, Mixpanel, Sentry, etc.)
+- Ad SDKs
+- Crash reporting
+- “Sign in with …” providers
+- Any backend API that receives identifiers, logs, or content
+- Embedded web content that loads third-party scripts/trackers
+
+---
+
+## 2) Check what you *actually* send (the most reliable method)
+### A. Inspect your network traffic
+Do one of these:
+- Xcode: Run on device → use debugging tools to observe network calls (and logs).  
+- Proxy tool: Proxyman / Charles Proxy to capture requests from the app and see:
+  - What endpoints are called
+  - What payload fields are sent (email, device ID, location, etc.)
+  - Whether third-party domains are contacted (analytics/ads)
+
+Make a simple table like:
+- Destination (domain)
+- Purpose (auth, analytics, crash, content)
+- Data fields sent
+
+### B. Check iOS permissions used
+Look at what your app requests:
+- Location, Contacts, Photos, Microphone, Camera, Bluetooth, etc.  
+If you request them, confirm whether that data is actually transmitted off-device and why.
+
+### C. Audit third-party SDKs
+List all SDKs and what they collect by default. Many collect device identifiers, IP, usage events unless configured off.
+
+If you tell me what libraries you’re using (Firebase? Sentry? ads?), I can tell you the common “default collection” traps and what to switch off.
+
+---
+
+## 3) Make App Store Connect “App Privacy” match reality
+In App Store Connect → App Privacy, for each data type, you must specify:
+- Collected or not
+- If collected: whether it’s linked to the user or used for tracking
+- The purpose (Analytics, App Functionality, etc.)
+
+Important:
+- If you use anything that qualifies as Tracking, you also need ATT prompt and to declare tracking usage correctly.
+- If you do not collect anything, ensure you truly have no third-party analytics/crash reporting sending device/user data.
+
+Apple rejects apps under guideline 5.1.1 (Data Collection and Storage) when disclosures don’t match observed behavior.
+
+---
+
+## 4) Align the Privacy Policy + in-app messaging
+If you declare collection, your Privacy Policy should explicitly describe it (what, why, retention, sharing).  
+If you declare “no data collected,” ensure your policy doesn’t contradict that (some templates accidentally say you collect analytics/identifiers).
+
+---
+
+## 5) Final “awareness” checklist you can run before submission
+- [ ] No unexpected third-party domains in network logs  
+- [ ] SDKs audited and configured (or removed)  
+- [ ] App Privacy section matches actual data flows  
+- [ ] Privacy Policy matches App Privacy answers  
+- [ ] ATT used if tracking applies (otherwise tracking = No)
+
+---
+
+## Quick questions (so I can give you exact steps for Wait Wise)
+1) Are you using Firebase/Google Analytics, Sentry, Amplitude/Mixpanel, or any ad SDK?  
+2) Does Wait Wise require login or collect emails/phone numbers?  
+3) Does it access location (even “approximate”)?
+
+Reply with your SDK list (or package.json / Podfile / Capacitor plugins list), and I’ll map it directly to the exact App Privacy items you should select (and what to change if you want to declare “collects nothing”).

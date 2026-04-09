@@ -243,6 +243,181 @@ Use the included \`codemagic.yaml\` with [Codemagic](https://codemagic.io):
   }
 });
 
+// POST /api/apps/:id/wrap/sync-github — update files in an existing GitHub repo
+router.post("/apps/:id/wrap/sync-github", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+    const { token, repoFullName } = req.body;
+
+    if (!token || !repoFullName) {
+      res.status(400).json({ error: "token and repoFullName are required" });
+      return;
+    }
+
+    // Verify token
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: { Authorization: `Bearer ${token}`, "User-Agent": "POSTAPP/1.0" },
+    });
+    if (!userRes.ok) {
+      res.status(401).json({ error: "Invalid GitHub token." });
+      return;
+    }
+
+    // Load wrap config
+    const configs = await db.select().from(wrapConfigs).where(eq(wrapConfigs.appId, appId));
+    if (!configs.length) {
+      res.status(404).json({ error: "No wrap config found. Configure in Step 1 first." });
+      return;
+    }
+    const cfg = configs[0];
+    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions } = cfg;
+    const allowNav = (allowNavigation as string[] || []);
+
+    // Generate files (same logic as generate endpoint)
+    const capacitorConfig = `/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
+  appId: '${bundleId}',
+  appName: '${appName}',
+  webDir: 'www',
+  server: {
+    url: '${webUrl}',
+    cleartext: false,
+    allowNavigation: [${allowNav.map((d: string) => `'${d}'`).join(", ")}],
+  },
+  ios: {
+    backgroundColor: '${backgroundColor}',
+    statusBarStyle: '${statusBarStyle}',
+    minimumOsVersion: '${minIosVersion}',
+    contentInset: 'automatic',
+  },
+};
+
+module.exports = config;
+`;
+
+    const packageJson = JSON.stringify({
+      name: (appName as string).toLowerCase().replace(/\s+/g, "-"),
+      version: "1.0.0",
+      description: `Native iOS wrapper for ${appName}`,
+      scripts: {
+        "cap:ios": "npx cap add ios && npx cap sync ios",
+        "cap:sync": "npx cap sync ios",
+        "cap:open": "npx cap open ios",
+      },
+      dependencies: {
+        "@capacitor/core": "^6.0.0",
+        "@capacitor/ios": "^6.0.0",
+      },
+      devDependencies: {
+        "@capacitor/cli": "^6.0.0",
+      },
+    }, null, 2);
+
+    const codemagicYaml = `workflows:
+  ios-workflow:
+    name: ${appName} iOS Build
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      cocoapods: default
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "${bundleId}"
+        XCODE_SCHEME: App
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Add iOS platform
+        script: npx cap add ios || true
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Set up automatic code signing
+        script: |
+          xcode-project use-profiles \\
+            --type app-store
+      - name: Build iOS IPA
+        script: |
+          xcode-project build-ipa \\
+            --workspace "$XCODE_WORKSPACE" \\
+            --scheme "$XCODE_SCHEME" \\
+            --config Release \\
+            --export-options-plist export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+`;
+
+    const exportOptionsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+`;
+
+    const filesToSync = [
+      { path: "capacitor.config.js", content: capacitorConfig },
+      { path: "package.json", content: packageJson },
+      { path: "codemagic.yaml", content: codemagicYaml },
+      { path: "export_options.plist", content: exportOptionsPlist },
+    ];
+
+    const results: string[] = [];
+
+    for (const file of filesToSync) {
+      // Get current SHA if file exists
+      let sha: string | undefined;
+      const getRes = await fetch(
+        `https://api.github.com/repos/${repoFullName}/contents/${file.path}`,
+        { headers: { Authorization: `Bearer ${token}`, "User-Agent": "POSTAPP/1.0" } }
+      );
+      if (getRes.ok) {
+        const existing = await getRes.json() as { sha: string };
+        sha = existing.sha;
+      }
+
+      const encoded = Buffer.from(file.content).toString("base64");
+      const putRes = await fetch(
+        `https://api.github.com/repos/${repoFullName}/contents/${file.path}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "User-Agent": "POSTAPP/1.0",
+          },
+          body: JSON.stringify({
+            message: sha ? `Update ${file.path}` : `Add ${file.path}`,
+            content: encoded,
+            ...(sha ? { sha } : {}),
+          }),
+        }
+      );
+      if (!putRes.ok) {
+        const err = await putRes.json() as { message?: string };
+        res.status(500).json({ error: `Failed to sync ${file.path}: ${err.message}` });
+        return;
+      }
+      results.push(file.path);
+    }
+
+    res.json({ synced: results, repoUrl: `https://github.com/${repoFullName}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Sync failed" });
+  }
+});
+
 // POST /api/apps/:id/wrap/push-github — create GitHub repo and push generated files
 router.post("/apps/:id/wrap/push-github", async (req, res) => {
   try {

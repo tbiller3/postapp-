@@ -74,6 +74,12 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
   const [githubPushing, setGithubPushing] = useState(false);
   const [githubRepoUrl, setGithubRepoUrl] = useState<string | null>(null);
   const [showToken, setShowToken] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncToken, setSyncToken] = useState("");
+  const [syncRepoFullName, setSyncRepoFullName] = useState("tbiller3/wait-wise-ios");
+  const [syncPushing, setSyncPushing] = useState(false);
+  const [syncShowToken, setSyncShowToken] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
 
   const [config, setConfig] = useState<WrapConfig>({
     webUrl: app.replitUrl || "",
@@ -178,6 +184,28 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
       toast({ title: "GitHub push failed", description: err.message, variant: "destructive" });
     } finally {
       setGithubPushing(false);
+    }
+  };
+
+  const handleGithubSync = async () => {
+    if (!syncToken || !syncRepoFullName) return;
+    setSyncPushing(true);
+    setSyncDone(false);
+    try {
+      const res = await fetch(`${BASE}/api/apps/${appId}/wrap/sync-github`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ token: syncToken, repoFullName: syncRepoFullName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Sync failed");
+      setSyncDone(true);
+      toast({ title: "GitHub synced!", description: `${data.synced.length} files updated in ${syncRepoFullName}.` });
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncPushing(false);
     }
   };
 
@@ -541,6 +569,17 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
                   </Button>
                 )}
 
+                {/* Sync to existing repo */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                  onClick={() => { setSyncDone(false); setSyncOpen(true); }}
+                >
+                  <Github className="h-3.5 w-3.5 mr-2" />
+                  Sync files to existing repo
+                </Button>
+
                 {githubRepoUrl && (
                   <a
                     href="https://codemagic.io/start"
@@ -686,6 +725,101 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
               }
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync to Existing Repo Dialog */}
+      <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Github className="h-4 w-4" />
+              Sync to Existing Repo
+            </DialogTitle>
+            <DialogDescription>
+              Updates all files in your existing GitHub repo with the latest build config — no manual editing needed.
+            </DialogDescription>
+          </DialogHeader>
+
+          {syncDone ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <CheckCircle2 className="h-10 w-10 text-green-500" />
+              <p className="text-sm font-medium">Files synced to GitHub!</p>
+              <p className="text-xs text-muted-foreground text-center">
+                Go to Codemagic and start a new build — the updated files are live in your repo.
+              </p>
+              <a
+                href="https://codemagic.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors"
+              >
+                <Rocket className="h-3.5 w-3.5" />
+                Open Codemagic →
+              </a>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-mono text-muted-foreground uppercase">
+                  GitHub Personal Access Token
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                  <Input
+                    type={syncShowToken ? "text" : "password"}
+                    value={syncToken}
+                    onChange={e => setSyncToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    className="pl-9 pr-9 font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setSyncShowToken(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    {syncShowToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground/60">
+                  Need one?{" "}
+                  <a
+                    href="https://github.com/settings/tokens/new?scopes=repo&description=POSTAPP"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    Create a token with repo scope ↗
+                  </a>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-mono text-muted-foreground uppercase">
+                  Repo (owner/name)
+                </Label>
+                <Input
+                  value={syncRepoFullName}
+                  onChange={e => setSyncRepoFullName(e.target.value)}
+                  placeholder="tbiller3/wait-wise-ios"
+                  className="font-mono text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground/60">
+                  Format: your-username/repo-name
+                </p>
+              </div>
+
+              <Button
+                onClick={handleGithubSync}
+                disabled={syncPushing || !syncToken || !syncRepoFullName}
+                className="w-full bg-amber-600 hover:bg-amber-500 text-white"
+              >
+                {syncPushing
+                  ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Syncing files…</>
+                  : <><Github className="h-4 w-4 mr-2" /> Sync 4 files to GitHub</>
+                }
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

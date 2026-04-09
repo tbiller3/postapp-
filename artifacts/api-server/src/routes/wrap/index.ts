@@ -154,16 +154,33 @@ module.exports = config;
       - name: Set up automatic code signing
         script: |
           xcode-project use-profiles \\
-            --type development || true
+            --type app-store
       - name: Build iOS IPA
         script: |
           xcode-project build-ipa \\
             --workspace "$XCODE_WORKSPACE" \\
             --scheme "$XCODE_SCHEME" \\
-            --config Release
+            --config Release \\
+            --export-options-plist export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+`;
+
+    const exportOptionsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
 `;
 
     // Build README
@@ -212,9 +229,10 @@ Use the included \`codemagic.yaml\` with [Codemagic](https://codemagic.io):
 
     res.json({
       files: [
-        { name: "capacitor.config.ts", content: capacitorConfig, language: "typescript" },
+        { name: "capacitor.config.js", content: capacitorConfig, language: "javascript" },
         { name: "package.json", content: packageJson, language: "json" },
         { name: "codemagic.yaml", content: codemagicYaml, language: "yaml" },
+        { name: "export_options.plist", content: exportOptionsPlist, language: "xml" },
         { name: "Info.plist (additions)", content: infoPlistAdditions, language: "xml" },
         { name: "README.md", content: readme, language: "markdown" },
       ],
@@ -350,16 +368,33 @@ module.exports = config;
       - name: Set up automatic code signing
         script: |
           xcode-project use-profiles \\
-            --type development || true
+            --type app-store
       - name: Build iOS IPA
         script: |
           xcode-project build-ipa \\
             --workspace "$XCODE_WORKSPACE" \\
             --scheme "$XCODE_SCHEME" \\
-            --config Release
+            --config Release \\
+            --export-options-plist export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+`;
+
+    const exportOptionsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
 `;
 
     const readme = `# ${appName} — Native iOS Wrapper
@@ -386,6 +421,7 @@ npm run cap:open
       { path: "capacitor.config.js", content: capacitorConfig },
       { path: "package.json", content: packageJson },
       { path: "codemagic.yaml", content: codemagicYaml },
+      { path: "export_options.plist", content: exportOptionsPlist },
       { path: "README.md", content: readme },
     ];
 

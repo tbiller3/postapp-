@@ -264,7 +264,7 @@ router.post("/apps/:id/wrap/sync-github", async (req, res) => {
     }
 
     // Load wrap config
-    const configs = await db.select().from(wrapConfigs).where(eq(wrapConfigs.appId, appId));
+    const configs = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
     if (!configs.length) {
       res.status(404).json({ error: "No wrap config found. Configure in Step 1 first." });
       return;

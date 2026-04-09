@@ -27,7 +27,7 @@ When the user provides context about their app (name, bundle ID, checklist statu
 
 Always be encouraging — App Store submission can be frustrating, and you're here to make it less so.`;
 
-router.post("/api/assistant/conversations", async (req, res): Promise<void> => {
+router.post("/assistant/conversations", async (req, res): Promise<void> => {
   try {
     const { title } = req.body as { title?: string };
     const [conv] = await db
@@ -40,7 +40,7 @@ router.post("/api/assistant/conversations", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/api/assistant/conversations/:id/messages", async (req, res): Promise<void> => {
+router.get("/assistant/conversations/:id/messages", async (req, res): Promise<void> => {
   try {
     const convId = parseInt(req.params.id, 10);
     const msgs = await db
@@ -54,7 +54,7 @@ router.get("/api/assistant/conversations/:id/messages", async (req, res): Promis
   }
 });
 
-router.post("/api/assistant/conversations/:id/messages", async (req, res): Promise<void> => {
+router.post("/assistant/conversations/:id/messages", async (req, res): Promise<void> => {
   const convId = parseInt(req.params.id, 10);
   const { content, appContext } = req.body as {
     content: string;

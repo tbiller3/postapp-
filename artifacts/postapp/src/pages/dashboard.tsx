@@ -6,6 +6,7 @@ import { Plus, AppWindow, AlertCircle, CheckCircle2, Clock, PlayCircle } from "l
 import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WorkspaceImport } from "@/components/workspace-import";
+import { AiAssistant } from "@/components/ai-assistant";
 
 type AppWithProgress = {
   id: number;
@@ -172,6 +173,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      <AiAssistant />
     </div>
   );
 }

@@ -37,6 +37,7 @@ import { FieldIssue } from "@/components/fix-panel";
 import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { AssetsPanel } from "@/components/assets-panel";
+import { AiAssistant } from "@/components/ai-assistant";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -702,6 +703,21 @@ export default function AppDetail() {
           <AppleConnectPanel />
         </TabsContent>
       </Tabs>
+
+      <AiAssistant
+        appId={appId}
+        appContext={{
+          appName: app.name ?? undefined,
+          bundleId: app.bundleId ?? undefined,
+          platform: app.platform ?? undefined,
+          checklistTotal: totalItems,
+          checklistDone: completedItems,
+          pendingItems: enrichedChecklist
+            .filter((i) => !i.completed)
+            .map((i) => i.label)
+            .slice(0, 10),
+        }}
+      />
     </div>
   );
 }

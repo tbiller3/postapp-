@@ -17,13 +17,15 @@ interface AppContext {
 }
 
 interface AiAssistantProps {
+  appId?: number;
   appContext?: AppContext;
 }
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-async function getOrCreateConversation(): Promise<number> {
-  const stored = sessionStorage.getItem("assistant_conv_id");
+async function getOrCreateConversation(appId?: number): Promise<number> {
+  const key = appId ? `assistant_conv_id_app_${appId}` : "assistant_conv_id_global";
+  const stored = sessionStorage.getItem(key);
   if (stored) return parseInt(stored, 10);
   const res = await fetch(`${BASE}/api/assistant/conversations`, {
     method: "POST",
@@ -32,7 +34,7 @@ async function getOrCreateConversation(): Promise<number> {
     body: JSON.stringify({ title: "App Store Assistant" }),
   });
   const data = await res.json() as { id: number };
-  sessionStorage.setItem("assistant_conv_id", String(data.id));
+  sessionStorage.setItem(key, String(data.id));
   return data.id;
 }
 
@@ -53,7 +55,7 @@ function formatMessage(text: string): React.ReactNode {
   });
 }
 
-export function AiAssistant({ appContext }: AiAssistantProps) {
+export function AiAssistant({ appId, appContext }: AiAssistantProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -63,20 +65,31 @@ export function AiAssistant({ appContext }: AiAssistantProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Reset conversation when switching apps
+  useEffect(() => {
+    setConvId(null);
+    setMessages([]);
+  }, [appId]);
+
   useEffect(() => {
     if (open && !convId) {
-      getOrCreateConversation().then(setConvId).catch(console.error);
+      getOrCreateConversation(appId).then(setConvId).catch(console.error);
     }
-  }, [open, convId]);
+  }, [open, convId, appId]);
 
   useEffect(() => {
     if (open && messages.length === 0 && convId) {
-      setMessages([{
-        role: "assistant",
-        content: appContext?.appName
-          ? `Hi! I'm your App Store submission assistant. I can see you're working on **${appContext.appName}** — ${appContext.checklistDone}/${appContext.checklistTotal} checklist items done. What can I help you with?`
-          : "Hi! I'm your App Store submission assistant. Ask me anything about checklist items, rejection reasons, metadata requirements, screenshots, or anything else Apple-related.",
-      }]);
+      let greeting: string;
+      if (appContext?.appName) {
+        const remaining = (appContext.checklistTotal ?? 0) - (appContext.checklistDone ?? 0);
+        const pendingStr = appContext.pendingItems?.length
+          ? `\n\nYou still have **${remaining}** item${remaining !== 1 ? "s" : ""} to complete:\n${appContext.pendingItems.slice(0, 5).map((p) => `• ${p}`).join("\n")}${(appContext.pendingItems.length > 5) ? `\n• …and ${appContext.pendingItems.length - 5} more` : ""}`
+          : "";
+        greeting = `I'm your App Store assistant. I can see you're working on **${appContext.appName}** (${appContext.bundleId ?? "no bundle ID"}) — **${appContext.checklistDone}/${appContext.checklistTotal}** checklist items complete.${pendingStr}\n\nWhat would you like help with?`;
+      } else {
+        greeting = "I'm your App Store submission assistant. Ask me anything — checklist items, rejection reasons, metadata requirements, screenshots, icons, or anything else Apple-related.";
+      }
+      setMessages([{ role: "assistant", content: greeting }]);
     }
   }, [open, convId, messages.length, appContext]);
 

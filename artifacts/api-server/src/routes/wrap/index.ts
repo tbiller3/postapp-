@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { wrapConfigsTable, checklistTable } from "@workspace/db/schema";
+import { wrapConfigsTable, checklistTable, buildSettingsTable } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
 
 const router = Router();
@@ -25,21 +25,21 @@ router.get("/apps/:id/wrap", async (req, res) => {
 router.post("/apps/:id/wrap", async (req, res) => {
   try {
     const appId = parseInt(req.params.id, 10);
-    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions } = req.body;
+    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions, codemagicAppId, githubRepoFullName } = req.body;
 
     const [existing] = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
 
     if (existing) {
       const [updated] = await db
         .update(wrapConfigsTable)
-        .set({ webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions })
+        .set({ webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions, codemagicAppId, githubRepoFullName })
         .where(eq(wrapConfigsTable.appId, appId))
         .returning();
       res.json(updated);
     } else {
       const [created] = await db
         .insert(wrapConfigsTable)
-        .values({ appId, webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions })
+        .values({ appId, webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation, permissions, codemagicAppId, githubRepoFullName })
         .returning();
       res.status(201).json(created);
     }
@@ -652,6 +652,293 @@ router.post("/apps/:id/wrap/complete", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to complete checklist items" });
+  }
+});
+
+// POST /api/apps/:id/wrap/trigger-build — sync to GitHub then trigger Codemagic build
+router.post("/apps/:id/wrap/trigger-build", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+
+    // Load settings
+    const settingsRows = await db.select().from(buildSettingsTable);
+    if (!settingsRows.length || !settingsRows[0].codemagicApiKey) {
+      res.status(400).json({ error: "Codemagic API key not configured. Add it in Settings." });
+      return;
+    }
+    const settings = settingsRows[0];
+
+    if (!settings.githubToken) {
+      res.status(400).json({ error: "GitHub token not configured. Add it in Settings." });
+      return;
+    }
+
+    // Load wrap config
+    const configs = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
+    if (!configs.length) {
+      res.status(404).json({ error: "No wrap config found. Configure the Wrap tab first." });
+      return;
+    }
+    const cfg = configs[0];
+
+    if (!cfg.codemagicAppId) {
+      res.status(400).json({ error: "Codemagic App ID not set. Add it in the Wrap tab settings." });
+      return;
+    }
+
+    const { webUrl, bundleId, appName, minIosVersion, backgroundColor, statusBarStyle, allowNavigation } = cfg;
+    const allowNav = (allowNavigation as string[] || []);
+
+    // Generate files
+    const capacitorConfig = `/** @type {import('@capacitor/cli').CapacitorConfig} */
+const config = {
+  appId: '${bundleId}',
+  appName: '${appName}',
+  webDir: 'www',
+  server: {
+    url: '${webUrl}',
+    cleartext: false,
+    allowNavigation: [${allowNav.map((d: string) => `'${d}'`).join(", ")}],
+  },
+  ios: {
+    backgroundColor: '${backgroundColor}',
+    statusBarStyle: '${statusBarStyle}',
+    minimumOsVersion: '${minIosVersion}',
+    contentInset: 'automatic',
+  },
+};
+
+module.exports = config;
+`;
+
+    const packageJson = JSON.stringify({
+      name: (appName as string).toLowerCase().replace(/\s+/g, "-"),
+      version: "1.0.0",
+      description: `Native iOS wrapper for ${appName}`,
+      scripts: {
+        "cap:ios": "npx cap add ios && npx cap sync ios",
+        "cap:sync": "npx cap sync ios",
+        "cap:open": "npx cap open ios",
+      },
+      dependencies: {
+        "@capacitor/core": "^6.0.0",
+        "@capacitor/ios": "^6.0.0",
+      },
+      devDependencies: {
+        "@capacitor/cli": "^6.0.0",
+      },
+    }, null, 2);
+
+    const codemagicYaml = `workflows:
+  ios-workflow:
+    name: ${appName} iOS Build
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      cocoapods: default
+      groups:
+        - app_store_credentials
+      vars:
+        BUNDLE_ID: "${bundleId}"
+        XCODE_SCHEME: App
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Add iOS platform
+        script: npx cap add ios || true
+      - name: Sync Capacitor
+        script: npx cap sync ios
+      - name: Set up automatic code signing
+        script: |
+          xcode-project use-profiles \\
+            --type app-store
+      - name: Build iOS IPA
+        script: |
+          xcode-project build-ipa \\
+            --workspace "$XCODE_WORKSPACE" \\
+            --scheme "$XCODE_SCHEME" \\
+            --config Release \\
+            --export-options-plist export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+`;
+
+    const exportOptionsPlist = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+`;
+
+    // Determine GitHub repo — use stored repoFullName from wrap config or derive from repoName
+    const githubRepoFullName = req.body.repoFullName || null;
+    if (!githubRepoFullName) {
+      res.status(400).json({ error: "repoFullName required (e.g. tbiller3/wait-wise-ios)" });
+      return;
+    }
+
+    // Sync files to GitHub
+    const filesToSync = [
+      { path: "capacitor.config.js", content: capacitorConfig },
+      { path: "package.json", content: packageJson },
+      { path: "codemagic.yaml", content: codemagicYaml },
+      { path: "export_options.plist", content: exportOptionsPlist },
+    ];
+
+    for (const file of filesToSync) {
+      let sha: string | undefined;
+      const getRes = await fetch(
+        `https://api.github.com/repos/${githubRepoFullName}/contents/${file.path}`,
+        { headers: { Authorization: `Bearer ${settings.githubToken}`, "User-Agent": "POSTAPP/1.0" } }
+      );
+      if (getRes.ok) {
+        const existing = await getRes.json() as { sha: string };
+        sha = existing.sha;
+      }
+      const encoded = Buffer.from(file.content).toString("base64");
+      const putRes = await fetch(
+        `https://api.github.com/repos/${githubRepoFullName}/contents/${file.path}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${settings.githubToken}`,
+            "Content-Type": "application/json",
+            "User-Agent": "POSTAPP/1.0",
+          },
+          body: JSON.stringify({
+            message: sha ? `Update ${file.path} via POSTAPP` : `Add ${file.path} via POSTAPP`,
+            content: encoded,
+            ...(sha ? { sha } : {}),
+          }),
+        }
+      );
+      if (!putRes.ok) {
+        const err = await putRes.json() as { message?: string };
+        res.status(500).json({ error: `GitHub sync failed for ${file.path}: ${err.message}` });
+        return;
+      }
+    }
+
+    // Trigger Codemagic build
+    const buildRes = await fetch("https://api.codemagic.io/builds", {
+      method: "POST",
+      headers: {
+        "x-auth-token": settings.codemagicApiKey!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        appId: cfg.codemagicAppId,
+        workflowId: "ios-workflow",
+        branch: "main",
+      }),
+    });
+
+    if (!buildRes.ok) {
+      const err = await buildRes.json() as { message?: string };
+      res.status(500).json({ error: `Codemagic trigger failed: ${err.message}` });
+      return;
+    }
+
+    const buildData = await buildRes.json() as { buildId?: string; id?: string };
+    const buildId = buildData.buildId || buildData.id || "";
+
+    // Store build ID
+    await db.update(wrapConfigsTable).set({
+      lastBuildId: buildId,
+      lastBuildStatus: "queued",
+      lastBuiltAt: new Date(),
+    }).where(eq(wrapConfigsTable.appId, appId));
+
+    res.json({ buildId, status: "queued", codemagicUrl: `https://codemagic.io/app/${cfg.codemagicAppId}/build/${buildId}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Build trigger failed" });
+  }
+});
+
+// GET /api/apps/:id/wrap/build-status — poll Codemagic for live build status
+router.get("/apps/:id/wrap/build-status", async (req, res) => {
+  try {
+    const appId = parseInt(req.params.id, 10);
+
+    const settingsRows = await db.select().from(buildSettingsTable);
+    if (!settingsRows.length || !settingsRows[0].codemagicApiKey) {
+      res.status(400).json({ error: "Codemagic API key not configured" });
+      return;
+    }
+    const { codemagicApiKey } = settingsRows[0];
+
+    const configs = await db.select().from(wrapConfigsTable).where(eq(wrapConfigsTable.appId, appId));
+    if (!configs.length || !configs[0].lastBuildId) {
+      res.status(404).json({ error: "No active build found" });
+      return;
+    }
+    const { lastBuildId, codemagicAppId } = configs[0];
+
+    const statusRes = await fetch(`https://api.codemagic.io/builds/${lastBuildId}`, {
+      headers: { "x-auth-token": codemagicApiKey! },
+    });
+
+    if (!statusRes.ok) {
+      res.status(502).json({ error: "Could not reach Codemagic API" });
+      return;
+    }
+
+    const data = await statusRes.json() as {
+      build?: {
+        status?: string;
+        startedAt?: string;
+        finishedAt?: string;
+        artefacts?: Array<{ name: string; url: string }>;
+        steps?: Array<{ name: string; status: string }>;
+      }
+    };
+
+    const build = data.build || data as any;
+    const status = build.status || "unknown";
+
+    // Map Codemagic status to friendly label
+    const statusMap: Record<string, string> = {
+      "queued": "queued",
+      "preparing": "preparing",
+      "building": "building",
+      "finishing": "finishing",
+      "finished": "finished",
+      "failed": "failed",
+      "canceled": "canceled",
+      "skipped": "skipped",
+    };
+    const mappedStatus = statusMap[status] || status;
+
+    // Update local status
+    await db.update(wrapConfigsTable).set({ lastBuildStatus: mappedStatus }).where(eq(wrapConfigsTable.appId, appId));
+
+    const artifacts = (build.artefacts || build.artifacts || []) as Array<{ name: string; url: string }>;
+    const ipaArtifact = artifacts.find((a: { name: string }) => a.name?.endsWith(".ipa"));
+
+    res.json({
+      buildId: lastBuildId,
+      status: mappedStatus,
+      steps: build.steps || [],
+      ipaUrl: ipaArtifact?.url || null,
+      codemagicUrl: `https://codemagic.io/app/${codemagicAppId}/build/${lastBuildId}`,
+      startedAt: build.startedAt,
+      finishedAt: build.finishedAt,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to get build status" });
   }
 });
 

@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import AppNew from "@/pages/app-new";
 import AppDetail from "@/pages/app-detail";
 import PrivacyPolicy from "@/pages/privacy";
+import Settings from "@/pages/settings";
 import { useEffect } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -82,6 +83,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/apps/new" component={AppNew} />
         <Route path="/apps/:id" component={AppDetail} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

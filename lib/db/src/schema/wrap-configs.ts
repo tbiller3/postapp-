@@ -13,6 +13,7 @@ export const wrapConfigsTable = pgTable("wrap_configs", {
   allowNavigation: json("allow_navigation").$type<string[]>().default([]),
   permissions: json("permissions").$type<string[]>().default([]),
   codemagicAppId: text("codemagic_app_id"),
+  githubRepoFullName: text("github_repo_full_name"),
   lastBuildId: text("last_build_id"),
   lastBuildStatus: text("last_build_status"),
   lastBuiltAt: timestamp("last_built_at", { withTimezone: true }),

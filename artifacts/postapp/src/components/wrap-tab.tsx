@@ -23,6 +23,8 @@ interface WrapConfig {
   statusBarStyle: string;
   allowNavigation: string[];
   permissions: string[];
+  codemagicAppId: string;
+  githubRepoFullName: string;
 }
 
 interface GeneratedFile {
@@ -90,7 +92,17 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
     statusBarStyle: "lightContent",
     allowNavigation: [],
     permissions: [],
+    codemagicAppId: "",
+    githubRepoFullName: "",
   });
+  const [autoBuildStatus, setAutoBuildStatus] = useState<null | {
+    status: string;
+    buildId: string;
+    codemagicUrl: string;
+    steps: Array<{ name: string; status: string }>;
+    ipaUrl: string | null;
+  }>(null);
+  const [autoBuildLoading, setAutoBuildLoading] = useState(false);
 
   // Load existing config
   useEffect(() => {
@@ -107,7 +119,18 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
             statusBarStyle: data.statusBarStyle,
             allowNavigation: data.allowNavigation || [],
             permissions: data.permissions || [],
+            codemagicAppId: data.codemagicAppId || "",
+            githubRepoFullName: data.githubRepoFullName || "",
           });
+          if (data.lastBuildId && data.lastBuildStatus) {
+            setAutoBuildStatus({
+              status: data.lastBuildStatus,
+              buildId: data.lastBuildId,
+              codemagicUrl: `https://codemagic.io/app/${data.codemagicAppId}/build/${data.lastBuildId}`,
+              steps: [],
+              ipaUrl: null,
+            });
+          }
         }
       })
       .catch(() => {});
@@ -139,6 +162,47 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAutoBuild = async () => {
+    if (!config.githubRepoFullName) {
+      toast({ title: "GitHub repo required", description: "Add your GitHub repo (owner/name) in Configure → save first.", variant: "destructive" });
+      return;
+    }
+    setAutoBuildLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/apps/${appId}/wrap/trigger-build`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ repoFullName: config.githubRepoFullName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Build trigger failed");
+      setAutoBuildStatus({ status: "queued", buildId: data.buildId, codemagicUrl: data.codemagicUrl, steps: [], ipaUrl: null });
+      toast({ title: "Build triggered!", description: "Files synced to GitHub and Codemagic build started." });
+      // Start polling
+      pollBuildStatus();
+    } catch (err: any) {
+      toast({ title: "Build failed to start", description: err.message, variant: "destructive" });
+    } finally {
+      setAutoBuildLoading(false);
+    }
+  };
+
+  const pollBuildStatus = async () => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`${BASE}/api/apps/${appId}/wrap/build-status`, { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setAutoBuildStatus(data);
+        if (!["finished", "failed", "canceled"].includes(data.status)) {
+          setTimeout(poll, 12000);
+        }
+      } catch {}
+    };
+    setTimeout(poll, 8000);
   };
 
   const handleGenerate = async () => {
@@ -414,6 +478,33 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
               </div>
             </div>
 
+            {/* Automation fields */}
+            <div className="border-t border-border/50 pt-4 space-y-4">
+              <p className="text-xs font-mono text-muted-foreground/60 uppercase tracking-wider">Automation</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground uppercase">Codemagic App ID</Label>
+                  <Input
+                    value={config.codemagicAppId}
+                    onChange={e => setConfig(c => ({ ...c, codemagicAppId: e.target.value }))}
+                    placeholder="69d7b05da859cf295093202b"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground/60">From your Codemagic app URL</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-mono text-muted-foreground uppercase">GitHub Repo</Label>
+                  <Input
+                    value={config.githubRepoFullName}
+                    onChange={e => setConfig(c => ({ ...c, githubRepoFullName: e.target.value }))}
+                    placeholder="username/repo-name"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground/60">e.g. tbiller3/wait-wise-ios</p>
+                </div>
+              </div>
+            </div>
+
             <div className="pt-2">
               <Button onClick={handleSave} disabled={saving || !config.webUrl || !config.bundleId} className="w-full sm:w-auto">
                 {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Package className="h-4 w-4 mr-2" />}
@@ -464,6 +555,132 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
       {/* Step 3: Build — show generated files + build instructions */}
       {step === "build" && generatedFiles.length > 0 && (
         <div className="space-y-4">
+
+          {/* ── AUTO BUILD PANEL ── */}
+          <Card className="bg-gradient-to-br from-violet-950/40 to-card border border-violet-500/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Zap className="h-4 w-4 text-violet-400" />
+                One-Tap Build & Launch
+                <span className="ml-auto text-[10px] font-mono font-bold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full">AUTOMATED</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!autoBuildStatus || autoBuildStatus.status === "queued" ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    POSTAPP will sync files to GitHub, trigger a Codemagic build, and show live progress — all in one click.
+                    Requires credentials in{" "}
+                    <a href="/settings" className="text-violet-400 hover:underline">Settings</a>.
+                  </p>
+                  {(!config.codemagicAppId || !config.githubRepoFullName) && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                      <Zap className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      Go back to Configure and fill in the Codemagic App ID and GitHub Repo fields to enable this.
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleAutoBuild}
+                    disabled={autoBuildLoading || !config.codemagicAppId || !config.githubRepoFullName}
+                    className="w-full bg-violet-600 hover:bg-violet-500 text-white"
+                  >
+                    {autoBuildLoading
+                      ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Triggering build…</>
+                      : <><Zap className="h-4 w-4 mr-2" /> Build & Launch</>
+                    }
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  {/* Status badge */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {["finished"].includes(autoBuildStatus.status)
+                        ? <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        : ["failed", "canceled"].includes(autoBuildStatus.status)
+                          ? <div className="h-4 w-4 rounded-full bg-red-500/20 border border-red-500 flex items-center justify-center text-[8px] text-red-400">✕</div>
+                          : <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+                      }
+                      <span className={`text-sm font-semibold capitalize ${
+                        autoBuildStatus.status === "finished" ? "text-green-400"
+                        : ["failed", "canceled"].includes(autoBuildStatus.status) ? "text-red-400"
+                        : "text-violet-300"
+                      }`}>
+                        {autoBuildStatus.status === "finished" ? "Build Complete!" : autoBuildStatus.status}
+                      </span>
+                    </div>
+                    <a
+                      href={autoBuildStatus.codemagicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View on Codemagic
+                    </a>
+                  </div>
+
+                  {/* Build steps */}
+                  {autoBuildStatus.steps.length > 0 && (
+                    <div className="space-y-1">
+                      {autoBuildStatus.steps.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs font-mono">
+                          {s.status === "finished" || s.status === "success"
+                            ? <CheckCircle2 className="h-3 w-3 text-green-400 shrink-0" />
+                            : s.status === "failed"
+                              ? <div className="h-3 w-3 rounded-full bg-red-500 shrink-0" />
+                              : s.status === "building" || s.status === "running"
+                                ? <Loader2 className="h-3 w-3 animate-spin text-violet-400 shrink-0" />
+                                : <div className="h-3 w-3 rounded-full border border-muted-foreground/30 shrink-0" />
+                          }
+                          <span className={
+                            s.status === "finished" || s.status === "success" ? "text-muted-foreground"
+                            : s.status === "failed" ? "text-red-400"
+                            : s.status === "building" || s.status === "running" ? "text-foreground"
+                            : "text-muted-foreground/40"
+                          }>{s.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {autoBuildStatus.ipaUrl && (
+                    <a
+                      href={autoBuildStatus.ipaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-xs font-semibold"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download IPA
+                    </a>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs"
+                      onClick={() => { setAutoBuildStatus(null); handleAutoBuild(); }}
+                      disabled={autoBuildLoading || ["queued", "preparing", "building", "finishing"].includes(autoBuildStatus.status)}
+                    >
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />
+                      Rebuild
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={pollBuildStatus}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Generated files */}
           <Card className="bg-card border-border">
             <CardHeader>

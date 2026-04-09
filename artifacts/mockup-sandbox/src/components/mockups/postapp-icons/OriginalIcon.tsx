@@ -22,42 +22,41 @@ export function OriginalIcon() {
           background: "radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 70%)",
         }} />
 
-        {/* iPhone silhouette — widened to align with POSTAPP text below */}
+        {/* iPhone silhouette — slightly narrower, center at x=65 */}
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* viewBox 0 0 130 160: iPhone center at x=65 */}
-          <svg width="182" height="188" viewBox="0 0 130 160" fill="none">
+          <svg width="170" height="188" viewBox="0 0 130 160" fill="none">
             {/* iPhone outer body */}
-            <rect x="5" y="2" width="120" height="156" rx="20" ry="20"
+            <rect x="10" y="2" width="110" height="156" rx="20" ry="20"
               fill="none" stroke="white" strokeWidth="7"/>
             {/* Speaker slot — centered at x=65 */}
-            <rect x="44" y="10" width="42" height="5" rx="2.5" fill="white" opacity="0.9"/>
+            <rect x="45" y="10" width="40" height="5" rx="2.5" fill="white" opacity="0.9"/>
             {/* Front camera dot */}
-            <circle cx="29" cy="12" r="3" fill="white" opacity="0.9"/>
+            <circle cx="31" cy="12" r="3" fill="white" opacity="0.9"/>
             {/* Screen area */}
-            <rect x="13" y="24" width="104" height="110" rx="4"
+            <rect x="17" y="24" width="96" height="110" rx="4"
               fill="rgba(30,100,220,0.6)"/>
             {/* Home button */}
             <circle cx="65" cy="148" r="9" fill="none" stroke="white" strokeWidth="5"/>
 
             {/*
               Arrow centered at x=65
-              Head: wider triangle — tip at (65,30), wings at x=38 and x=92
-              Stem: 22px wide — x=54 to x=76
+              Head: tip at (65,30), wings at x=40 and x=90
+              Stem: 20px wide — x=55 to x=75
               Stem bottom at y=112, notch to y=124
             */}
             <polygon
-              points="65,30 92,62 76,62 76,112 54,112 54,62 38,62"
+              points="65,30 90,62 75,62 75,112 55,112 55,62 40,62"
               fill="white" opacity="0.95"/>
             {/* Chevron notch at tail bottom */}
-            <polygon points="54,112 65,124 76,112"
+            <polygon points="55,112 65,124 75,112"
               fill="rgba(30,100,220,0.6)"/>
           </svg>
         </div>
 
-        {/* POSTAPP text */}
+        {/* POSTAPP text — slightly larger */}
         <div style={{
           fontFamily: "'Arial Black', 'Helvetica Neue', Arial, sans-serif",
-          fontSize: 26, fontWeight: 900,
+          fontSize: 30, fontWeight: 900,
           color: "white",
           letterSpacing: 1,
           textShadow: "0 2px 12px rgba(0,0,0,0.3)",

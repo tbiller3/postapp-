@@ -9,6 +9,7 @@ import AppNew from "@/pages/app-new";
 import AppDetail from "@/pages/app-detail";
 import PrivacyPolicy from "@/pages/privacy";
 import Settings from "@/pages/settings";
+import Pricing from "@/pages/pricing";
 import { useEffect } from "react";
 import { useAuth } from "@workspace/replit-auth-web";
 
@@ -84,6 +85,7 @@ function Router() {
         <Route path="/apps/new" component={AppNew} />
         <Route path="/apps/:id" component={AppDetail} />
         <Route path="/settings" component={Settings} />
+        <Route path="/pricing" component={Pricing} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -98,6 +100,11 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <Switch>
               <Route path="/privacy" component={PrivacyPolicy} />
+              <Route path="/pricing">
+                <Layout>
+                  <Pricing />
+                </Layout>
+              </Route>
               <Route>
                 <AuthGate>
                   <Router />

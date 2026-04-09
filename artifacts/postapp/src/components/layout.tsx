@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Terminal, Plus, Activity, LayoutDashboard, Settings } from "lucide-react";
+import { Terminal, Plus, Activity, LayoutDashboard, Settings, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -37,6 +37,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             >
               <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
               <span>New Submission</span>
+            </Button>
+          </Link>
+          <Link href="/pricing">
+            <Button
+              variant={location === "/pricing" ? "secondary" : "ghost"}
+              size="sm"
+              className="md:w-full justify-start gap-2 text-xs md:text-sm h-8 md:h-10 px-2 md:px-3"
+            >
+              <CreditCard className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+              <span>Pricing</span>
             </Button>
           </Link>
           <Link href="/settings">

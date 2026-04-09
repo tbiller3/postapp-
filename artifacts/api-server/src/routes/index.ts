@@ -7,6 +7,7 @@ import appleRouter from "./apple";
 import assistantRouter from "./assistant/index.js";
 import wrapRouter from "./wrap/index.js";
 import settingsRouter from "./settings/index.js";
+import stripeRouter from "./stripe/index.js";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
 
 router.use(healthRouter);
 router.use(authRouter);
+// Stripe plans are public (no auth required)
+router.use(stripeRouter);
 router.use(requireAuth);
 router.use(appsRouter);
 router.use(workspaceRouter);

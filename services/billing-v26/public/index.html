@@ -23,6 +23,7 @@
         <button class="nav-item active" data-view="pricingView">Pricing</button>
         <button class="nav-item" data-view="billingView">Billing</button>
         <button class="nav-item" data-view="submissionView">Submission</button>
+        <button class="nav-item" data-view="analyzerView">Analyzer</button>
       </nav>
     </aside>
 
@@ -102,6 +103,19 @@
           </div>
 
           <div class="log-box" id="uiLogBox"></div>
+        </div>
+      </section>
+
+      <section id="analyzerView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Analyzer</h2>
+            <p>Check your project's App Store readiness.</p>
+          </div>
+        </header>
+        <div class="panel">
+          <button onclick="runAnalyzer()" class="primary-btn">Run Analyzer</button>
+          <div id="analysisResults"></div>
         </div>
       </section>
     </main>

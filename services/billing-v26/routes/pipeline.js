@@ -1,5 +1,6 @@
 const express = require("express");
 const { runOneClickPipeline } = require("../services/pipelineEngine");
+const { runGate } = require("../services/gateEngine");
 
 const router = express.Router();
 
@@ -44,6 +45,22 @@ router.post("/run", async (req, res) => {
     ok: true,
     pipeline: result
   });
+});
+
+router.post("/gate", async (req, res) => {
+  try {
+    const result = await runGate({
+      project: mockPipelineProject,
+      user: req.user,
+      mockDb: req.app.locals.mockDb
+    });
+
+    mockPipelineProject = result.pipeline.project;
+
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 module.exports = router;

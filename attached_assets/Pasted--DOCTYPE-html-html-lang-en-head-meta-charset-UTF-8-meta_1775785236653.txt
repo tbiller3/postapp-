@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POSTAPP V29</title>
+  <title>POSTAPP V30</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,7 +15,7 @@
         </div>
         <div>
           <h1>POSTAPP</h1>
-          <p>V29 One-Click Pipeline</p>
+          <p>V30 Submission Gate Fusion</p>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
         <header class="topbar">
           <div>
             <h2>One-Click Pipeline</h2>
-            <p>Upload, analyze, auto-fix, and prepare for submission in one flow.</p>
+            <p>Analyze, auto-fix, then route intelligently into upgrade, checkout, or submission.</p>
           </div>
         </header>
 
@@ -40,8 +40,11 @@
           <div class="panel">
             <div class="panel-head">
               <h3>Pipeline Project</h3>
-              <span class="panel-tag">V29</span>
+              <span class="panel-tag">V30</span>
             </div>
+
+            <label class="label">Project ID</label>
+            <input id="pipelineProjectId" class="input" type="text" value="proj_123" />
 
             <label class="label">Project Name</label>
             <input id="pipelineProjectName" class="input" type="text" value="POSTAPP iOS Wrapper" />
@@ -57,7 +60,7 @@
 
             <div class="action-row">
               <button id="savePipelineProjectBtn" class="secondary-btn">Save Project</button>
-              <button id="runPipelineBtn" class="primary-btn">Run One-Click Pipeline</button>
+              <button id="runPipelineBtn" class="primary-btn">Run Pipeline + Route Next Step</button>
             </div>
           </div>
 
@@ -71,6 +74,7 @@
               <div class="status-line"><span>Stage</span><strong id="pipelineStageLabel">Idle</strong></div>
               <div class="status-line"><span>Score</span><strong id="pipelineScoreLabel">—</strong></div>
               <div class="status-line"><span>Readiness</span><strong id="pipelineReadinessLabel">—</strong></div>
+              <div class="status-line"><span>Next Action</span><strong id="pipelineNextActionLabel">—</strong></div>
             </div>
 
             <div id="pipelineSteps" class="log-box"></div>
@@ -135,7 +139,7 @@
         <header class="topbar">
           <div>
             <h2>Submission Checkout</h2>
-            <p>Test the submission paywall flow.</p>
+            <p>Manual submission checkout testing.</p>
           </div>
         </header>
 
@@ -156,32 +160,6 @@
         </div>
       </section>
     </main>
-  </div>
-
-  <div id="upgradeModal" class="modal hidden">
-    <div class="modal-card">
-      <h3>Upgrade to Submit</h3>
-      <p style="color:var(--text-soft);margin:10px 0 22px;">Your project is ready — choose a plan to unlock submissions.</p>
-
-      <div class="submission-box" style="margin-bottom:22px;">
-        <div class="submission-row">
-          <span>Solo</span>
-          <button class="primary-btn" style="padding:8px 16px;" data-upgrade-plan="solo">$49/mo</button>
-        </div>
-        <div class="submission-row">
-          <span>Builder</span>
-          <button class="primary-btn" style="padding:8px 16px;" data-upgrade-plan="builder">$99/mo</button>
-        </div>
-        <div class="submission-row">
-          <span>Studio</span>
-          <button class="primary-btn" style="padding:8px 16px;" data-upgrade-plan="studio">$249/mo</button>
-        </div>
-      </div>
-
-      <div class="action-row" style="justify-content:center;">
-        <button id="cancelUpgradeModal" class="secondary-btn">Cancel</button>
-      </div>
-    </div>
   </div>
 
   <div id="submissionCheckoutModal" class="modal hidden">
@@ -211,6 +189,22 @@
       <div class="action-row">
         <button id="cancelSubmissionCheckout" class="secondary-btn">Cancel</button>
         <button id="confirmSubmissionCheckout" class="primary-btn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="upgradeModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Unlock POSTAPP</h2>
+      <p id="upgradeReason">Upgrade required.</p>
+
+      <div class="action-row vertical">
+        <button onclick="startUpgrade('solo')" class="primary-btn">Upgrade to Solo ($49/mo)</button>
+        <button onclick="startUpgrade('builder')" class="secondary-btn">Upgrade to Builder ($99/mo)</button>
+      </div>
+
+      <div class="action-row">
+        <button onclick="closeUpgradeModal()" class="ghost-btn">Not now</button>
       </div>
     </div>
   </div>

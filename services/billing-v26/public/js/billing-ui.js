@@ -52,6 +52,15 @@ function addUiLog(message) {
   uiLogBox.prepend(entry);
 }
 
+function addLogToBox(boxId, message) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  box.prepend(entry);
+}
+
 async function createPlanCheckout(planName) {
   const res = await fetch("/api/billing/create-checkout-session", {
     method: "POST",
@@ -373,6 +382,29 @@ function renderPipelineProject(project) {
     document.getElementById("shotsIpad13").value = (project.screenshotMatrix.ipad13 || []).join(", ");
     document.getElementById("shotsIpad129").value = (project.screenshotMatrix.ipad129 || []).join(", ");
   }
+
+  if (project.signingPrep) {
+    document.getElementById("signingBundleId").value = project.signingPrep.bundleId || "";
+    document.getElementById("signingExportMethod").value = project.signingPrep.exportMethod || "";
+    document.getElementById("signingCertReady").value = project.signingPrep.certificateReady ? "true" : "false";
+    document.getElementById("signingProvReady").value = project.signingPrep.provisioningReady ? "true" : "false";
+    document.getElementById("signingNativeBuild").value = project.signingPrep.nativeBuildSelected ? "true" : "false";
+  }
+
+  if (project.buildState?.config) {
+    document.getElementById("buildAppId").value = project.buildState.config.appId || "";
+    document.getElementById("buildWorkflowId").value = project.buildState.config.workflowId || "ios-release";
+    document.getElementById("buildBranch").value = project.buildState.config.branch || "main";
+    document.getElementById("buildBundleId").value = project.buildState.config.bundleId || "";
+  }
+
+  if (project.appleState?.config) {
+    document.getElementById("appleIssuerId").value = project.appleState.config.issuerId || "";
+    document.getElementById("appleKeyId").value = project.appleState.config.keyId || "";
+    document.getElementById("applePrivateKey").value = project.appleState.config.privateKey || "";
+    document.getElementById("appleBundleId").value = project.appleState.config.bundleId || "";
+    document.getElementById("appleAppName").value = project.appleState.config.appName || "";
+  }
 }
 
 function renderPipelineSteps(steps) {
@@ -508,76 +540,406 @@ async function updateReviewStatus(status) {
   }
 }
 
+async function saveSigning() {
+  const payload = {
+    bundleId: document.getElementById("signingBundleId").value.trim(),
+    exportMethod: document.getElementById("signingExportMethod").value,
+    certificateReady: document.getElementById("signingCertReady").value === "true",
+    provisioningReady: document.getElementById("signingProvReady").value === "true",
+    nativeBuildSelected: document.getElementById("signingNativeBuild").value === "true"
+  };
+
+  const res = await fetch("/api/pipeline/signing/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("signingScoreLabel").textContent = data.score;
+    document.getElementById("signingReadyLabel").textContent = data.ready ? "Yes" : "No";
+    renderIssues("signingIssuesBox", data.issues);
+    addUiLog("Signing config saved.");
+    await refreshTimeline();
+  }
+}
+
+async function scoreSigning() {
+  const res = await fetch("/api/pipeline/signing-score");
+  const data = await res.json();
+
+  document.getElementById("signingScoreLabel").textContent = data.score;
+  document.getElementById("signingReadyLabel").textContent = data.ready ? "Yes" : "No";
+  renderIssues("signingIssuesBox", data.issues);
+}
+
+function renderIssues(boxId, issues) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  box.innerHTML = "";
+
+  if (!issues || !issues.length) {
+    box.innerHTML = '<div class="log-entry">No issues found.</div>';
+    return;
+  }
+
+  issues.forEach((issue) => {
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    entry.textContent = issue;
+    box.appendChild(entry);
+  });
+}
+
+async function saveBuildConfig() {
+  const payload = {
+    appId: document.getElementById("buildAppId").value.trim(),
+    workflowId: document.getElementById("buildWorkflowId").value.trim(),
+    branch: document.getElementById("buildBranch").value.trim(),
+    bundleId: document.getElementById("buildBundleId").value.trim()
+  };
+
+  const res = await fetch("/api/pipeline/build-config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    addLogToBox("buildLogBox", "Build config saved.");
+  }
+}
+
+async function validateBuild() {
+  const res = await fetch("/api/pipeline/build-config/validate");
+  const data = await res.json();
+
+  if (data.valid) {
+    addLogToBox("buildLogBox", "Build config is valid.");
+  } else {
+    data.issues.forEach((i) => addLogToBox("buildLogBox", "Issue: " + i));
+  }
+}
+
+async function startBuild() {
+  const res = await fetch("/api/pipeline/build/start", { method: "POST" });
+  const data = await res.json();
+
+  if (!data.ok) {
+    addLogToBox("buildLogBox", "Build failed: " + (data.error || "unknown"));
+    if (data.issues) data.issues.forEach((i) => addLogToBox("buildLogBox", "Issue: " + i));
+    return;
+  }
+
+  document.getElementById("buildIdLabel").textContent = data.buildState.buildId || "—";
+  document.getElementById("buildStatusLabel").textContent = data.buildState.status || "idle";
+  addLogToBox("buildLogBox", "Build started: " + data.buildState.buildId);
+  await refreshTimeline();
+}
+
+async function pollBuild() {
+  const res = await fetch("/api/pipeline/build/status");
+  const data = await res.json();
+
+  document.getElementById("buildStatusLabel").textContent = data.status || "idle";
+  addLogToBox("buildLogBox", `Build status: ${data.status} — ${data.message || ""}`);
+}
+
+async function saveAppleConfig() {
+  const payload = {
+    issuerId: document.getElementById("appleIssuerId").value.trim(),
+    keyId: document.getElementById("appleKeyId").value.trim(),
+    privateKey: document.getElementById("applePrivateKey").value.trim(),
+    bundleId: document.getElementById("appleBundleId").value.trim(),
+    appName: document.getElementById("appleAppName").value.trim()
+  };
+
+  const res = await fetch("/api/pipeline/apple-config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    addLogToBox("appleLogBox", "Apple config saved.");
+  }
+}
+
+async function validateApple() {
+  const res = await fetch("/api/pipeline/apple-config/validate");
+  const data = await res.json();
+
+  if (data.valid) {
+    addLogToBox("appleLogBox", "Apple config is valid.");
+  } else {
+    data.issues.forEach((i) => addLogToBox("appleLogBox", "Issue: " + i));
+  }
+}
+
+async function generateAppleJwt() {
+  const res = await fetch("/api/pipeline/apple/generate-jwt", { method: "POST" });
+  const data = await res.json();
+
+  if (!data.ok) {
+    addLogToBox("appleLogBox", "JWT failed: " + (data.error || "unknown"));
+    return;
+  }
+
+  document.getElementById("appleJwtLabel").textContent = "Active";
+  addLogToBox("appleLogBox", "JWT generated, expires in " + data.expiresIn + "s");
+  await refreshTimeline();
+}
+
+async function createAppleApp() {
+  const res = await fetch("/api/pipeline/apple/create-app", { method: "POST" });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("appleAppExistsLabel").textContent = "Yes";
+    addLogToBox("appleLogBox", "App created: " + data.appId);
+    await refreshTimeline();
+  }
+}
+
+async function createAppleVersion() {
+  const res = await fetch("/api/pipeline/apple/create-version", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ versionString: "1.0.0" })
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("appleVersionLabel").textContent = "Yes (" + data.versionString + ")";
+    addLogToBox("appleLogBox", "Version created: " + data.versionString);
+    await refreshTimeline();
+  }
+}
+
+async function checkAppleStatus() {
+  const res = await fetch("/api/pipeline/apple/status");
+  const data = await res.json();
+
+  document.getElementById("appleConfiguredLabel").textContent = data.configured ? "Yes" : "No";
+  document.getElementById("appleJwtLabel").textContent = data.jwtActive ? "Active" : "None";
+  document.getElementById("appleAppExistsLabel").textContent = data.appExists ? "Yes" : "No";
+  document.getElementById("appleVersionLabel").textContent = data.versionReady ? "Yes" : "No";
+}
+
+async function saveUploadConfig() {
+  const payload = {
+    route: document.getElementById("uploadRoute").value
+  };
+
+  const res = await fetch("/api/pipeline/upload/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("uploadRouteLabel").textContent = data.uploadState.route;
+    addLogToBox("uploadLogBox", "Upload config saved.");
+  }
+}
+
+async function prepareUploadAction() {
+  const res = await fetch("/api/pipeline/upload/prepare", { method: "POST" });
+  const data = await res.json();
+
+  if (!data.ok) {
+    addLogToBox("uploadLogBox", "Prepare failed: " + (data.error || "unknown"));
+    return;
+  }
+
+  addLogToBox("uploadLogBox", "Upload prepared. Route: " + data.route);
+}
+
+async function startUploadAction() {
+  const res = await fetch("/api/pipeline/upload/start", { method: "POST" });
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById("uploadIdLabel").textContent = data.uploadState.uploadId || "—";
+    document.getElementById("uploadStatusLabel").textContent = data.uploadState.status;
+    addLogToBox("uploadLogBox", "Upload started: " + data.uploadState.uploadId);
+    await refreshTimeline();
+  }
+}
+
+async function checkUploadStatus() {
+  const res = await fetch("/api/pipeline/upload/status");
+  const data = await res.json();
+
+  document.getElementById("uploadIdLabel").textContent = data.uploadState.uploadId || "—";
+  document.getElementById("uploadStatusLabel").textContent = data.uploadState.status;
+  document.getElementById("uploadRouteLabel").textContent = data.uploadState.route;
+}
+
+async function refreshLaunchDashboard() {
+  const res = await fetch("/api/pipeline/launch-dashboard");
+  const data = await res.json();
+
+  const gates = data.gates || {};
+  const gateMap = {
+    metadata: "gateMetadataLabel",
+    screenshots: "gateScreenshotsLabel",
+    reviewer: "gateReviewerLabel",
+    signing: "gateSigningLabel",
+    build: "gateBuildLabel",
+    apple: "gateAppleLabel",
+    upload: "gateUploadLabel"
+  };
+
+  for (const [key, elId] of Object.entries(gateMap)) {
+    const el = document.getElementById(elId);
+    if (el) {
+      el.textContent = gates[key] ? "Ready" : "Not Ready";
+      el.style.color = gates[key] ? "#d2ffe5" : "#ffd2d2";
+    }
+  }
+}
+
+async function finalCheck() {
+  const res = await fetch("/api/pipeline/launch/final-check");
+  const data = await res.json();
+
+  const box = document.getElementById("launchBlockersBox");
+  box.innerHTML = "";
+
+  if (data.ready) {
+    box.innerHTML = '<div class="log-entry" style="color:#d2ffe5">All checks passed. Ready to submit.</div>';
+  } else {
+    (data.blockers || []).forEach((b) => {
+      const entry = document.createElement("div");
+      entry.className = "log-entry";
+      entry.style.color = "#ffd2d2";
+      entry.textContent = b;
+      box.appendChild(entry);
+    });
+  }
+}
+
+async function submitForReview() {
+  const res = await fetch("/api/pipeline/launch/submit", { method: "POST" });
+  const data = await res.json();
+
+  if (!data.ok) {
+    const box = document.getElementById("launchBlockersBox");
+    box.innerHTML = "";
+    (data.blockers || []).forEach((b) => {
+      const entry = document.createElement("div");
+      entry.className = "log-entry";
+      entry.style.color = "#ffd2d2";
+      entry.textContent = b;
+      box.appendChild(entry);
+    });
+    return;
+  }
+
+  addLogToBox("launchBlockersBox", data.message);
+  await refreshTimeline();
+}
+
+async function refreshGuidedFlow() {
+  const res = await fetch("/api/pipeline/launch-dashboard");
+  const data = await res.json();
+  const g = data.gates || {};
+
+  const statusMap = {
+    guidedMetaStatus: g.metadata,
+    guidedShotsStatus: g.screenshots,
+    guidedSigningStatus: g.signing,
+    guidedBuildStatus: g.build,
+    guidedAppleStatus: g.apple,
+    guidedUploadStatus: g.upload,
+    guidedReviewerStatus: g.reviewer,
+    guidedLaunchStatus: data.allReady
+  };
+
+  for (const [id, ready] of Object.entries(statusMap)) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = ready ? "Done" : "Pending";
+      el.style.color = ready ? "#d2ffe5" : "#ffd2d2";
+    }
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   bindPricingButtons();
   await refreshBillingUi();
   await refreshTimeline();
 
-  const refreshBtn = document.getElementById("refreshBillingBtn");
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", refreshBillingUi);
-  }
+  const bind = (id, handler) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("click", handler);
+  };
 
-  const timelineBtn = document.getElementById("refreshTimelineBtn");
-  if (timelineBtn) {
-    timelineBtn.addEventListener("click", refreshTimeline);
-  }
+  bind("refreshBillingBtn", refreshBillingUi);
+  bind("refreshTimelineBtn", refreshTimeline);
+  bind("saveMetadataBtn", saveMetadata);
+  bind("scoreMetadataBtn", scoreMetadata);
+  bind("saveScreenshotsBtn", saveScreenshotMatrix);
+  bind("scoreScreenshotsBtn", scoreScreenshots);
+  bind("savePipelineProjectBtn", savePipelineProject);
+  bind("runPipelineBtn", runPipeline);
+  bind("saveReviewerBtn", saveReviewerInfo);
 
-  const saveMetaBtn = document.getElementById("saveMetadataBtn");
-  const scoreMetaBtn = document.getElementById("scoreMetadataBtn");
-  const saveShotsBtn = document.getElementById("saveScreenshotsBtn");
-  const scoreShotsBtn = document.getElementById("scoreScreenshotsBtn");
+  bind("saveSigningBtn", saveSigning);
+  bind("scoreSigningBtn", scoreSigning);
 
-  if (saveMetaBtn) saveMetaBtn.addEventListener("click", saveMetadata);
-  if (scoreMetaBtn) scoreMetaBtn.addEventListener("click", scoreMetadata);
-  if (saveShotsBtn) saveShotsBtn.addEventListener("click", saveScreenshotMatrix);
-  if (scoreShotsBtn) scoreShotsBtn.addEventListener("click", scoreScreenshots);
+  bind("saveBuildConfigBtn", saveBuildConfig);
+  bind("validateBuildBtn", validateBuild);
+  bind("startBuildBtn", startBuild);
+  bind("pollBuildBtn", pollBuild);
 
-  const standardBtn = document.getElementById("openStandardCheckout");
-  const complexBtn = document.getElementById("openComplexCheckout");
-  const grantBtn = document.getElementById("grantDevCreditBtn");
-  const savePipelineBtn = document.getElementById("savePipelineProjectBtn");
-  const runPipelineBtn = document.getElementById("runPipelineBtn");
-  const saveReviewerBtn = document.getElementById("saveReviewerBtn");
+  bind("saveAppleConfigBtn", saveAppleConfig);
+  bind("validateAppleBtn", validateApple);
+  bind("generateJwtBtn", generateAppleJwt);
+  bind("createAppBtn", createAppleApp);
+  bind("createVersionBtn", createAppleVersion);
+  bind("appleStatusBtn", checkAppleStatus);
 
-  if (standardBtn) {
-    standardBtn.addEventListener("click", () => {
-      openSubmissionCheckoutModal({
-        projectId: document.getElementById("projectIdInput").value.trim(),
-        projectName: document.getElementById("projectNameInput").value.trim(),
-        submissionType: "standard"
-      });
+  bind("saveUploadConfigBtn", saveUploadConfig);
+  bind("prepareUploadBtn", prepareUploadAction);
+  bind("startUploadBtn", startUploadAction);
+  bind("checkUploadBtn", checkUploadStatus);
+
+  bind("refreshLaunchBtn", refreshLaunchDashboard);
+  bind("finalCheckBtn", finalCheck);
+  bind("submitLaunchBtn", submitForReview);
+  bind("refreshGuidedBtn", refreshGuidedFlow);
+
+  bind("openStandardCheckout", () => {
+    openSubmissionCheckoutModal({
+      projectId: document.getElementById("projectIdInput").value.trim(),
+      projectName: document.getElementById("projectNameInput").value.trim(),
+      submissionType: "standard"
     });
-  }
+  });
 
-  if (complexBtn) {
-    complexBtn.addEventListener("click", () => {
-      openSubmissionCheckoutModal({
-        projectId: document.getElementById("projectIdInput").value.trim(),
-        projectName: document.getElementById("projectNameInput").value.trim(),
-        submissionType: "complex"
-      });
+  bind("openComplexCheckout", () => {
+    openSubmissionCheckoutModal({
+      projectId: document.getElementById("projectIdInput").value.trim(),
+      projectName: document.getElementById("projectNameInput").value.trim(),
+      submissionType: "complex"
     });
-  }
+  });
 
-  if (grantBtn) {
-    grantBtn.addEventListener("click", async () => {
-      const projectId = document.getElementById("projectIdInput").value.trim();
-      await grantDevCredit(projectId);
-    });
-  }
-
-  if (savePipelineBtn) {
-    savePipelineBtn.addEventListener("click", savePipelineProject);
-  }
-
-  if (runPipelineBtn) {
-    runPipelineBtn.addEventListener("click", runPipeline);
-  }
-
-  if (saveReviewerBtn) {
-    saveReviewerBtn.addEventListener("click", saveReviewerInfo);
-  }
+  bind("grantDevCreditBtn", async () => {
+    const projectId = document.getElementById("projectIdInput").value.trim();
+    await grantDevCredit(projectId);
+  });
 
   try {
     const res = await fetch("/api/pipeline/project");

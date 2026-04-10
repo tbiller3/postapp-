@@ -30,6 +30,24 @@ pnpm workspace monorepo using TypeScript. POSTAPP is an App Store submission man
 - App Store submission checklist (17 items across 5 categories) auto-generated per app
 - Add new app entries with platform, bundle ID, version, category
 
+## Billing V45 Pipeline Service (`services/billing-v26/`)
+
+Standalone Express server for the full iOS submission pipeline. V45 merges all V26 features with expanded pipeline stages.
+
+### Structure
+- `server.js` — V45 main server, mounts 4 route groups (billing, submissions, analyzer, pipeline)
+- `routes/pipeline.js` — Central route hub: project, reviewer, metadata, screenshots, signing, build, Apple Connect, upload, launch, timeline
+- `routes/submissions.js` — Submission credits, timeline events, review status
+- `routes/billing.js` — Stripe checkout sessions, plan management
+- `routes/analyzer.js` — App readiness analysis
+- `services/signingService.js` — Code signing evaluation (bundle ID, certs, provisioning)
+- `services/codemagicService.js` — Build config validation, trigger, polling
+- `services/appleConnectService.js` — Apple API config, JWT, app/version creation
+- `services/uploadService.js` — Upload state management, preparation
+- `services/pipelineEngine.js` — One-click pipeline orchestrator
+- `public/index.html` — 14-view UI (Pipeline, Metadata, Screenshots, Signing, Build Engine, Apple Connect, Upload, Reviewer, Timeline, Final Launch, Guided Flow, Pricing, Billing, Submission)
+- `public/js/billing-ui.js` — Full frontend logic for all 14 views
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages

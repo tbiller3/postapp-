@@ -1,0 +1,375 @@
+POSTAPP Merge Plan — V26 into V45 System
+
+## Important
+Use `services/billing-v26/` as the **source of truth**.
+
+Do **not** replace your working V26 folder with the simple V45 scaffold zip.
+Instead, keep `billing-v26` as the main app and merge the V45 concepts into it.
+
+---
+
+## Recommended final structure
+
+```text
+services/billing-v26/
+├── server.js
+├── package.json
+├── routes/
+│   ├── pipeline.js
+│   ├── submissions.js
+│   ├── billing.js
+│   ├── analyzer.js
+│   └── launch.js              ← optional later split
+├── services/
+│   ├── pipelineEngine.js
+│   ├── autoFixEngine.js
+│   ├── analyzerEngine.js
+│   ├── billingService.js
+│   ├── gateEngine.js
+│   ├── codemagicService.js    ← add
+│   ├── appleConnectService.js ← add
+│   ├── uploadService.js       ← add
+│   └── signingService.js      ← add
+├── middleware/
+│   └── requirePlan.js
+├── db/
+│   └── db.js                  ← add later if persistence needed
+└── public/
+    ├── index.html
+    ├── style.css
+    └── js/
+        └── billing-ui.js
+```
+
+---
+
+## What to keep from V26
+
+Keep these files as your base:
+
+- `server.js`
+- `routes/pipeline.js`
+- `routes/submissions.js`
+- `routes/billing.js`
+- `routes/analyzer.js`
+- `services/pipelineEngine.js`
+- `services/autoFixEngine.js`
+- `services/analyzerEngine.js`
+- `services/billingService.js`
+- `services/gateEngine.js`
+- `middleware/requirePlan.js`
+- `public/index.html`
+- `public/style.css`
+- `public/js/billing-ui.js`
+
+These are your real app.
+
+---
+
+## What to ignore from the simple V45 zip
+
+Do **not** treat the scaffold zip as the real app.
+It is only useful as a lightweight placeholder.
+
+Ignore:
+- the simple `server.js`
+- the simple `public/index.html`
+- the simple timeline demo logic
+
+---
+
+## Merge order
+
+### Phase 1 — Core route consolidation
+Open `routes/pipeline.js` and make it the home for:
+- project state
+- reviewer state
+- timeline state
+- metadata workspace
+- screenshot matrix
+- signing workspace
+- build state
+- Apple state
+- upload state
+- final launch state
+
+If you still mount legacy:
+- `routes/reviewer.js`
+- `routes/timeline.js`
+
+remove them from `server.js` after confirming equivalent logic exists in `pipeline.js`.
+
+---
+
+### Phase 2 — Add missing service files
+Create these files under `services/`:
+
+#### `services/codemagicService.js`
+Purpose:
+- validate build config
+- trigger build
+- poll build status
+
+#### `services/appleConnectService.js`
+Purpose:
+- validate Apple config
+- generate JWT
+- manage mock/live Apple readiness
+
+#### `services/uploadService.js`
+Purpose:
+- prepare upload
+- track upload route
+- simulate or later run upload state changes
+
+#### `services/signingService.js`
+Purpose:
+- evaluate signing readiness
+- return score + issues
+
+---
+
+## Suggested starter contents
+
+### `services/signingService.js`
+```javascript
+function evaluateSigning(signing) {
+  let score = 100;
+  const issues = [];
+
+  if (!signing.bundleId) {
+    score -= 25;
+    issues.push("Missing bundle ID");
+  }
+  if (!signing.certificateReady) {
+    score -= 25;
+    issues.push("Signing certificate not ready");
+  }
+  if (!signing.provisioningReady) {
+    score -= 25;
+    issues.push("Provisioning profile not ready");
+  }
+  if (!signing.exportMethod) {
+    score -= 10;
+    issues.push("Export method not selected");
+  }
+  if (!signing.nativeBuildSelected) {
+    score -= 15;
+    issues.push("Native build not selected");
+  }
+
+  return {
+    score: Math.max(score, 0),
+    issues,
+    ready: issues.length === 0
+  };
+}
+
+module.exports = { evaluateSigning };
+```
+
+---
+
+### `services/uploadService.js`
+```javascript
+function initUploadState() {
+  return {
+    uploadId: "",
+    route: "transporter",
+    status: "idle",
+    logs: [],
+    startedAt: null,
+    finishedAt: null,
+    artifactUrl: ""
+  };
+}
+
+function prepareUpload(project) {
+  const build = project.buildState || {};
+  const apple = project.appleState || {};
+
+  if (!build.ipaReady) {
+    throw new Error("IPA not ready");
+  }
+
+  if (!apple.appExists || !apple.versionReady) {
+    throw new Error("Apple app/version not ready");
+  }
+
+  return {
+    ok: true,
+    artifactUrl: build.artifactUrl,
+    route: project.uploadState?.route || "transporter"
+  };
+}
+
+module.exports = {
+  initUploadState,
+  prepareUpload
+};
+```
+
+---
+
+## Phase 3 — Expand `routes/pipeline.js`
+Add these route groups if missing:
+
+### Project
+- `GET /project`
+- `POST /project`
+
+### Reviewer
+- `POST /reviewer`
+
+### Metadata
+- `POST /metadata`
+- `GET /metadata-score`
+
+### Screenshots
+- `POST /screenshots`
+- `GET /screenshot-score`
+
+### Signing
+- `POST /signing-prep`
+- `GET /signing-score`
+- `GET /signing/evaluate`
+- `POST /signing/update`
+
+### Build
+- `GET /build-config`
+- `POST /build-config`
+- `GET /build-config/validate`
+- `POST /build/start`
+- `GET /build/status`
+
+### Apple
+- `GET /apple-config`
+- `POST /apple-config`
+- `GET /apple-config/validate`
+- `POST /apple/generate-jwt`
+- `POST /apple/create-app`
+- `POST /apple/create-version`
+- `GET /apple/status`
+
+### Upload
+- `POST /upload/config`
+- `POST /upload/prepare`
+- `POST /upload/start`
+- `GET /upload/status`
+
+### Final launch
+- `GET /launch-dashboard`
+- `GET /launch/final-check`
+- `POST /launch/submit`
+
+---
+
+## Phase 4 — Frontend merge
+Keep your existing:
+- `public/index.html`
+- `public/style.css`
+- `public/js/billing-ui.js`
+
+Then add or confirm these views exist in `index.html`:
+
+- Pipeline
+- Metadata
+- Screenshots
+- Signing
+- Build Engine
+- Apple Connect
+- Upload
+- Reviewer Mode
+- Timeline
+- Final Launch
+- Guided Flow
+- Pricing
+- Billing
+- Submission
+
+If some are missing, add sections gradually instead of replacing the whole file at once.
+
+---
+
+## Phase 5 — `billing-ui.js` responsibilities
+Your single JS file should handle:
+
+- nav switching
+- save/load project state
+- metadata scoring
+- screenshot scoring
+- signing scoring
+- build config + build polling
+- Apple config + JWT generation
+- upload prep + upload polling
+- final launch rendering
+- guided flow rendering
+- billing status + upgrade modal + submission checkout
+
+If the file becomes too hard to maintain later, split it into:
+- `app.js`
+- `pipeline-ui.js`
+- `billing-ui.js`
+- `build-ui.js`
+- `launch-ui.js`
+
+Do **not** split it yet unless it is already unstable.
+
+---
+
+## Phase 6 — Billing enforcement
+Keep commercial logic in:
+- `routes/billing.js`
+- `services/billingService.js`
+- `middleware/requirePlan.js`
+
+Then call billing-aware logic from:
+- `routes/pipeline.js` final launch routes
+
+Final launch should check:
+- paid plan
+- submission credit
+- readiness status
+
+---
+
+## Minimal V45 launch rules
+A user can execute final launch only if:
+- metadata is complete
+- screenshots are complete
+- reviewer info exists
+- signing passes
+- build IPA is ready
+- Apple app/version/JWT is ready
+- upload is complete
+- paid plan exists
+- submission credit exists
+
+---
+
+## What to delete later
+After merge is stable, remove or stop mounting:
+- `routes/reviewer.js`
+- `routes/timeline.js`
+
+Only after confirming `pipeline.js` fully replaced them.
+
+---
+
+## Best practical workflow
+1. Keep `billing-v26` as the only real app
+2. Add missing service files
+3. Expand `pipeline.js`
+4. Expand UI sections in `index.html`
+5. Expand behaviors in `billing-ui.js`
+6. Test after every 1–2 route groups
+7. Only then clean up legacy files
+
+---
+
+## Final recommendation
+Do **not** merge V26 into the simple V45 zip.
+
+Do this instead:
+- keep V26
+- upgrade V26 until it becomes V45

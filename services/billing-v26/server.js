@@ -42,11 +42,11 @@ app.use("/api/pipeline", pipelineRoutes);
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    app: "POSTAPP V32 Metadata Workspace + Screenshot Matrix",
+    app: "POSTAPP V45 Full Pipeline",
     time: new Date().toISOString()
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`POSTAPP V32 running on http://localhost:${PORT}`);
+  console.log(`POSTAPP V45 running on http://localhost:${PORT}`);
 });

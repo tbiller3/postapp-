@@ -158,6 +158,9 @@ async function runPipeline() {
     document.getElementById(`stage-${id}`).className = "pipeline-stage";
   });
 
+  // billing stage is outside the engine — mark it N/A upfront
+  document.getElementById("status-billing").textContent = "N/A";
+
   addUiLog("One-Click Pipeline started.");
 
   try {
@@ -169,48 +172,46 @@ async function runPipeline() {
 
     const data = await res.json();
 
-    if (data.log) {
-      logEl.textContent = data.log.join("\n");
-    }
+    // map step key → HTML stage id (submission_ready → submission)
+    const keyToId = { submission_ready: "submission" };
 
-    const stageMap = {
-      upload: data.stages?.upload,
-      analyze: data.stages?.analyze,
-      autofix: data.stages?.autoFix,
-      billing: data.stages?.billing,
-      submission: data.stages?.submission
-    };
+    if (data.steps) {
+      logEl.textContent = data.steps.map((s) => `[${s.key}] ${s.message}`).join("\n");
 
-    for (const [id, stage] of Object.entries(stageMap)) {
-      const el = document.getElementById(`status-${id}`);
-      const row = document.getElementById(`stage-${id}`);
-      if (!stage) continue;
-      if (stage.status === "ok" || stage.status === "ready") {
-        el.textContent = "✓";
-        row.classList.add("stage-ok");
-      } else if (stage.status === "blocked") {
-        el.textContent = "✗ Blocked";
-        row.classList.add("stage-blocked");
-      } else if (stage.status === "skipped") {
-        el.textContent = "— Skipped";
-        row.classList.add("stage-skipped");
+      for (const step of data.steps) {
+        const id = keyToId[step.key] || step.key;
+        const el = document.getElementById(`status-${id}`);
+        const row = document.getElementById(`stage-${id}`);
+        if (!el || !row) continue;
+
+        if (step.status === "complete") {
+          el.textContent = "✓";
+          row.classList.add("stage-ok");
+        } else if (step.status === "blocked") {
+          el.textContent = "✗ Blocked";
+          row.classList.add("stage-blocked");
+        } else if (step.status === "skipped") {
+          el.textContent = "— Skipped";
+          row.classList.add("stage-skipped");
+        }
       }
     }
 
     summaryEl.style.display = "block";
     if (data.ok) {
-      const s = data.summary;
+      const a = data.analysis;
       summaryTitle.textContent =
-        `Pipeline complete — Score ${s.initialScore} → ${s.finalScore} | ` +
-        `${s.fixesApplied} fix(es) applied | ${s.readiness} readiness | Ready to submit`;
+        `Pipeline complete — Score ${a.score} | ${a.readiness} readiness | Ready for submission`;
       summaryEl.style.background = "#d4edda";
     } else {
+      const blockers = data.analysis?.issues?.filter((i) => i.type === "blocker") || [];
       summaryTitle.textContent =
-        `Pipeline blocked — upgrade required (plan: ${data.stages?.billing?.plan})`;
+        `Pipeline blocked — ${blockers.length} blocker(s) remain: ` +
+        blockers.map((b) => b.message).join(", ");
       summaryEl.style.background = "#f8d7da";
     }
 
-    addUiLog(`Pipeline finished. ok=${data.ok}`);
+    addUiLog(`Pipeline finished. ok=${data.ok} stage=${data.stage}`);
   } catch (err) {
     logEl.textContent = "Pipeline request failed.";
     addUiLog("Pipeline request failed.");

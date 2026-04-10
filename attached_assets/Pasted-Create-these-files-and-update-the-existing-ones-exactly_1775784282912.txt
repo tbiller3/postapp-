@@ -1,3 +1,7 @@
+Create these files and update the existing ones exactly as written.
+
+services/pipelineEngine.js
+```javascript
 const { analyzeProject } = require("./analyzerEngine");
 const { runFix } = require("./autoFixEngine");
 

@@ -224,93 +224,6 @@ async function savePipelineProject() {
   }
 }
 
-async function saveMetadata() {
-  const payload = {
-    appName: document.getElementById("metaAppName").value.trim(),
-    subtitle: document.getElementById("metaSubtitle").value.trim(),
-    keywords: document.getElementById("metaKeywords").value.trim(),
-    promoText: document.getElementById("metaPromoText").value.trim(),
-    description: document.getElementById("metaDescription").value.trim(),
-    supportUrl: document.getElementById("metaSupportUrl").value.trim(),
-    privacyPolicyUrl: document.getElementById("metaPrivacyUrl").value.trim()
-  };
-
-  const res = await fetch("/api/pipeline/metadata", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-
-  if (data.ok) {
-    addUiLog("Metadata saved.");
-    await refreshTimeline();
-  }
-}
-
-async function scoreMetadata() {
-  const res = await fetch("/api/pipeline/metadata-score");
-  const data = await res.json();
-
-  document.getElementById("metadataScoreLabel").textContent = data.score;
-  document.getElementById("metadataReadinessLabel").textContent = data.readiness;
-
-  const box = document.getElementById("metadataIssuesBox");
-  box.innerHTML = "";
-
-  (data.issues || []).forEach((issue) => {
-    const entry = document.createElement("div");
-    entry.className = "log-entry";
-    entry.textContent = issue;
-    box.appendChild(entry);
-  });
-
-  if (!data.issues?.length) {
-    box.innerHTML = '<div class="log-entry">No metadata issues found.</div>';
-  }
-}
-
-async function saveScreenshotMatrix() {
-  const payload = {
-    iphone69: parseList(document.getElementById("shotsIphone69").value),
-    iphone65: parseList(document.getElementById("shotsIphone65").value),
-    ipad13: parseList(document.getElementById("shotsIpad13").value),
-    ipad129: parseList(document.getElementById("shotsIpad129").value)
-  };
-
-  const res = await fetch("/api/pipeline/screenshots", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await res.json();
-
-  if (data.ok) {
-    addUiLog("Screenshot matrix saved.");
-    await refreshTimeline();
-  }
-}
-
-async function scoreScreenshots() {
-  const res = await fetch("/api/pipeline/screenshot-score");
-  const data = await res.json();
-
-  document.getElementById("screenshotScoreLabel").textContent = data.score;
-  document.getElementById("screenshotIphone69Label").textContent = data.statuses.iphone69;
-  document.getElementById("screenshotIphone65Label").textContent = data.statuses.iphone65;
-  document.getElementById("screenshotIpad13Label").textContent = data.statuses.ipad13;
-  document.getElementById("screenshotIpad129Label").textContent = data.statuses.ipad129;
-}
-
-function parseList(text) {
-  return text
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 async function saveReviewerInfo() {
   const payload = {
     email: document.getElementById("reviewerEmail").value.trim(),
@@ -355,23 +268,6 @@ function renderPipelineProject(project) {
 
   if (project.reviewer) {
     renderReviewerInfo(project.reviewer);
-  }
-
-  if (project.metadata) {
-    document.getElementById("metaAppName").value = project.metadata.appName || "";
-    document.getElementById("metaSubtitle").value = project.metadata.subtitle || "";
-    document.getElementById("metaKeywords").value = project.metadata.keywords || "";
-    document.getElementById("metaPromoText").value = project.metadata.promoText || "";
-    document.getElementById("metaDescription").value = project.metadata.description || "";
-    document.getElementById("metaSupportUrl").value = project.metadata.supportUrl || "";
-    document.getElementById("metaPrivacyUrl").value = project.metadata.privacyPolicyUrl || "";
-  }
-
-  if (project.screenshotMatrix) {
-    document.getElementById("shotsIphone69").value = (project.screenshotMatrix.iphone69 || []).join(", ");
-    document.getElementById("shotsIphone65").value = (project.screenshotMatrix.iphone65 || []).join(", ");
-    document.getElementById("shotsIpad13").value = (project.screenshotMatrix.ipad13 || []).join(", ");
-    document.getElementById("shotsIpad129").value = (project.screenshotMatrix.ipad129 || []).join(", ");
   }
 }
 
@@ -522,16 +418,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (timelineBtn) {
     timelineBtn.addEventListener("click", refreshTimeline);
   }
-
-  const saveMetaBtn = document.getElementById("saveMetadataBtn");
-  const scoreMetaBtn = document.getElementById("scoreMetadataBtn");
-  const saveShotsBtn = document.getElementById("saveScreenshotsBtn");
-  const scoreShotsBtn = document.getElementById("scoreScreenshotsBtn");
-
-  if (saveMetaBtn) saveMetaBtn.addEventListener("click", saveMetadata);
-  if (scoreMetaBtn) scoreMetaBtn.addEventListener("click", scoreMetadata);
-  if (saveShotsBtn) saveShotsBtn.addEventListener("click", saveScreenshotMatrix);
-  if (scoreShotsBtn) scoreShotsBtn.addEventListener("click", scoreScreenshots);
 
   const standardBtn = document.getElementById("openStandardCheckout");
   const complexBtn = document.getElementById("openComplexCheckout");

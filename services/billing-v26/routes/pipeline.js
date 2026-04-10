@@ -3,7 +3,10 @@ const { runOneClickPipeline } = require("../services/pipelineEngine");
 
 const router = express.Router();
 
-const defaultProject = {
+// Demo in-memory project store
+let mockPipelineProject = {
+  id: "proj_123",
+  name: "POSTAPP iOS Wrapper",
   privacyPolicy: null,
   supportUrl: null,
   screenshots: [],
@@ -11,16 +14,36 @@ const defaultProject = {
   isWebWrapper: true
 };
 
-router.post("/run", async (req, res) => {
-  const project = Object.assign({}, defaultProject, req.body.project || {});
-  const options = req.body.options || {};
+router.get("/project", (req, res) => {
+  res.json({
+    ok: true,
+    project: mockPipelineProject
+  });
+});
 
-  try {
-    const result = await runOneClickPipeline(project, options);
-    res.status(result.ok ? 200 : 422).json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+router.post("/project", (req, res) => {
+  mockPipelineProject = {
+    ...mockPipelineProject,
+    ...req.body
+  };
+
+  res.json({
+    ok: true,
+    project: mockPipelineProject
+  });
+});
+
+router.post("/run", async (req, res) => {
+  const result = await runOneClickPipeline(mockPipelineProject, {
+    autoFix: true
+  });
+
+  mockPipelineProject = result.project;
+
+  res.json({
+    ok: true,
+    pipeline: result
+  });
 });
 
 module.exports = router;

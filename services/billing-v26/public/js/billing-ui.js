@@ -1041,6 +1041,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     await grantDevCredit(projectId);
   });
 
+  initAgent();
+
   try {
     const res = await fetch("/api/pipeline/project");
     const data = await res.json();
@@ -1049,5 +1051,109 @@ document.addEventListener("DOMContentLoaded", async () => {
     addUiLog("Could not load pipeline project.");
   }
 });
+
+function initAgent() {
+  const toggle = document.getElementById("agentToggle");
+  const panel = document.getElementById("agentPanel");
+  const close = document.getElementById("agentClose");
+  const input = document.getElementById("agentInput");
+  const send = document.getElementById("agentSend");
+  const messages = document.getElementById("agentMessages");
+
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener("click", () => {
+    panel.classList.toggle("hidden");
+    if (!panel.classList.contains("hidden")) input.focus();
+  });
+
+  close.addEventListener("click", () => panel.classList.add("hidden"));
+
+  send.addEventListener("click", () => sendAgentMessage());
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAgentMessage(); }
+  });
+
+  document.querySelectorAll(".agent-quick").forEach(btn => {
+    btn.addEventListener("click", () => {
+      input.value = btn.dataset.msg;
+      sendAgentMessage();
+    });
+  });
+}
+
+function addAgentMessage(content, type) {
+  const messages = document.getElementById("agentMessages");
+  const div = document.createElement("div");
+  div.className = "agent-msg agent-msg-" + type;
+  div.innerHTML = `<div class="agent-msg-content">${escapeHtml(content)}</div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function addAgentAction(toolName) {
+  const messages = document.getElementById("agentMessages");
+  const div = document.createElement("div");
+  div.className = "agent-msg-action";
+  const label = toolName.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  div.innerHTML = `<span class="action-dot"></span> ${label}`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showAgentTyping() {
+  const messages = document.getElementById("agentMessages");
+  const div = document.createElement("div");
+  div.className = "agent-msg agent-msg-bot";
+  div.id = "agentTyping";
+  div.innerHTML = `<div class="agent-typing"><span></span><span></span><span></span></div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeAgentTyping() {
+  const el = document.getElementById("agentTyping");
+  if (el) el.remove();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function sendAgentMessage() {
+  const input = document.getElementById("agentInput");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = "";
+  addAgentMessage(msg, "user");
+  showAgentTyping();
+
+  try {
+    const res = await fetch("/api/agent/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    });
+
+    removeAgentTyping();
+    const data = await res.json();
+
+    if (data.actions && data.actions.length > 0) {
+      data.actions.forEach(a => addAgentAction(a.tool));
+    }
+
+    if (data.ok && data.reply) {
+      addAgentMessage(data.reply, "bot");
+    } else if (data.error) {
+      addAgentMessage("Error: " + data.error, "bot");
+    }
+  } catch (err) {
+    removeAgentTyping();
+    addAgentMessage("Connection error. Please try again.", "bot");
+  }
+}
 
 }

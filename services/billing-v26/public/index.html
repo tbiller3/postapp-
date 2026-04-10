@@ -764,6 +764,43 @@
     </div>
   </div>
 
+  <div id="agentWidget" class="agent-widget">
+    <button id="agentToggle" class="agent-toggle" title="POSTAPP Agent">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2a3 3 0 0 0-3 3v1H6a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V8a2 2 0 0 0-2-2h-3V5a3 3 0 0 0-3-3z"/>
+        <circle cx="9" cy="11" r="1" fill="currentColor"/>
+        <circle cx="15" cy="11" r="1" fill="currentColor"/>
+        <path d="M9 16c1 1 5 1 6 0"/>
+      </svg>
+    </button>
+
+    <div id="agentPanel" class="agent-panel hidden">
+      <div class="agent-header">
+        <div>
+          <strong>POSTAPP Agent</strong>
+          <span class="agent-status">Ready</span>
+        </div>
+        <button id="agentClose" class="agent-close">&times;</button>
+      </div>
+      <div id="agentMessages" class="agent-messages">
+        <div class="agent-msg agent-msg-bot">
+          <div class="agent-msg-content">Hey! I'm your POSTAPP co-pilot. I can check your submission readiness, fill in metadata, trigger builds, and guide you through the whole process. What would you like to do?</div>
+        </div>
+      </div>
+      <div class="agent-actions" id="agentQuickActions">
+        <button class="agent-quick" data-msg="Check my overall readiness">Readiness check</button>
+        <button class="agent-quick" data-msg="What's missing from my submission?">What's missing?</button>
+        <button class="agent-quick" data-msg="Run the full pipeline">Run pipeline</button>
+      </div>
+      <div class="agent-input-row">
+        <input id="agentInput" class="agent-input" type="text" placeholder="Ask me anything..." />
+        <button id="agentSend" class="agent-send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/billing-ui.js"></script>
 </body>
 </html>

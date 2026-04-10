@@ -7,6 +7,7 @@ const billingRoutes = require("./routes/billing");
 const submissionRoutes = require("./routes/submissions");
 const analyzerRoutes = require("./routes/analyzer");
 const pipelineRoutes = require("./routes/pipeline");
+const agentRoutes = require("./routes/agent");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use("/api/billing", billingRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/analyzer", analyzerRoutes);
 app.use("/api/pipeline", pipelineRoutes);
+app.use("/api/agent", agentRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({

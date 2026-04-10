@@ -2,7 +2,7 @@ const express = require("express");
 const { runOneClickPipeline } = require("../services/pipelineEngine");
 const { evaluateSigning } = require("../services/signingService");
 const { validateBuildConfig, initBuildState, triggerBuild, pollBuildStatus, listBuilds, isLive: isCodemagicLive } = require("../services/codemagicService");
-const { validateAppleConfig, initAppleState, generateJwt, createApp, createVersion, getAppleStatus } = require("../services/appleConnectService");
+const { validateAppleConfig, initAppleState, generateJwt, createApp, createVersion, getAppleStatus, lookupApp, isLive: isAppleLive } = require("../services/appleConnectService");
 const { initUploadState, prepareUpload } = require("../services/uploadService");
 
 const router = express.Router();
@@ -223,9 +223,13 @@ router.get("/build/list", async (req, res) => {
   res.json(result);
 });
 
+router.get("/apple-mode", async (req, res) => {
+  res.json({ ok: true, live: isAppleLive(), message: isAppleLive() ? "Apple Connect live mode" : "Mock mode — no Apple credentials" });
+});
+
 router.get("/apple-config", async (req, res) => {
   await ensureProjectLoaded();
-  res.json({ ok: true, config: mockPipelineProject.appleState.config || {} });
+  res.json({ ok: true, config: mockPipelineProject.appleState.config || {}, live: isAppleLive() });
 });
 
 router.post("/apple-config", async (req, res) => {
@@ -258,6 +262,19 @@ router.post("/apple/create-app", async (req, res) => {
   mockPipelineProject.appleState.appId = result.appId;
   addTimelineEvent(mockPipelineProject, "apple_app_created", "App record created in App Store Connect", "success");
   res.json({ ok: true, appId: result.appId });
+});
+
+router.get("/apple/lookup", async (req, res) => {
+  await ensureProjectLoaded();
+  const bundleId = req.query.bundleId || mockPipelineProject.appleState.config?.bundleId;
+  if (!bundleId) return res.status(400).json({ ok: false, error: "No bundle ID" });
+  const result = await lookupApp(bundleId);
+  if (result.ok && result.found) {
+    mockPipelineProject.appleState.appExists = true;
+    mockPipelineProject.appleState.appId = result.appId;
+    addTimelineEvent(mockPipelineProject, "apple_app_found", `Found existing app: ${result.name}`, "success");
+  }
+  res.json(result);
 });
 
 router.post("/apple/create-version", async (req, res) => {

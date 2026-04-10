@@ -1,3 +1,8 @@
+if (window.__POSTAPP_RUNNING__) {
+  console.log("POSTAPP already initialized — skipping duplicate init.");
+} else {
+window.__POSTAPP_RUNNING__ = true;
+
 const navItems = document.querySelectorAll(".nav-item");
 const views = document.querySelectorAll(".view");
 const uiLogBox = document.getElementById("uiLogBox");
@@ -882,7 +887,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const bind = (id, handler) => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("click", handler);
+    if (el && !el.dataset.bound) {
+      el.dataset.bound = "true";
+      el.addEventListener("click", handler);
+    }
   };
 
   bind("refreshBillingBtn", refreshBillingUi);
@@ -949,3 +957,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     addUiLog("Could not load pipeline project.");
   }
 });
+
+}

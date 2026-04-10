@@ -487,7 +487,7 @@ export function WrapTab({ appId, app, onChecklistRefresh }: Props) {
                   <Input
                     value={config.codemagicAppId}
                     onChange={e => setConfig(c => ({ ...c, codemagicAppId: e.target.value }))}
-                    placeholder="69d7b05da859cf295093202b"
+                    placeholder="69d8fe93edc544765927e7e6"
                     className="font-mono text-sm"
                   />
                   <p className="text-[11px] text-muted-foreground/60">From your Codemagic app URL</p>

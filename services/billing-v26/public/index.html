@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POSTAPP V31</title>
+  <title>POSTAPP V32</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,12 +15,14 @@
         </div>
         <div>
           <h1>POSTAPP</h1>
-          <p>V31 Reviewer Mode + Timeline</p>
+          <p>V32 Metadata + Screenshot Matrix</p>
         </div>
       </div>
 
       <nav class="nav">
         <button class="nav-item active" data-view="pipelineView">Pipeline</button>
+        <button class="nav-item" data-view="metadataView">Metadata</button>
+        <button class="nav-item" data-view="screenshotsView">Screenshots</button>
         <button class="nav-item" data-view="reviewerView">Reviewer Mode</button>
         <button class="nav-item" data-view="timelineView">Timeline</button>
         <button class="nav-item" data-view="pricingView">Pricing</button>
@@ -42,7 +44,7 @@
           <div class="panel">
             <div class="panel-head">
               <h3>Pipeline Project</h3>
-              <span class="panel-tag">V31</span>
+              <span class="panel-tag">V32</span>
             </div>
 
             <label class="label">Project ID</label>
@@ -80,6 +82,102 @@
             </div>
 
             <div id="pipelineSteps" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="metadataView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Metadata Workspace</h2>
+            <p>Prepare listing content for App Store submission.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveMetadataBtn" class="primary-btn">Save Metadata</button>
+            <button id="scoreMetadataBtn" class="secondary-btn">Score Metadata</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">App Name</label>
+            <input id="metaAppName" class="input" type="text" placeholder="POSTAPP" />
+
+            <label class="label">Subtitle</label>
+            <input id="metaSubtitle" class="input" type="text" placeholder="Fast App Store submission help" />
+
+            <label class="label">Keywords</label>
+            <input id="metaKeywords" class="input" type="text" placeholder="app store, submission, upload" />
+
+            <label class="label">Promo Text</label>
+            <textarea id="metaPromoText" class="input textarea" placeholder="Promotional text"></textarea>
+
+            <label class="label">Description</label>
+            <textarea id="metaDescription" class="input textarea" placeholder="Full App Store description"></textarea>
+
+            <label class="label">Support URL</label>
+            <input id="metaSupportUrl" class="input" type="text" placeholder="https://yourapp.com/support" />
+
+            <label class="label">Privacy Policy URL</label>
+            <input id="metaPrivacyUrl" class="input" type="text" placeholder="https://yourapp.com/privacy" />
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Metadata Score</h3>
+              <span class="panel-tag muted">Readiness</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Score</span><strong id="metadataScoreLabel">—</strong></div>
+              <div class="status-line"><span>Readiness</span><strong id="metadataReadinessLabel">—</strong></div>
+            </div>
+
+            <div id="metadataIssuesBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screenshotsView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Screenshot Matrix</h2>
+            <p>Track screenshot readiness across required device types.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveScreenshotsBtn" class="primary-btn">Save Screenshot Matrix</button>
+            <button id="scoreScreenshotsBtn" class="secondary-btn">Score Screenshot Readiness</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">iPhone 6.9"</label>
+            <input id="shotsIphone69" class="input" type="text" placeholder="Comma-separated screenshot names" />
+
+            <label class="label">iPhone 6.5"</label>
+            <input id="shotsIphone65" class="input" type="text" placeholder="Comma-separated screenshot names" />
+
+            <label class="label">iPad 13"</label>
+            <input id="shotsIpad13" class="input" type="text" placeholder="Comma-separated screenshot names" />
+
+            <label class="label">iPad 12.9"</label>
+            <input id="shotsIpad129" class="input" type="text" placeholder="Comma-separated screenshot names" />
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Screenshot Readiness</h3>
+              <span class="panel-tag muted">Matrix</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Score</span><strong id="screenshotScoreLabel">—</strong></div>
+              <div class="status-line"><span>iPhone 6.9"</span><strong id="screenshotIphone69Label">—</strong></div>
+              <div class="status-line"><span>iPhone 6.5"</span><strong id="screenshotIphone65Label">—</strong></div>
+              <div class="status-line"><span>iPad 13"</span><strong id="screenshotIpad13Label">—</strong></div>
+              <div class="status-line"><span>iPad 12.9"</span><strong id="screenshotIpad129Label">—</strong></div>
+            </div>
           </div>
         </div>
       </section>

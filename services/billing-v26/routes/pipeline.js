@@ -5,60 +5,68 @@ const router = express.Router();
 
 let mockPipelineProject = {
   id: "proj_123",
-  name: "POSTAPP iOS Wrapper",
-  privacyPolicy: null,
-  supportUrl: null,
-  screenshots: [],
-  description: "Short desc",
-  isWebWrapper: true,
-  reviewer: {
-    email: "",
-    password: "",
-    instructions: "",
-    notes: ""
-  },
-  metadata: {
-    appName: "",
-    subtitle: "",
-    keywords: "",
-    promoText: "",
-    description: "",
-    supportUrl: "",
-    privacyPolicyUrl: ""
-  },
-  screenshotMatrix: {
-    iphone69: [],
-    iphone65: [],
-    ipad13: [],
-    ipad129: []
-  },
-  timeline: [
-    {
-      key: "project_created",
-      label: "Project created",
-      status: "complete",
-      at: new Date().toISOString()
-    }
-  ]
+  name: "POSTAPP Demo Project",
+  metadata: {},
+  screenshotMatrix: {},
+  reviewer: {},
+  signingPrep: {},
+  buildState: {},
+  appleState: {},
+  uploadState: {},
+  timeline: []
 };
 
-function addTimelineEvent(project, key, label, status = "complete") {
-  project.timeline.push({
-    key,
-    label,
+function addTimelineEvent(project, type, message, status = "info") {
+  const event = {
+    id: "evt_" + Date.now(),
+    type,
+    message,
     status,
-    at: new Date().toISOString()
-  });
+    timestamp: new Date().toISOString()
+  };
+
+  project.timeline.unshift(event);
+  return event;
 }
 
-router.get("/project", (req, res) => {
+async function ensureProjectLoaded() {
+  if (!mockPipelineProject) {
+    mockPipelineProject = {
+      id: "proj_123",
+      name: "POSTAPP Demo Project",
+      metadata: {},
+      screenshotMatrix: {},
+      reviewer: {},
+      signingPrep: {},
+      buildState: {},
+      appleState: {},
+      uploadState: {},
+      timeline: []
+    };
+  }
+}
+
+router.get("/timeline", async (req, res) => {
+  await ensureProjectLoaded();
+
+  res.json({
+    ok: true,
+    timeline: mockPipelineProject.timeline || []
+  });
+});
+
+router.get("/project", async (req, res) => {
+  await ensureProjectLoaded();
+
   res.json({
     ok: true,
     project: mockPipelineProject
   });
 });
 
-router.post("/project", (req, res) => {
+router.post("/project", async (req, res) => {
+  await ensureProjectLoaded();
+
   const previousReviewer = mockPipelineProject.reviewer || {};
   const previousMetadata = mockPipelineProject.metadata || {};
   const previousScreenshotMatrix = mockPipelineProject.screenshotMatrix || {};
@@ -84,7 +92,7 @@ router.post("/project", (req, res) => {
     mockPipelineProject,
     "project_updated",
     "Project details updated",
-    "complete"
+    "info"
   );
 
   res.json({
@@ -93,7 +101,9 @@ router.post("/project", (req, res) => {
   });
 });
 
-router.post("/reviewer", (req, res) => {
+router.post("/reviewer", async (req, res) => {
+  await ensureProjectLoaded();
+
   mockPipelineProject.reviewer = {
     ...mockPipelineProject.reviewer,
     ...req.body
@@ -101,9 +111,9 @@ router.post("/reviewer", (req, res) => {
 
   addTimelineEvent(
     mockPipelineProject,
-    "reviewer_updated",
-    "Reviewer instructions updated",
-    "complete"
+    "reviewer_ready",
+    "Reviewer credentials saved",
+    "info"
   );
 
   res.json({
@@ -112,7 +122,9 @@ router.post("/reviewer", (req, res) => {
   });
 });
 
-router.post("/metadata", (req, res) => {
+router.post("/metadata", async (req, res) => {
+  await ensureProjectLoaded();
+
   mockPipelineProject.metadata = {
     ...mockPipelineProject.metadata,
     ...req.body
@@ -120,9 +132,9 @@ router.post("/metadata", (req, res) => {
 
   addTimelineEvent(
     mockPipelineProject,
-    "metadata_updated",
-    "Metadata workspace updated",
-    "complete"
+    "metadata_update",
+    "Metadata updated",
+    "info"
   );
 
   res.json({
@@ -131,7 +143,9 @@ router.post("/metadata", (req, res) => {
   });
 });
 
-router.post("/screenshots", (req, res) => {
+router.post("/screenshots", async (req, res) => {
+  await ensureProjectLoaded();
+
   mockPipelineProject.screenshotMatrix = {
     ...mockPipelineProject.screenshotMatrix,
     ...req.body
@@ -141,7 +155,7 @@ router.post("/screenshots", (req, res) => {
     mockPipelineProject,
     "screenshots_updated",
     "Screenshot matrix updated",
-    "complete"
+    "info"
   );
 
   res.json({
@@ -150,7 +164,9 @@ router.post("/screenshots", (req, res) => {
   });
 });
 
-router.get("/metadata-score", (req, res) => {
+router.get("/metadata-score", async (req, res) => {
+  await ensureProjectLoaded();
+
   const metadata = mockPipelineProject.metadata || {};
   let score = 100;
   const issues = [];
@@ -198,7 +214,9 @@ router.get("/metadata-score", (req, res) => {
   });
 });
 
-router.get("/screenshot-score", (req, res) => {
+router.get("/screenshot-score", async (req, res) => {
+  await ensureProjectLoaded();
+
   const matrix = mockPipelineProject.screenshotMatrix || {};
 
   const requirements = {
@@ -233,10 +251,12 @@ router.get("/screenshot-score", (req, res) => {
   });
 });
 
-router.post("/timeline", (req, res) => {
-  const { key, label, status = "complete" } = req.body;
+router.post("/timeline", async (req, res) => {
+  await ensureProjectLoaded();
 
-  addTimelineEvent(mockPipelineProject, key, label, status);
+  const { type, message, status = "info" } = req.body;
+
+  addTimelineEvent(mockPipelineProject, type, message, status);
 
   res.json({
     ok: true,
@@ -245,6 +265,15 @@ router.post("/timeline", (req, res) => {
 });
 
 router.post("/run", async (req, res) => {
+  await ensureProjectLoaded();
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "pipeline_start",
+    "Pipeline execution started",
+    "info"
+  );
+
   const result = await runOneClickPipeline(mockPipelineProject, {
     autoFix: true
   });
@@ -253,15 +282,14 @@ router.post("/run", async (req, res) => {
 
   addTimelineEvent(
     mockPipelineProject,
-    "pipeline_run",
-    result.ok ? "Pipeline completed" : "Pipeline blocked",
-    result.ok ? "complete" : "blocked"
+    "pipeline_complete",
+    "Pipeline execution completed",
+    result.ok ? "success" : "error"
   );
 
   res.json({
     ok: true,
-    pipeline: result,
-    timeline: mockPipelineProject.timeline
+    project: mockPipelineProject
   });
 });
 

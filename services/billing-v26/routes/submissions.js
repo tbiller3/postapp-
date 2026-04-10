@@ -12,13 +12,14 @@ function hasUnusedSubmissionCredit(userId, projectId, db) {
   );
 }
 
-function addTimelineEvent(req, key, label, status = "complete") {
+function addTimelineEvent(req, type, message, status = "info") {
   const timeline = req.app.locals.timeline || [];
-  timeline.push({
-    key,
-    label,
+  timeline.unshift({
+    id: "evt_" + Date.now(),
+    type,
+    message,
     status,
-    at: new Date().toISOString()
+    timestamp: new Date().toISOString()
   });
   req.app.locals.timeline = timeline;
 }

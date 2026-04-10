@@ -481,11 +481,11 @@ async function refreshTimeline() {
 
   timeline.forEach((item) => {
     const row = document.createElement("div");
-    row.className = `timeline-item ${item.status || "complete"}`;
+    row.className = `timeline-item ${item.status || "info"}`;
     row.innerHTML = `
       <div>
-        <strong>${item.label}</strong>
-        <p>${item.key} • ${new Date(item.at).toLocaleString()}</p>
+        <strong>${item.message || item.label || ""}</strong>
+        <p>${item.type || item.key || ""} • ${new Date(item.timestamp || item.at).toLocaleString()}</p>
       </div>
       <span class="timeline-status">${item.status}</span>
     `;

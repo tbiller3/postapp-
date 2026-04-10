@@ -281,12 +281,18 @@ body {
   font-weight: 700;
 }
 
-.timeline-item.blocked .timeline-status {
+.timeline-item.blocked .timeline-status,
+.timeline-item.error .timeline-status {
   color: #ffd2d2;
 }
 
-.timeline-item.complete .timeline-status {
+.timeline-item.complete .timeline-status,
+.timeline-item.success .timeline-status {
   color: #d2ffe5;
+}
+
+.timeline-item.info .timeline-status {
+  color: #d2e8ff;
 }
 
 .modal {

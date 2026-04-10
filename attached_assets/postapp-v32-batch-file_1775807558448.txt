@@ -1,0 +1,132 @@
+POSTAPP V32 — Timeline Engine + Persistence (Foundation Layer)
+
+WHERE TO PASTE:
+routes/pipeline.js
+
+
+// --- V32: In-memory persistence (replace later with DB) ---
+let mockPipelineProject = {
+  id: "proj_123",
+  name: "POSTAPP Demo Project",
+  metadata: {},
+  screenshotMatrix: {},
+  reviewer: {},
+  signingPrep: {},
+  buildState: {},
+  appleState: {},
+  uploadState: {},
+  timeline: []
+};
+
+
+function addTimelineEvent(project, type, message, status = "info") {
+  const event = {
+    id: "evt_" + Date.now(),
+    type,
+    message,
+    status,
+    timestamp: new Date().toISOString()
+  };
+
+  project.timeline.unshift(event);
+  return event;
+}
+
+
+async function ensureProjectLoaded() {
+  if (!mockPipelineProject) {
+    mockPipelineProject = {
+      id: "proj_123",
+      name: "POSTAPP Demo Project",
+      metadata: {},
+      screenshotMatrix: {},
+      reviewer: {},
+      signingPrep: {},
+      buildState: {},
+      appleState: {},
+      uploadState: {},
+      timeline: []
+    };
+  }
+}
+
+
+router.get("/timeline", async (req, res) => {
+  await ensureProjectLoaded();
+
+  res.json({
+    ok: true,
+    timeline: mockPipelineProject.timeline || []
+  });
+});
+
+
+router.get("/project", async (req, res) => {
+  await ensureProjectLoaded();
+
+  res.json({
+    ok: true,
+    project: mockPipelineProject
+  });
+});
+
+
+MODIFY YOUR EXISTING PIPELINE RUN ROUTE TO LOOK LIKE THIS:
+
+router.post("/run", async (req, res) => {
+  await ensureProjectLoaded();
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "pipeline_start",
+    "Pipeline execution started",
+    "info"
+  );
+
+  // existing pipeline logic here...
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "pipeline_complete",
+    "Pipeline execution completed",
+    "success"
+  );
+
+  res.json({
+    ok: true,
+    project: mockPipelineProject
+  });
+});
+
+
+ADD TIMELINE EVENTS TO OTHER ACTIONS LIKE THIS:
+
+addTimelineEvent(
+  mockPipelineProject,
+  "metadata_update",
+  "Metadata updated",
+  "info"
+);
+
+addTimelineEvent(
+  mockPipelineProject,
+  "reviewer_ready",
+  "Reviewer credentials saved",
+  "info"
+);
+
+addTimelineEvent(
+  mockPipelineProject,
+  "build_started",
+  "Build process started",
+  "info"
+);
+
+
+TEST AFTER V32:
+
+npm start
+
+Then check:
+GET /api/pipeline/timeline
+GET /api/pipeline/project

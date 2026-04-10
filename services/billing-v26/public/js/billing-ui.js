@@ -259,7 +259,7 @@ async function startSubmissionFlow(projectId) {
 
   document.getElementById("pipelineNextActionLabel").textContent = "submission_started";
   addUiLog("Submission workflow started successfully.");
-  await addTimelineEvent("submission_started", `Project: ${projectId}`);
+  await loadTimeline();
 }
 
 async function routeSubmissionNextStep(pipeline) {
@@ -316,42 +316,39 @@ async function runPipeline() {
 
   renderPipelineSteps(pipeline.steps);
   await routeSubmissionNextStep(pipeline);
-
-  if (pipeline.ok) {
-    await addTimelineEvent("pipeline_completed", `Score: ${pipeline.analysis?.score} — ${pipeline.analysis?.readiness}`);
-  }
+  await loadTimeline();
 }
 
 // ─── Reviewer Mode ─────────────────────────────────────────────────────────
 
 async function loadReviewerCredentials() {
   try {
-    const res = await fetch("/api/reviewer");
+    const res = await fetch("/api/pipeline/project");
     const data = await res.json();
-    if (data.ok) renderReviewer(data.reviewer);
+    if (data.ok && data.project.reviewer) renderReviewer(data.project.reviewer);
   } catch (err) {}
 }
 
 function renderReviewer(reviewer) {
-  document.getElementById("reviewerEmail").value = reviewer.testEmail || "";
-  document.getElementById("reviewerPassword").value = reviewer.testPassword || "";
-  document.getElementById("reviewerInstructions").value = reviewer.loginInstructions || "";
-  document.getElementById("reviewerDemoNotes").value = reviewer.demoNotes || "";
+  document.getElementById("reviewerEmail").value = reviewer.email || "";
+  document.getElementById("reviewerPassword").value = reviewer.password || "";
+  document.getElementById("reviewerInstructions").value = reviewer.instructions || "";
+  document.getElementById("reviewerDemoNotes").value = reviewer.demoNotes || reviewer.notes || "";
   document.getElementById("reviewerFeatureExplanation").value = reviewer.featureExplanation || "";
   document.getElementById("reviewerSpecialAccess").value = reviewer.specialAccess || "";
 }
 
 async function saveReviewerCredentials() {
   const payload = {
-    testEmail: document.getElementById("reviewerEmail").value.trim(),
-    testPassword: document.getElementById("reviewerPassword").value.trim(),
-    loginInstructions: document.getElementById("reviewerInstructions").value.trim(),
+    email: document.getElementById("reviewerEmail").value.trim(),
+    password: document.getElementById("reviewerPassword").value.trim(),
+    instructions: document.getElementById("reviewerInstructions").value.trim(),
     demoNotes: document.getElementById("reviewerDemoNotes").value.trim(),
     featureExplanation: document.getElementById("reviewerFeatureExplanation").value.trim(),
     specialAccess: document.getElementById("reviewerSpecialAccess").value.trim()
   };
 
-  const res = await fetch("/api/reviewer", {
+  const res = await fetch("/api/pipeline/reviewer", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -363,31 +360,59 @@ async function saveReviewerCredentials() {
 
 // ─── Submission Timeline ────────────────────────────────────────────────────
 
+const TIMELINE_LABELS = {
+  project_created:           "Project Created",
+  project_updated:           "Project Updated",
+  reviewer_updated:          "Reviewer Info Saved",
+  pipeline_run:              "Pipeline Run",
+  submission_blocked:        "Submission Blocked",
+  submission_credit_granted: "Submission Credit Granted",
+  submission_credit_used:    "Submission Credit Used",
+  submission_started:        "Submission Started",
+  waiting_review:            "Waiting for App Review",
+  approved:                  "App Approved",
+  rejected:                  "App Rejected",
+  resubmission_needed:       "Resubmission Needed"
+};
+
 async function loadTimeline() {
   try {
-    const res = await fetch("/api/timeline");
-    const data = await res.json();
-    if (data.ok) renderTimeline(data.timeline, data.stages);
+    const [projRes, subRes] = await Promise.all([
+      fetch("/api/pipeline/project"),
+      fetch("/api/submissions/timeline")
+    ]);
+
+    const projData = await projRes.json();
+    const subData  = await subRes.json();
+
+    const projEvents = projData.ok ? (projData.project.timeline || []) : [];
+    const subEvents  = subData.ok  ? (subData.timeline || [])          : [];
+
+    const all = [...projEvents, ...subEvents].sort(
+      (a, b) => new Date(a.at) - new Date(b.at)
+    );
+
+    renderTimeline(all);
   } catch (err) {}
 }
 
-function renderTimeline(events, stages) {
+function renderTimeline(events) {
   const box = document.getElementById("timelineContainer");
   if (!box) return;
   box.innerHTML = "";
 
-  const eventMap = {};
-  events.forEach((e) => (eventMap[e.key] = e));
+  if (!events.length) {
+    box.innerHTML =
+      '<p style="color:var(--text-soft);font-size:0.9rem;margin:0;">No events yet. Run the pipeline to start.</p>';
+    return;
+  }
 
-  stages.forEach((stage, idx) => {
-    const event = eventMap[stage.key];
-    const isLast = idx === stages.length - 1;
-
+  events.forEach((event) => {
     const item = document.createElement("div");
     item.className = "timeline-item";
 
     const dot = document.createElement("div");
-    dot.className = "timeline-dot " + (event ? event.status : "pending");
+    dot.className = "timeline-dot " + (event.status || "complete");
     item.appendChild(dot);
 
     const content = document.createElement("div");
@@ -395,21 +420,14 @@ function renderTimeline(events, stages) {
 
     const label = document.createElement("div");
     label.className = "timeline-label";
-    label.textContent = stage.label;
+    label.textContent = event.label || TIMELINE_LABELS[event.key] || event.key;
     content.appendChild(label);
 
-    if (event?.timestamp) {
+    if (event.at) {
       const time = document.createElement("div");
       time.className = "timeline-time";
-      time.textContent = new Date(event.timestamp).toLocaleString();
+      time.textContent = new Date(event.at).toLocaleString();
       content.appendChild(time);
-    }
-
-    if (event?.note) {
-      const note = document.createElement("div");
-      note.className = "timeline-note";
-      note.textContent = event.note;
-      content.appendChild(note);
     }
 
     item.appendChild(content);
@@ -417,19 +435,13 @@ function renderTimeline(events, stages) {
   });
 }
 
-async function addTimelineEvent(key, note = null, status = "complete") {
-  await fetch("/api/timeline/event", {
+async function addTimelineEvent(key, label, status = "complete") {
+  await fetch("/api/pipeline/timeline", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, note, status })
+    body: JSON.stringify({ key, label: label || TIMELINE_LABELS[key] || key, status })
   });
   await loadTimeline();
-}
-
-async function resetTimeline() {
-  await fetch("/api/timeline/reset", { method: "POST" });
-  await loadTimeline();
-  addUiLog("Timeline reset.");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -489,18 +501,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const resetTimelineBtn = document.getElementById("resetTimelineBtn");
   if (resetTimelineBtn) {
-    resetTimelineBtn.addEventListener("click", resetTimeline);
+    resetTimelineBtn.addEventListener("click", async () => {
+      await loadTimeline();
+      addUiLog("Timeline refreshed.");
+    });
   }
 
   const logTimelineEventBtn = document.getElementById("logTimelineEventBtn");
   if (logTimelineEventBtn) {
     logTimelineEventBtn.addEventListener("click", async () => {
-      const key = document.getElementById("timelineStageSelect").value;
+      const key    = document.getElementById("timelineStageSelect").value;
       const status = document.getElementById("timelineStatusSelect").value;
-      const note = document.getElementById("timelineNoteInput").value.trim() || null;
-      await addTimelineEvent(key, note, status);
+      const note   = document.getElementById("timelineNoteInput").value.trim();
+      const label  = (note ? `${TIMELINE_LABELS[key] || key}: ${note}` : TIMELINE_LABELS[key] || key);
+      await addTimelineEvent(key, label, status);
       document.getElementById("timelineNoteInput").value = "";
-      addUiLog(`Timeline event logged: ${key} (${status})`);
+      addUiLog(`Timeline event logged: ${label} (${status})`);
     });
   }
 

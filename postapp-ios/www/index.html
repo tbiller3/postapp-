@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POSTAPP V45</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-icon">
+          <div class="brand-arrow"></div>
+        </div>
+        <div>
+          <h1>POSTAPP</h1>
+          <p>V45 Full Pipeline</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="pipelineView">Pipeline</button>
+        <button class="nav-item" data-view="metadataView">Metadata</button>
+        <button class="nav-item" data-view="screenshotsView">Screenshots</button>
+        <button class="nav-item" data-view="signingView">Signing</button>
+        <button class="nav-item" data-view="buildView">Build Engine</button>
+        <button class="nav-item" data-view="appleView">Apple Connect</button>
+        <button class="nav-item" data-view="uploadView">Upload</button>
+        <button class="nav-item" data-view="reviewerView">Reviewer Mode</button>
+        <button class="nav-item" data-view="timelineView">Timeline</button>
+        <button class="nav-item" data-view="launchView">Final Launch</button>
+        <button class="nav-item" data-view="guidedView">Guided Flow</button>
+        <button class="nav-item" data-view="pricingView">Pricing</button>
+        <button class="nav-item" data-view="billingView">Billing</button>
+        <button class="nav-item" data-view="submissionView">Submission</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section id="pipelineView" class="view active">
+        <header class="topbar">
+          <div>
+            <h2>One-Click Pipeline</h2>
+            <p>Analyze, auto-fix, then route intelligently into upgrade, checkout, or submission.</p>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Pipeline Project</h3>
+              <span class="panel-tag">V45</span>
+            </div>
+
+            <label class="label">Project ID</label>
+            <input id="pipelineProjectId" class="input" type="text" value="proj_123" />
+
+            <label class="label">Project Name</label>
+            <input id="pipelineProjectName" class="input" type="text" value="POSTAPP iOS Wrapper" />
+
+            <label class="label">Description</label>
+            <textarea id="pipelineDescription" class="input textarea">Short desc</textarea>
+
+            <label class="label">Privacy Policy URL</label>
+            <input id="pipelinePrivacyPolicy" class="input" type="text" placeholder="https://yourapp.com/privacy" />
+
+            <label class="label">Support URL</label>
+            <input id="pipelineSupportUrl" class="input" type="text" placeholder="https://yourapp.com/support" />
+
+            <div class="action-row">
+              <button id="savePipelineProjectBtn" class="secondary-btn">Save Project</button>
+              <button id="runPipelineBtn" class="primary-btn">Run Pipeline + Route Next Step</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Pipeline Status</h3>
+              <span class="panel-tag muted">Live</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Stage</span><strong id="pipelineStageLabel">Idle</strong></div>
+              <div class="status-line"><span>Score</span><strong id="pipelineScoreLabel">—</strong></div>
+              <div class="status-line"><span>Readiness</span><strong id="pipelineReadinessLabel">—</strong></div>
+              <div class="status-line"><span>Next Action</span><strong id="pipelineNextActionLabel">—</strong></div>
+            </div>
+
+            <div id="pipelineSteps" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="metadataView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Metadata Workspace</h2>
+            <p>Prepare listing content for App Store submission.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveMetadataBtn" class="primary-btn">Save Metadata</button>
+            <button id="scoreMetadataBtn" class="secondary-btn">Score Metadata</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">App Name</label>
+            <input id="metaAppName" class="input" type="text" placeholder="POSTAPP" />
+
+            <label class="label">Subtitle</label>
+            <input id="metaSubtitle" class="input" type="text" placeholder="Fast App Store submission help" />
+
+            <label class="label">Keywords</label>
+            <input id="metaKeywords" class="input" type="text" placeholder="app store, submission, upload" />
+
+            <label class="label">Promo Text</label>
+            <textarea id="metaPromoText" class="input textarea" placeholder="Promotional text"></textarea>
+
+            <label class="label">Description</label>
+            <textarea id="metaDescription" class="input textarea" placeholder="Full App Store description"></textarea>
+
+            <label class="label">Support URL</label>
+            <input id="metaSupportUrl" class="input" type="text" placeholder="https://yourapp.com/support" />
+
+            <label class="label">Privacy Policy URL</label>
+            <input id="metaPrivacyUrl" class="input" type="text" placeholder="https://yourapp.com/privacy" />
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Metadata Score</h3>
+              <span class="panel-tag muted">Readiness</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Score</span><strong id="metadataScoreLabel">—</strong></div>
+              <div class="status-line"><span>Readiness</span><strong id="metadataReadinessLabel">—</strong></div>
+            </div>
+
+            <div id="metadataIssuesBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screenshotsView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Screenshot Matrix</h2>
+            <p>Upload screenshots for each required device size. Apple requires at least 3 per device.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveScreenshotsBtn" class="primary-btn">Save Screenshot Matrix</button>
+            <button id="scoreScreenshotsBtn" class="secondary-btn">Score Readiness</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <div class="screenshot-device" data-device="iphone69">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPhone 6.9" (Pro Max)</strong>
+                  <span class="device-spec">1320 x 2868 px</span>
+                </div>
+                <span class="device-badge" id="badgeIphone69">0 / 3</span>
+              </div>
+              <input id="shotsIphone69" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="iphone69">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="iphone69" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIphone69"></div>
+            </div>
+
+            <div class="screenshot-device" data-device="iphone65">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPhone 6.5" (Plus / XS Max)</strong>
+                  <span class="device-spec">1284 x 2778 px</span>
+                </div>
+                <span class="device-badge" id="badgeIphone65">0 / 3</span>
+              </div>
+              <input id="shotsIphone65" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="iphone65">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="iphone65" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIphone65"></div>
+            </div>
+
+            <div class="screenshot-device" data-device="ipad13">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPad 13" (Pro)</strong>
+                  <span class="device-spec">2064 x 2752 px</span>
+                </div>
+                <span class="device-badge" id="badgeIpad13">0 / 3</span>
+              </div>
+              <input id="shotsIpad13" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="ipad13">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="ipad13" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIpad13"></div>
+            </div>
+
+            <div class="screenshot-device" data-device="ipad129">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPad 12.9" (Pro)</strong>
+                  <span class="device-spec">2048 x 2732 px</span>
+                </div>
+                <span class="device-badge" id="badgeIpad129">0 / 3</span>
+              </div>
+              <input id="shotsIpad129" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="ipad129">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="ipad129" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIpad129"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Screenshot Readiness</h3>
+              <span class="panel-tag muted">Matrix</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Score</span><strong id="screenshotScoreLabel">—</strong></div>
+              <div class="status-line"><span>iPhone 6.9"</span><strong id="screenshotIphone69Label">—</strong></div>
+              <div class="status-line"><span>iPhone 6.5"</span><strong id="screenshotIphone65Label">—</strong></div>
+              <div class="status-line"><span>iPad 13"</span><strong id="screenshotIpad13Label">—</strong></div>
+              <div class="status-line"><span>iPad 12.9"</span><strong id="screenshotIpad129Label">—</strong></div>
+            </div>
+
+            <div class="panel-head" style="margin-top:1.5rem">
+              <h3>Apple Requirements</h3>
+            </div>
+            <div class="status-box">
+              <div class="status-line"><span>Min per device</span><strong>3 screenshots</strong></div>
+              <div class="status-line"><span>Max per device</span><strong>10 screenshots</strong></div>
+              <div class="status-line"><span>Format</span><strong>PNG or JPEG</strong></div>
+              <div class="status-line"><span>Color space</span><strong>sRGB or Display P3</strong></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="signingView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Signing Workspace</h2>
+            <p>Configure code signing certificates and provisioning profiles.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveSigningBtn" class="primary-btn">Save Signing Config</button>
+            <button id="scoreSigningBtn" class="secondary-btn">Evaluate Signing</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">Bundle ID</label>
+            <input id="signingBundleId" class="input" type="text" placeholder="com.yourcompany.app" />
+
+            <label class="label">Export Method</label>
+            <select id="signingExportMethod" class="input">
+              <option value="">Select...</option>
+              <option value="app-store">App Store</option>
+              <option value="ad-hoc">Ad Hoc</option>
+              <option value="development">Development</option>
+            </select>
+
+            <label class="label">Certificate Ready</label>
+            <select id="signingCertReady" class="input">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+
+            <label class="label">Provisioning Profile Ready</label>
+            <select id="signingProvReady" class="input">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+
+            <label class="label">Native Build Selected</label>
+            <select id="signingNativeBuild" class="input">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Signing Score</h3>
+              <span class="panel-tag muted">Readiness</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Score</span><strong id="signingScoreLabel">—</strong></div>
+              <div class="status-line"><span>Ready</span><strong id="signingReadyLabel">—</strong></div>
+            </div>
+
+            <div id="signingIssuesBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="buildView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Build Engine</h2>
+            <p>Configure and trigger Codemagic iOS builds.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveBuildConfigBtn" class="primary-btn">Save Build Config</button>
+            <button id="validateBuildBtn" class="secondary-btn">Validate Config</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">Codemagic App ID</label>
+            <input id="buildAppId" class="input" type="text" placeholder="69d7b05da859cf295093202b" />
+
+            <label class="label">Workflow ID</label>
+            <input id="buildWorkflowId" class="input" type="text" value="ios-release" />
+
+            <label class="label">Branch</label>
+            <input id="buildBranch" class="input" type="text" value="main" />
+
+            <label class="label">Bundle ID</label>
+            <input id="buildBundleId" class="input" type="text" placeholder="com.yourcompany.app" />
+
+            <div class="action-row">
+              <button id="startBuildBtn" class="primary-btn">Start Build</button>
+              <button id="pollBuildBtn" class="secondary-btn">Check Build Status</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Build Status</h3>
+              <span class="panel-tag muted">Codemagic</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Build ID</span><strong id="buildIdLabel">—</strong></div>
+              <div class="status-line"><span>Status</span><strong id="buildStatusLabel">idle</strong></div>
+              <div class="status-line"><span>IPA Ready</span><strong id="buildIpaLabel">No</strong></div>
+            </div>
+
+            <div id="buildLogBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="appleView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Apple Connect</h2>
+            <p>Configure App Store Connect API and manage your app listing.</p>
+          </div>
+          <div class="action-row">
+            <button id="saveAppleConfigBtn" class="primary-btn">Save Apple Config</button>
+            <button id="validateAppleBtn" class="secondary-btn">Validate Config</button>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">Issuer ID</label>
+            <input id="appleIssuerId" class="input" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+
+            <label class="label">Key ID</label>
+            <input id="appleKeyId" class="input" type="text" placeholder="XXXXXXXXXX" />
+
+            <label class="label">Private Key</label>
+            <textarea id="applePrivateKey" class="input textarea" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+
+            <label class="label">Bundle ID</label>
+            <input id="appleBundleId" class="input" type="text" placeholder="com.yourcompany.app" />
+
+            <label class="label">App Name</label>
+            <input id="appleAppName" class="input" type="text" placeholder="POSTAPP" />
+
+            <div class="action-row">
+              <button id="generateJwtBtn" class="primary-btn">Generate JWT</button>
+              <button id="createAppBtn" class="secondary-btn">Create App</button>
+              <button id="createVersionBtn" class="secondary-btn">Create Version</button>
+              <button id="appleStatusBtn" class="ghost-btn">Check Status</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Apple Connect Status</h3>
+              <span class="panel-tag muted">API</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Configured</span><strong id="appleConfiguredLabel">—</strong></div>
+              <div class="status-line"><span>JWT Active</span><strong id="appleJwtLabel">—</strong></div>
+              <div class="status-line"><span>App Exists</span><strong id="appleAppExistsLabel">—</strong></div>
+              <div class="status-line"><span>Version Ready</span><strong id="appleVersionLabel">—</strong></div>
+            </div>
+
+            <div id="appleLogBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="uploadView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Upload</h2>
+            <p>Upload your IPA to App Store Connect.</p>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <label class="label">Upload Route</label>
+            <select id="uploadRoute" class="input">
+              <option value="transporter">Transporter</option>
+              <option value="altool">altool</option>
+              <option value="api">App Store Connect API</option>
+            </select>
+
+            <div class="action-row">
+              <button id="saveUploadConfigBtn" class="secondary-btn">Save Upload Config</button>
+              <button id="prepareUploadBtn" class="primary-btn">Prepare Upload</button>
+              <button id="startUploadBtn" class="primary-btn">Start Upload</button>
+              <button id="checkUploadBtn" class="ghost-btn">Check Status</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Upload Status</h3>
+              <span class="panel-tag muted">Transfer</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Upload ID</span><strong id="uploadIdLabel">—</strong></div>
+              <div class="status-line"><span>Status</span><strong id="uploadStatusLabel">idle</strong></div>
+              <div class="status-line"><span>Route</span><strong id="uploadRouteLabel">transporter</strong></div>
+            </div>
+
+            <div id="uploadLogBox" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reviewerView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Reviewer Mode</h2>
+            <p>Store test credentials and instructions for App Review.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <label class="label">Reviewer Test Email</label>
+          <input id="reviewerEmail" class="input" type="text" placeholder="reviewer@test.com" />
+
+          <label class="label">Reviewer Password</label>
+          <input id="reviewerPassword" class="input" type="text" placeholder="password123" />
+
+          <label class="label">Reviewer Instructions</label>
+          <textarea id="reviewerInstructions" class="input textarea" placeholder="Explain how to log in and test the app."></textarea>
+
+          <label class="label">Reviewer Notes</label>
+          <textarea id="reviewerNotes" class="input textarea" placeholder="Special notes for Apple reviewer."></textarea>
+
+          <div class="action-row">
+            <button id="saveReviewerBtn" class="primary-btn">Save Reviewer Info</button>
+          </div>
+
+          <div class="status-box reviewer-preview">
+            <div class="status-line"><span>Email</span><strong id="reviewerPreviewEmail">—</strong></div>
+            <div class="status-line"><span>Password</span><strong id="reviewerPreviewPassword">—</strong></div>
+            <div class="status-line"><span>Instructions</span><strong id="reviewerPreviewInstructions">—</strong></div>
+            <div class="status-line"><span>Notes</span><strong id="reviewerPreviewNotes">—</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="timelineView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Submission Timeline</h2>
+            <p>Track the submission journey from pipeline to review.</p>
+          </div>
+          <div class="action-row">
+            <button id="refreshTimelineBtn" class="secondary-btn">Refresh Timeline</button>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="action-row">
+            <button class="ghost-btn" onclick="updateReviewStatus('waiting_review')">Mark Waiting Review</button>
+            <button class="ghost-btn" onclick="updateReviewStatus('approved')">Mark Approved</button>
+            <button class="ghost-btn" onclick="updateReviewStatus('rejected')">Mark Rejected</button>
+            <button class="ghost-btn" onclick="updateReviewStatus('resubmission_needed')">Mark Resubmission</button>
+          </div>
+
+          <div id="timelineList" class="timeline-list"></div>
+        </div>
+      </section>
+
+      <section id="launchView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Final Launch</h2>
+            <p>Pre-flight readiness check before App Store submission.</p>
+          </div>
+          <div class="action-row">
+            <button id="refreshLaunchBtn" class="secondary-btn">Refresh Dashboard</button>
+            <button id="finalCheckBtn" class="secondary-btn">Final Check</button>
+            <button id="submitLaunchBtn" class="primary-btn">Submit for Review</button>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Launch Readiness</h3>
+            <span class="panel-tag muted">Gates</span>
+          </div>
+
+          <div class="status-box">
+            <div class="status-line"><span>Metadata</span><strong id="gateMetadataLabel">—</strong></div>
+            <div class="status-line"><span>Screenshots</span><strong id="gateScreenshotsLabel">—</strong></div>
+            <div class="status-line"><span>Reviewer</span><strong id="gateReviewerLabel">—</strong></div>
+            <div class="status-line"><span>Signing</span><strong id="gateSigningLabel">—</strong></div>
+            <div class="status-line"><span>Build</span><strong id="gateBuildLabel">—</strong></div>
+            <div class="status-line"><span>Apple Connect</span><strong id="gateAppleLabel">—</strong></div>
+            <div class="status-line"><span>Upload</span><strong id="gateUploadLabel">—</strong></div>
+          </div>
+
+          <div id="launchBlockersBox" class="log-box"></div>
+        </div>
+      </section>
+
+      <section id="guidedView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Guided Flow</h2>
+            <p>Step-by-step walkthrough of the entire submission process.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Submission Steps</h3>
+            <span class="panel-tag muted">Guide</span>
+          </div>
+
+          <div id="guidedSteps" class="guided-steps">
+            <div class="guided-step" data-step="metadata">
+              <span class="step-number">1</span>
+              <div class="step-content">
+                <strong>Metadata</strong>
+                <p>Fill in app name, description, keywords, and URLs.</p>
+              </div>
+              <span class="step-status" id="guidedMetaStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="screenshots">
+              <span class="step-number">2</span>
+              <div class="step-content">
+                <strong>Screenshots</strong>
+                <p>Upload screenshots for all required device sizes.</p>
+              </div>
+              <span class="step-status" id="guidedShotsStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="signing">
+              <span class="step-number">3</span>
+              <div class="step-content">
+                <strong>Signing</strong>
+                <p>Configure certificates, profiles, and bundle ID.</p>
+              </div>
+              <span class="step-status" id="guidedSigningStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="build">
+              <span class="step-number">4</span>
+              <div class="step-content">
+                <strong>Build</strong>
+                <p>Trigger and complete an iOS build via Codemagic.</p>
+              </div>
+              <span class="step-status" id="guidedBuildStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="apple">
+              <span class="step-number">5</span>
+              <div class="step-content">
+                <strong>Apple Connect</strong>
+                <p>Create app record, generate JWT, and prepare version.</p>
+              </div>
+              <span class="step-status" id="guidedAppleStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="upload">
+              <span class="step-number">6</span>
+              <div class="step-content">
+                <strong>Upload</strong>
+                <p>Upload your IPA to App Store Connect.</p>
+              </div>
+              <span class="step-status" id="guidedUploadStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="reviewer">
+              <span class="step-number">7</span>
+              <div class="step-content">
+                <strong>Reviewer</strong>
+                <p>Add test credentials for Apple's review team.</p>
+              </div>
+              <span class="step-status" id="guidedReviewerStatus">—</span>
+            </div>
+            <div class="guided-step" data-step="launch">
+              <span class="step-number">8</span>
+              <div class="step-content">
+                <strong>Submit</strong>
+                <p>Final check and submit for App Store review.</p>
+              </div>
+              <span class="step-status" id="guidedLaunchStatus">—</span>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="refreshGuidedBtn" class="secondary-btn">Refresh Guided Status</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricingView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Pricing</h2>
+            <p>Choose a plan, then pay per submission when ready.</p>
+          </div>
+        </header>
+
+        <div class="pricing-grid">
+          <div class="panel pricing-card">
+            <h3>Solo</h3>
+            <strong>$49/mo</strong>
+            <p>Indie builders and first-time publishers.</p>
+            <button class="primary-btn" data-plan-button="solo">Get Solo</button>
+          </div>
+
+          <div class="panel pricing-card">
+            <h3>Builder</h3>
+            <strong>$99/mo</strong>
+            <p>Repeat creators and small teams.</p>
+            <button class="primary-btn" data-plan-button="builder">Get Builder</button>
+          </div>
+
+          <div class="panel pricing-card">
+            <h3>Studio</h3>
+            <strong>$249/mo</strong>
+            <p>Studios, agencies, and serious pipelines.</p>
+            <button class="primary-btn" data-plan-button="studio">Get Studio</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="billingView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Billing Status</h2>
+            <p>Your plan and billing readiness.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="status-box">
+            <div class="status-line"><span>Plan</span><strong id="planLabel">Loading...</strong></div>
+            <div class="status-line"><span>Subscription</span><strong id="subscriptionLabel">Loading...</strong></div>
+            <div class="status-line"><span>Customer</span><strong id="customerLabel">Loading...</strong></div>
+          </div>
+
+          <div class="action-row">
+            <button class="secondary-btn" id="refreshBillingBtn">Refresh Billing Status</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="submissionView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Submission Checkout</h2>
+            <p>Manual submission checkout testing.</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <label class="label">Project ID</label>
+          <input id="projectIdInput" class="input" type="text" value="proj_123" />
+
+          <label class="label">Project Name</label>
+          <input id="projectNameInput" class="input" type="text" value="POSTAPP iOS Wrapper" />
+
+          <div class="action-row">
+            <button id="openStandardCheckout" class="primary-btn">Open Standard Submission</button>
+            <button id="openComplexCheckout" class="secondary-btn">Open Complex Submission</button>
+            <button id="grantDevCreditBtn" class="ghost-btn">Grant Dev Credit</button>
+          </div>
+
+          <div class="log-box" id="uiLogBox"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="submissionCheckoutModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>POSTAPP Submission</h3>
+      <p id="submissionProjectName">Project: —</p>
+
+      <div class="submission-box">
+        <div class="submission-row">
+          <span>Type</span>
+          <strong id="submissionTypeLabel">Standard App</strong>
+        </div>
+        <div class="submission-row">
+          <span>Includes</span>
+          <strong>Validation + Build + Submit</strong>
+        </div>
+        <div class="submission-row">
+          <span>Support</span>
+          <strong>1 resubmission included</strong>
+        </div>
+        <div class="submission-row">
+          <span>Price</span>
+          <strong id="submissionPriceLabel">$199</strong>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="cancelSubmissionCheckout" class="secondary-btn">Cancel</button>
+        <button id="confirmSubmissionCheckout" class="primary-btn">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="upgradeModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Unlock POSTAPP</h2>
+      <p id="upgradeReason">Upgrade required.</p>
+
+      <div class="action-row vertical">
+        <button onclick="startUpgrade('solo')" class="primary-btn">Upgrade to Solo ($49/mo)</button>
+        <button onclick="startUpgrade('builder')" class="secondary-btn">Upgrade to Builder ($99/mo)</button>
+      </div>
+
+      <div class="action-row">
+        <button onclick="closeUpgradeModal()" class="ghost-btn">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/billing-ui.js"></script>
+</body>
+</html>

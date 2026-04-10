@@ -1,0 +1,6 @@
+node_modules/
+ios/App/build/
+ios/App/Pods/
+*.xcworkspace
+!ios/App/App.xcworkspace
+.DS_Store

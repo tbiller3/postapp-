@@ -1,0 +1,12 @@
+{
+  "appId": "com.postapp.ios",
+  "appName": "POSTAPP",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#0d1117"
+  }
+}

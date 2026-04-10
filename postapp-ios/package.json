@@ -1,0 +1,17 @@
+{
+  "name": "postapp-ios",
+  "version": "1.0.0",
+  "description": "POSTAPP - App Store Submission Manager (iOS)",
+  "scripts": {
+    "build:web": "cp -r ../services/billing-v26/public/* www/",
+    "cap:sync": "npx cap sync ios",
+    "prebuild": "npm run build:web"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

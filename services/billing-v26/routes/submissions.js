@@ -12,6 +12,17 @@ function hasUnusedSubmissionCredit(userId, projectId, db) {
   );
 }
 
+function addTimelineEvent(req, key, label, status = "complete") {
+  const timeline = req.app.locals.timeline || [];
+  timeline.push({
+    key,
+    label,
+    status,
+    at: new Date().toISOString()
+  });
+  req.app.locals.timeline = timeline;
+}
+
 router.get("/credit-status/:projectId", async (req, res) => {
   const db = req.app.locals.mockDb;
   const credit = hasUnusedSubmissionCredit(req.user.id, req.params.projectId, db);
@@ -23,6 +34,13 @@ router.get("/credit-status/:projectId", async (req, res) => {
   });
 });
 
+router.get("/timeline", async (req, res) => {
+  return res.json({
+    ok: true,
+    timeline: req.app.locals.timeline || []
+  });
+});
+
 router.post("/start", requirePlan("submission_enabled"), async (req, res) => {
   const { projectId } = req.body;
   const db = req.app.locals.mockDb;
@@ -30,11 +48,25 @@ router.post("/start", requirePlan("submission_enabled"), async (req, res) => {
   const credit = hasUnusedSubmissionCredit(req.user.id, projectId, db);
 
   if (!credit) {
+    addTimelineEvent(
+      req,
+      "submission_blocked",
+      "Submission blocked: no submission credit",
+      "blocked"
+    );
+
     return res.status(402).json({
       error: "submission_purchase_required",
       message: "A submission credit is required before final submission."
     });
   }
+
+  addTimelineEvent(
+    req,
+    "submission_started",
+    "Submission workflow started",
+    "complete"
+  );
 
   return res.json({
     ok: true,
@@ -55,6 +87,13 @@ router.post("/consume-credit", requirePlan("submission_enabled"), async (req, re
 
   credit.status = "used";
   credit.used_at = new Date().toISOString();
+
+  addTimelineEvent(
+    req,
+    "submission_credit_used",
+    "Submission credit consumed",
+    "complete"
+  );
 
   return res.json({
     ok: true,
@@ -79,10 +118,40 @@ router.post("/grant-dev-credit", async (req, res) => {
 
   db.submission_credits.push(credit);
 
+  addTimelineEvent(
+    req,
+    "submission_credit_granted",
+    "Dev submission credit granted",
+    "complete"
+  );
+
   res.json({
     ok: true,
     message: "Dev submission credit granted.",
     credit
+  });
+});
+
+router.post("/review-status", async (req, res) => {
+  const { status } = req.body;
+
+  const labels = {
+    waiting_review: "Waiting for App Review",
+    approved: "App approved",
+    rejected: "App rejected",
+    resubmission_needed: "Resubmission needed"
+  };
+
+  addTimelineEvent(
+    req,
+    status || "review_status_updated",
+    labels[status] || "Review status updated",
+    status === "rejected" ? "blocked" : "complete"
+  );
+
+  res.json({
+    ok: true,
+    status
   });
 });
 

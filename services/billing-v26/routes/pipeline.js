@@ -10,8 +10,31 @@ let mockPipelineProject = {
   supportUrl: null,
   screenshots: [],
   description: "Short desc",
-  isWebWrapper: true
+  isWebWrapper: true,
+  reviewer: {
+    email: "",
+    password: "",
+    instructions: "",
+    notes: ""
+  },
+  timeline: [
+    {
+      key: "project_created",
+      label: "Project created",
+      status: "complete",
+      at: new Date().toISOString()
+    }
+  ]
 };
+
+function addTimelineEvent(project, key, label, status = "complete") {
+  project.timeline.push({
+    key,
+    label,
+    status,
+    at: new Date().toISOString()
+  });
+}
 
 router.get("/project", (req, res) => {
   res.json({
@@ -21,14 +44,57 @@ router.get("/project", (req, res) => {
 });
 
 router.post("/project", (req, res) => {
+  const previousReviewer = mockPipelineProject.reviewer || {};
+
   mockPipelineProject = {
     ...mockPipelineProject,
-    ...req.body
+    ...req.body,
+    reviewer: {
+      ...previousReviewer,
+      ...(req.body.reviewer || {})
+    }
   };
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "project_updated",
+    "Project details updated",
+    "complete"
+  );
 
   res.json({
     ok: true,
     project: mockPipelineProject
+  });
+});
+
+router.post("/reviewer", (req, res) => {
+  mockPipelineProject.reviewer = {
+    ...mockPipelineProject.reviewer,
+    ...req.body
+  };
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "reviewer_updated",
+    "Reviewer instructions updated",
+    "complete"
+  );
+
+  res.json({
+    ok: true,
+    reviewer: mockPipelineProject.reviewer
+  });
+});
+
+router.post("/timeline", (req, res) => {
+  const { key, label, status = "complete" } = req.body;
+
+  addTimelineEvent(mockPipelineProject, key, label, status);
+
+  res.json({
+    ok: true,
+    timeline: mockPipelineProject.timeline
   });
 });
 
@@ -39,9 +105,17 @@ router.post("/run", async (req, res) => {
 
   mockPipelineProject = result.project;
 
+  addTimelineEvent(
+    mockPipelineProject,
+    "pipeline_run",
+    result.ok ? "Pipeline completed" : "Pipeline blocked",
+    result.ok ? "complete" : "blocked"
+  );
+
   res.json({
     ok: true,
-    pipeline: result
+    pipeline: result,
+    timeline: mockPipelineProject.timeline
   });
 });
 

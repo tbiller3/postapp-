@@ -7,8 +7,6 @@ const billingRoutes = require("./routes/billing");
 const submissionRoutes = require("./routes/submissions");
 const analyzerRoutes = require("./routes/analyzer");
 const pipelineRoutes = require("./routes/pipeline");
-const reviewerRoutes = require("./routes/reviewer");
-const timelineRoutes = require("./routes/timeline");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +16,8 @@ app.locals.mockDb = {
   purchases: [],
   subscriptions: []
 };
+
+app.locals.timeline = [];
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
@@ -38,8 +38,6 @@ app.use("/api/billing", billingRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/analyzer", analyzerRoutes);
 app.use("/api/pipeline", pipelineRoutes);
-app.use("/api/reviewer", reviewerRoutes);
-app.use("/api/timeline", timelineRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({

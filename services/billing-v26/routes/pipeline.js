@@ -1,7 +1,7 @@
 const express = require("express");
 const { runOneClickPipeline } = require("../services/pipelineEngine");
 const { evaluateSigning } = require("../services/signingService");
-const { validateBuildConfig, initBuildState, triggerBuild, pollBuildStatus } = require("../services/codemagicService");
+const { validateBuildConfig, initBuildState, triggerBuild, pollBuildStatus, listBuilds, isLive: isCodemagicLive } = require("../services/codemagicService");
 const { validateAppleConfig, initAppleState, generateJwt, createApp, createVersion, getAppleStatus } = require("../services/appleConnectService");
 const { initUploadState, prepareUpload } = require("../services/uploadService");
 
@@ -160,9 +160,13 @@ router.post("/signing/update", async (req, res) => {
   res.json({ ok: true, signingPrep: mockPipelineProject.signingPrep, ...result });
 });
 
+router.get("/build-mode", async (req, res) => {
+  res.json({ ok: true, live: isCodemagicLive(), message: isCodemagicLive() ? "Codemagic live mode" : "Mock mode — no CODEMAGIC_API_TOKEN" });
+});
+
 router.get("/build-config", async (req, res) => {
   await ensureProjectLoaded();
-  res.json({ ok: true, config: mockPipelineProject.buildState.config || {} });
+  res.json({ ok: true, config: mockPipelineProject.buildState.config || {}, live: isCodemagicLive() });
 });
 
 router.post("/build-config", async (req, res) => {
@@ -194,10 +198,29 @@ router.post("/build/start", async (req, res) => {
 router.get("/build/status", async (req, res) => {
   await ensureProjectLoaded();
   if (!mockPipelineProject.buildState.buildId) {
-    return res.json({ ok: true, status: "idle", message: "No build started" });
+    return res.json({ ok: true, status: "idle", message: "No build started", live: isCodemagicLive() });
   }
   const result = await pollBuildStatus(mockPipelineProject.buildState.buildId);
+  if (result.ipaReady) {
+    mockPipelineProject.buildState.ipaReady = true;
+    mockPipelineProject.buildState.artifactUrl = result.artifactUrl;
+    mockPipelineProject.buildState.finishedAt = result.finishedAt;
+    mockPipelineProject.buildState.status = result.status;
+    addTimelineEvent(mockPipelineProject, "build_complete", "Build finished — IPA ready", "success");
+  } else {
+    mockPipelineProject.buildState.status = result.status;
+  }
   res.json({ ok: true, ...result });
+});
+
+router.get("/build/list", async (req, res) => {
+  await ensureProjectLoaded();
+  const appId = mockPipelineProject.buildState.config?.appId;
+  if (!appId) {
+    return res.status(400).json({ ok: false, error: "No app ID configured" });
+  }
+  const result = await listBuilds(appId);
+  res.json(result);
 });
 
 router.get("/apple-config", async (req, res) => {

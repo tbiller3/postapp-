@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html>
+<body style="background:#111;color:white;font-family:sans-serif">
+<h1>POSTAPP V45</h1>
+<button onclick="run()">Run Pipeline</button>
+<pre id="log"></pre>
+
+<script>
+async function run(){
+  await fetch('/api/run',{method:'POST'});
+  load();
+}
+async function load(){
+  const res = await fetch('/api/timeline');
+  const data = await res.json();
+  document.getElementById('log').textContent = JSON.stringify(data,null,2);
+}
+load();
+</script>
+</body>
+</html>

@@ -7,6 +7,8 @@ const billingRoutes = require("./routes/billing");
 const submissionRoutes = require("./routes/submissions");
 const analyzerRoutes = require("./routes/analyzer");
 const pipelineRoutes = require("./routes/pipeline");
+const reviewerRoutes = require("./routes/reviewer");
+const timelineRoutes = require("./routes/timeline");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,15 +38,17 @@ app.use("/api/billing", billingRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/analyzer", analyzerRoutes);
 app.use("/api/pipeline", pipelineRoutes);
+app.use("/api/reviewer", reviewerRoutes);
+app.use("/api/timeline", timelineRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    app: "POSTAPP V29 One-Click Pipeline",
+    app: "POSTAPP V31 Reviewer Mode + Submission Timeline",
     time: new Date().toISOString()
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`POSTAPP V29 running on http://localhost:${PORT}`);
+  console.log(`POSTAPP V31 running on http://localhost:${PORT}`);
 });

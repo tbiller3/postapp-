@@ -259,6 +259,7 @@ async function startSubmissionFlow(projectId) {
 
   document.getElementById("pipelineNextActionLabel").textContent = "submission_started";
   addUiLog("Submission workflow started successfully.");
+  await addTimelineEvent("submission_started", `Project: ${projectId}`);
 }
 
 async function routeSubmissionNextStep(pipeline) {
@@ -315,6 +316,120 @@ async function runPipeline() {
 
   renderPipelineSteps(pipeline.steps);
   await routeSubmissionNextStep(pipeline);
+
+  if (pipeline.ok) {
+    await addTimelineEvent("pipeline_completed", `Score: ${pipeline.analysis?.score} — ${pipeline.analysis?.readiness}`);
+  }
+}
+
+// ─── Reviewer Mode ─────────────────────────────────────────────────────────
+
+async function loadReviewerCredentials() {
+  try {
+    const res = await fetch("/api/reviewer");
+    const data = await res.json();
+    if (data.ok) renderReviewer(data.reviewer);
+  } catch (err) {}
+}
+
+function renderReviewer(reviewer) {
+  document.getElementById("reviewerEmail").value = reviewer.testEmail || "";
+  document.getElementById("reviewerPassword").value = reviewer.testPassword || "";
+  document.getElementById("reviewerInstructions").value = reviewer.loginInstructions || "";
+  document.getElementById("reviewerDemoNotes").value = reviewer.demoNotes || "";
+  document.getElementById("reviewerFeatureExplanation").value = reviewer.featureExplanation || "";
+  document.getElementById("reviewerSpecialAccess").value = reviewer.specialAccess || "";
+}
+
+async function saveReviewerCredentials() {
+  const payload = {
+    testEmail: document.getElementById("reviewerEmail").value.trim(),
+    testPassword: document.getElementById("reviewerPassword").value.trim(),
+    loginInstructions: document.getElementById("reviewerInstructions").value.trim(),
+    demoNotes: document.getElementById("reviewerDemoNotes").value.trim(),
+    featureExplanation: document.getElementById("reviewerFeatureExplanation").value.trim(),
+    specialAccess: document.getElementById("reviewerSpecialAccess").value.trim()
+  };
+
+  const res = await fetch("/api/reviewer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (data.ok) addUiLog("Reviewer credentials saved.");
+}
+
+// ─── Submission Timeline ────────────────────────────────────────────────────
+
+async function loadTimeline() {
+  try {
+    const res = await fetch("/api/timeline");
+    const data = await res.json();
+    if (data.ok) renderTimeline(data.timeline, data.stages);
+  } catch (err) {}
+}
+
+function renderTimeline(events, stages) {
+  const box = document.getElementById("timelineContainer");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const eventMap = {};
+  events.forEach((e) => (eventMap[e.key] = e));
+
+  stages.forEach((stage, idx) => {
+    const event = eventMap[stage.key];
+    const isLast = idx === stages.length - 1;
+
+    const item = document.createElement("div");
+    item.className = "timeline-item";
+
+    const dot = document.createElement("div");
+    dot.className = "timeline-dot " + (event ? event.status : "pending");
+    item.appendChild(dot);
+
+    const content = document.createElement("div");
+    content.className = "timeline-content";
+
+    const label = document.createElement("div");
+    label.className = "timeline-label";
+    label.textContent = stage.label;
+    content.appendChild(label);
+
+    if (event?.timestamp) {
+      const time = document.createElement("div");
+      time.className = "timeline-time";
+      time.textContent = new Date(event.timestamp).toLocaleString();
+      content.appendChild(time);
+    }
+
+    if (event?.note) {
+      const note = document.createElement("div");
+      note.className = "timeline-note";
+      note.textContent = event.note;
+      content.appendChild(note);
+    }
+
+    item.appendChild(content);
+    box.appendChild(item);
+  });
+}
+
+async function addTimelineEvent(key, note = null, status = "complete") {
+  await fetch("/api/timeline/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, note, status })
+  });
+  await loadTimeline();
+}
+
+async function resetTimeline() {
+  await fetch("/api/timeline/reset", { method: "POST" });
+  await loadTimeline();
+  addUiLog("Timeline reset.");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -366,6 +481,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (runPipelineBtn) {
     runPipelineBtn.addEventListener("click", runPipeline);
   }
+
+  const saveReviewerBtn = document.getElementById("saveReviewerBtn");
+  if (saveReviewerBtn) {
+    saveReviewerBtn.addEventListener("click", saveReviewerCredentials);
+  }
+
+  const resetTimelineBtn = document.getElementById("resetTimelineBtn");
+  if (resetTimelineBtn) {
+    resetTimelineBtn.addEventListener("click", resetTimeline);
+  }
+
+  const logTimelineEventBtn = document.getElementById("logTimelineEventBtn");
+  if (logTimelineEventBtn) {
+    logTimelineEventBtn.addEventListener("click", async () => {
+      const key = document.getElementById("timelineStageSelect").value;
+      const status = document.getElementById("timelineStatusSelect").value;
+      const note = document.getElementById("timelineNoteInput").value.trim() || null;
+      await addTimelineEvent(key, note, status);
+      document.getElementById("timelineNoteInput").value = "";
+      addUiLog(`Timeline event logged: ${key} (${status})`);
+    });
+  }
+
+  await loadTimeline();
+  await loadReviewerCredentials();
 
   try {
     const res = await fetch("/api/pipeline/project");

@@ -15,12 +15,14 @@
         </div>
         <div>
           <h1>POSTAPP</h1>
-          <p>V30 Submission Gate Fusion</p>
+          <p>V31 Reviewer Mode</p>
         </div>
       </div>
 
       <nav class="nav">
         <button class="nav-item active" data-view="pipelineView">Pipeline</button>
+        <button class="nav-item" data-view="timelineView">Timeline</button>
+        <button class="nav-item" data-view="reviewerView">Reviewer</button>
         <button class="nav-item" data-view="pricingView">Pricing</button>
         <button class="nav-item" data-view="billingView">Billing</button>
         <button class="nav-item" data-view="submissionView">Submission</button>
@@ -157,6 +159,109 @@
           </div>
 
           <div class="log-box" id="uiLogBox"></div>
+        </div>
+      </section>
+
+      <section id="timelineView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Submission Timeline</h2>
+            <p>Track every stage from pipeline to approval.</p>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Timeline</h3>
+              <span class="panel-tag muted">Live</span>
+            </div>
+
+            <div id="timelineContainer" class="timeline"></div>
+
+            <div class="action-row">
+              <button id="resetTimelineBtn" class="ghost-btn">Reset Timeline</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Log Event</h3>
+              <span class="panel-tag muted">Manual</span>
+            </div>
+
+            <label class="label">Stage</label>
+            <select id="timelineStageSelect" class="input">
+              <option value="pipeline_completed">Pipeline Completed</option>
+              <option value="submission_started">Submission Started</option>
+              <option value="waiting_for_review">Waiting for Review</option>
+              <option value="in_review">In Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="resubmission_needed">Resubmission Needed</option>
+            </select>
+
+            <label class="label">Status</label>
+            <select id="timelineStatusSelect" class="input">
+              <option value="complete">Complete</option>
+              <option value="active">Active</option>
+              <option value="blocked">Blocked</option>
+            </select>
+
+            <label class="label">Note (optional)</label>
+            <input id="timelineNoteInput" class="input" type="text" placeholder="e.g. Rejected: guideline 4.0 violation" />
+
+            <div class="action-row">
+              <button id="logTimelineEventBtn" class="primary-btn">Log Event</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reviewerView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>Reviewer Mode</h2>
+            <p>What Apple's reviewer needs to test your app.</p>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Test Account</h3>
+              <span class="panel-tag">Reviewer</span>
+            </div>
+
+            <label class="label">Test Account Email</label>
+            <input id="reviewerEmail" class="input" type="text" placeholder="reviewer@example.com" />
+
+            <label class="label">Test Account Password</label>
+            <input id="reviewerPassword" class="input" type="text" placeholder="••••••••" />
+
+            <label class="label">Login Instructions</label>
+            <textarea id="reviewerInstructions" class="input textarea" placeholder="Step-by-step instructions for the reviewer to log in..."></textarea>
+
+            <div class="action-row">
+              <button id="saveReviewerBtn" class="primary-btn">Save Reviewer Info</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>App Notes</h3>
+              <span class="panel-tag muted">Context</span>
+            </div>
+
+            <label class="label">Demo Mode Notes</label>
+            <textarea id="reviewerDemoNotes" class="input textarea" placeholder="Demo content or seeded data the reviewer should know about..."></textarea>
+
+            <label class="label">Feature Explanation</label>
+            <textarea id="reviewerFeatureExplanation" class="input textarea" placeholder="Explain any features that might confuse a reviewer..."></textarea>
+
+            <label class="label">Special Access Notes</label>
+            <textarea id="reviewerSpecialAccess" class="input textarea" placeholder="VPN required? Specific hardware? Region restrictions?"></textarea>
+          </div>
         </div>
       </section>
     </main>

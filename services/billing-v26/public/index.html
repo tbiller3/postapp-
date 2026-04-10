@@ -148,27 +148,83 @@
         <header class="topbar">
           <div>
             <h2>Screenshot Matrix</h2>
-            <p>Track screenshot readiness across required device types.</p>
+            <p>Upload screenshots for each required device size. Apple requires at least 3 per device.</p>
           </div>
           <div class="action-row">
             <button id="saveScreenshotsBtn" class="primary-btn">Save Screenshot Matrix</button>
-            <button id="scoreScreenshotsBtn" class="secondary-btn">Score Screenshot Readiness</button>
+            <button id="scoreScreenshotsBtn" class="secondary-btn">Score Readiness</button>
           </div>
         </header>
 
         <div class="grid-main">
           <div class="panel">
-            <label class="label">iPhone 6.9"</label>
-            <input id="shotsIphone69" class="input" type="text" placeholder="Comma-separated screenshot names" />
+            <div class="screenshot-device" data-device="iphone69">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPhone 6.9" (Pro Max)</strong>
+                  <span class="device-spec">1320 x 2868 px</span>
+                </div>
+                <span class="device-badge" id="badgeIphone69">0 / 3</span>
+              </div>
+              <input id="shotsIphone69" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="iphone69">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="iphone69" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIphone69"></div>
+            </div>
 
-            <label class="label">iPhone 6.5"</label>
-            <input id="shotsIphone65" class="input" type="text" placeholder="Comma-separated screenshot names" />
+            <div class="screenshot-device" data-device="iphone65">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPhone 6.5" (Plus / XS Max)</strong>
+                  <span class="device-spec">1284 x 2778 px</span>
+                </div>
+                <span class="device-badge" id="badgeIphone65">0 / 3</span>
+              </div>
+              <input id="shotsIphone65" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="iphone65">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="iphone65" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIphone65"></div>
+            </div>
 
-            <label class="label">iPad 13"</label>
-            <input id="shotsIpad13" class="input" type="text" placeholder="Comma-separated screenshot names" />
+            <div class="screenshot-device" data-device="ipad13">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPad 13" (Pro)</strong>
+                  <span class="device-spec">2064 x 2752 px</span>
+                </div>
+                <span class="device-badge" id="badgeIpad13">0 / 3</span>
+              </div>
+              <input id="shotsIpad13" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="ipad13">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="ipad13" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIpad13"></div>
+            </div>
 
-            <label class="label">iPad 12.9"</label>
-            <input id="shotsIpad129" class="input" type="text" placeholder="Comma-separated screenshot names" />
+            <div class="screenshot-device" data-device="ipad129">
+              <div class="device-header">
+                <span class="device-icon">📱</span>
+                <div>
+                  <strong>iPad 12.9" (Pro)</strong>
+                  <span class="device-spec">2048 x 2732 px</span>
+                </div>
+                <span class="device-badge" id="badgeIpad129">0 / 3</span>
+              </div>
+              <input id="shotsIpad129" class="input" type="text" placeholder="e.g. home, settings, profile" />
+              <div class="drop-zone" data-target="ipad129">
+                <input type="file" accept="image/*" multiple class="file-input" data-target="ipad129" />
+                <span class="drop-label">Drop images here or click to browse</span>
+              </div>
+              <div class="thumb-row" id="thumbsIpad129"></div>
+            </div>
           </div>
 
           <div class="panel">
@@ -183,6 +239,16 @@
               <div class="status-line"><span>iPhone 6.5"</span><strong id="screenshotIphone65Label">—</strong></div>
               <div class="status-line"><span>iPad 13"</span><strong id="screenshotIpad13Label">—</strong></div>
               <div class="status-line"><span>iPad 12.9"</span><strong id="screenshotIpad129Label">—</strong></div>
+            </div>
+
+            <div class="panel-head" style="margin-top:1.5rem">
+              <h3>Apple Requirements</h3>
+            </div>
+            <div class="status-box">
+              <div class="status-line"><span>Min per device</span><strong>3 screenshots</strong></div>
+              <div class="status-line"><span>Max per device</span><strong>10 screenshots</strong></div>
+              <div class="status-line"><span>Format</span><strong>PNG or JPEG</strong></div>
+              <div class="status-line"><span>Color space</span><strong>sRGB or Display P3</strong></div>
             </div>
           </div>
         </div>

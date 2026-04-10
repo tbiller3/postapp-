@@ -285,6 +285,85 @@ async function scoreMetadata() {
   }
 }
 
+const screenshotFiles = { iphone69: [], iphone65: [], ipad13: [], ipad129: [] };
+
+function initScreenshotDropZones() {
+  const devices = ["iphone69", "iphone65", "ipad13", "ipad129"];
+  devices.forEach(device => {
+    const zone = document.querySelector(`.drop-zone[data-target="${device}"]`);
+    const input = zone?.querySelector(".file-input");
+    if (!zone || !input) return;
+
+    zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("dragover"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+    zone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      zone.classList.remove("dragover");
+      handleScreenshotFiles(device, Array.from(e.dataTransfer.files));
+    });
+    input.addEventListener("change", (e) => {
+      handleScreenshotFiles(device, Array.from(e.target.files));
+      e.target.value = "";
+    });
+  });
+}
+
+function handleScreenshotFiles(device, files) {
+  const imageFiles = files.filter(f => f.type.startsWith("image/"));
+  imageFiles.forEach(file => {
+    const name = file.name.replace(/\.[^.]+$/, "");
+    if (!screenshotFiles[device].find(s => s.name === name)) {
+      const url = URL.createObjectURL(file);
+      screenshotFiles[device].push({ name, url, file });
+    }
+  });
+  syncScreenshotInput(device);
+  renderThumbnails(device);
+  updateBadge(device);
+}
+
+function removeScreenshot(device, name) {
+  screenshotFiles[device] = screenshotFiles[device].filter(s => s.name !== name);
+  syncScreenshotInput(device);
+  renderThumbnails(device);
+  updateBadge(device);
+}
+
+function syncScreenshotInput(device) {
+  const inputMap = { iphone69: "shotsIphone69", iphone65: "shotsIphone65", ipad13: "shotsIpad13", ipad129: "shotsIpad129" };
+  const el = document.getElementById(inputMap[device]);
+  if (el) el.value = screenshotFiles[device].map(s => s.name).join(", ");
+}
+
+function renderThumbnails(device) {
+  const container = document.getElementById("thumbs" + device.charAt(0).toUpperCase() + device.slice(1));
+  if (!container) return;
+  container.innerHTML = "";
+  screenshotFiles[device].forEach(s => {
+    const div = document.createElement("div");
+    div.className = "thumb-item";
+    div.innerHTML = `<img src="${s.url}" alt="${s.name}" /><button class="thumb-remove" data-device="${device}" data-name="${s.name}">&times;</button><div class="thumb-name">${s.name}</div>`;
+    container.appendChild(div);
+  });
+  container.querySelectorAll(".thumb-remove").forEach(btn => {
+    btn.addEventListener("click", () => removeScreenshot(btn.dataset.device, btn.dataset.name));
+  });
+}
+
+function updateBadge(device) {
+  const badgeMap = { iphone69: "badgeIphone69", iphone65: "badgeIphone65", ipad13: "badgeIpad13", ipad129: "badgeIpad129" };
+  const badge = document.getElementById(badgeMap[device]);
+  if (!badge) return;
+  const count = screenshotFiles[device].length;
+  badge.textContent = count + " / 3";
+  if (count >= 3) { badge.classList.add("ready"); } else { badge.classList.remove("ready"); }
+}
+
+function getThumbContainerId(device) {
+  const map = { iphone69: "thumbsIphone69", iphone65: "thumbsIphone65", ipad13: "thumbsIpad13", ipad129: "thumbsIpad129" };
+  return map[device];
+}
+
 async function saveScreenshotMatrix() {
   const payload = {
     iphone69: parseList(document.getElementById("shotsIphone69").value),
@@ -303,6 +382,7 @@ async function saveScreenshotMatrix() {
 
   if (data.ok) {
     addUiLog("Screenshot matrix saved.");
+    await scoreScreenshots();
     await refreshTimeline();
   }
 }
@@ -316,6 +396,12 @@ async function scoreScreenshots() {
   document.getElementById("screenshotIphone65Label").textContent = data.statuses.iphone65;
   document.getElementById("screenshotIpad13Label").textContent = data.statuses.ipad13;
   document.getElementById("screenshotIpad129Label").textContent = data.statuses.ipad129;
+
+  const devices = ["iphone69", "iphone65", "ipad13", "ipad129"];
+  devices.forEach(d => {
+    const badge = document.getElementById("badge" + d.charAt(0).toUpperCase() + d.slice(1));
+    if (badge && data.statuses[d] === "complete") badge.classList.add("ready");
+  });
 }
 
 function parseList(text) {
@@ -899,6 +985,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bind("scoreMetadataBtn", scoreMetadata);
   bind("saveScreenshotsBtn", saveScreenshotMatrix);
   bind("scoreScreenshotsBtn", scoreScreenshots);
+  initScreenshotDropZones();
   bind("savePipelineProjectBtn", savePipelineProject);
   bind("runPipelineBtn", runPipeline);
   bind("saveReviewerBtn", saveReviewerInfo);

@@ -2,6 +2,38 @@ const navItems = document.querySelectorAll(".nav-item");
 const views = document.querySelectorAll(".view");
 const uiLogBox = document.getElementById("uiLogBox");
 
+window.POSTAPP_USER = {
+  plan: "free",
+  entitlements: {}
+};
+
+function getEntitlements(planName = "free") {
+  const plans = {
+    free: {
+      full_analyzer: false,
+      submission_enabled: false,
+      templates_enabled: false
+    },
+    solo: {
+      full_analyzer: true,
+      submission_enabled: true,
+      templates_enabled: true
+    },
+    builder: {
+      full_analyzer: true,
+      submission_enabled: true,
+      templates_enabled: true
+    },
+    studio: {
+      full_analyzer: true,
+      submission_enabled: true,
+      templates_enabled: true
+    }
+  };
+
+  return plans[planName] || plans.free;
+}
+
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     navItems.forEach((i) => i.classList.remove("active"));
@@ -35,6 +67,28 @@ async function createPlanCheckout(planName) {
   }
 
   window.location.href = data.url;
+}
+
+function startUpgrade(plan) {
+  createPlanCheckout(plan);
+}
+
+function openUpgradeModal(feature = "submission_enabled") {
+  const modal = document.getElementById("upgradeModal");
+  const reason = document.getElementById("upgradeReason");
+
+  const messages = {
+    full_analyzer: "Unlock full App Store readiness analysis.",
+    submission_enabled: "Upgrade to continue into the App Store submission workflow.",
+    templates_enabled: "Upgrade to use reusable templates."
+  };
+
+  reason.textContent = messages[feature] || "Upgrade required.";
+  modal.classList.remove("hidden");
+}
+
+function closeUpgradeModal() {
+  document.getElementById("upgradeModal").classList.add("hidden");
 }
 
 async function createSubmissionCheckout(projectId, submissionType = "standard") {
@@ -113,6 +167,11 @@ async function refreshBillingUi() {
     document.getElementById("subscriptionLabel").textContent = data.subscription_status || "inactive";
     document.getElementById("customerLabel").textContent = data.stripe_customer_id || "none";
 
+    window.POSTAPP_USER = {
+      plan: data.plan || "free",
+      entitlements: getEntitlements(data.plan || "free")
+    };
+
     addUiLog("Billing status refreshed.");
   } catch (err) {
     addUiLog("Could not load billing status.");
@@ -136,8 +195,15 @@ async function grantDevCredit(projectId) {
   addUiLog(`Dev credit granted for project ${projectId}`);
 }
 
+async function checkSubmissionCredit(projectId) {
+  const res = await fetch(`/api/submissions/credit-status/${projectId}`);
+  const data = await res.json();
+  return data.hasCredit;
+}
+
 async function savePipelineProject() {
   const payload = {
+    id: document.getElementById("pipelineProjectId").value.trim(),
     name: document.getElementById("pipelineProjectName").value.trim(),
     description: document.getElementById("pipelineDescription").value.trim(),
     privacyPolicy: document.getElementById("pipelinePrivacyPolicy").value.trim() || null,
@@ -158,6 +224,7 @@ async function savePipelineProject() {
 }
 
 function renderPipelineProject(project) {
+  document.getElementById("pipelineProjectId").value = project.id || "proj_123";
   document.getElementById("pipelineProjectName").value = project.name || "";
   document.getElementById("pipelineDescription").value = project.description || "";
   document.getElementById("pipelinePrivacyPolicy").value = project.privacyPolicy || "";
@@ -176,81 +243,83 @@ function renderPipelineSteps(steps) {
   });
 }
 
-function openUpgradeModal() {
-  const modal = document.getElementById("upgradeModal");
-  modal.classList.remove("hidden");
-
-  modal.querySelectorAll("[data-upgrade-plan]").forEach((btn) => {
-    btn.onclick = async () => {
-      modal.classList.add("hidden");
-      await createPlanCheckout(btn.dataset.upgradePlan);
-    };
+async function startSubmissionFlow(projectId) {
+  const res = await fetch("/api/submissions/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId })
   });
 
-  document.getElementById("cancelUpgradeModal").onclick = () => {
-    modal.classList.add("hidden");
-    addUiLog("Upgrade canceled.");
-  };
+  const data = await res.json();
+
+  if (!res.ok) {
+    addUiLog(data.message || "Submission start failed.");
+    return;
+  }
+
+  document.getElementById("pipelineNextActionLabel").textContent = "submission_started";
+  addUiLog("Submission workflow started successfully.");
+}
+
+async function routeSubmissionNextStep(pipeline) {
+  const projectId = document.getElementById("pipelineProjectId").value.trim();
+  const projectName = document.getElementById("pipelineProjectName").value.trim();
+
+  if (!pipeline.ok) {
+    document.getElementById("pipelineNextActionLabel").textContent = "fix_blockers";
+    addUiLog("Pipeline blocked. Fix blockers first.");
+    return;
+  }
+
+  if (!window.POSTAPP_USER.entitlements.submission_enabled) {
+    document.getElementById("pipelineNextActionLabel").textContent = "upgrade_required";
+    addUiLog("Submission requires a paid plan.");
+    openUpgradeModal("submission_enabled");
+    return;
+  }
+
+  const hasCredit = await checkSubmissionCredit(projectId);
+
+  if (!hasCredit) {
+    document.getElementById("pipelineNextActionLabel").textContent = "purchase_submission";
+    addUiLog("No submission credit found. Opening checkout.");
+    openSubmissionCheckoutModal({
+      projectId,
+      projectName,
+      submissionType: "standard"
+    });
+    return;
+  }
+
+  document.getElementById("pipelineNextActionLabel").textContent = "start_submission";
+  addUiLog("Submission credit found. Starting submission flow.");
+  await startSubmissionFlow(projectId);
 }
 
 async function runPipeline() {
   await savePipelineProject();
 
-  const btn = document.getElementById("runPipelineBtn");
-  btn.disabled = true;
-  btn.textContent = "Running…";
+  const res = await fetch("/api/pipeline/run", {
+    method: "POST"
+  });
 
-  try {
-    const res = await fetch("/api/pipeline/gate", { method: "POST" });
-    const data = await res.json();
+  const data = await res.json();
 
-    const pipeline = data.pipeline;
+  if (!data.ok) return;
 
-    document.getElementById("pipelineStageLabel").textContent = pipeline.stage;
-    document.getElementById("pipelineScoreLabel").textContent = pipeline.analysis?.score ?? "—";
-    document.getElementById("pipelineReadinessLabel").textContent = pipeline.analysis?.readiness ?? "—";
+  const pipeline = data.pipeline;
 
-    renderPipelineSteps(pipeline.steps);
+  document.getElementById("pipelineStageLabel").textContent = pipeline.stage;
+  document.getElementById("pipelineScoreLabel").textContent = pipeline.analysis?.score ?? "—";
+  document.getElementById("pipelineReadinessLabel").textContent = pipeline.analysis?.readiness ?? "—";
 
-    // Gate routing
-    switch (data.gate) {
-      case "blocked":
-        addUiLog("Pipeline blocked — fix issues above before submitting.");
-        break;
-
-      case "upgrade":
-        addUiLog("Pipeline ready — upgrade required to submit.");
-        openUpgradeModal();
-        break;
-
-      case "checkout":
-        addUiLog("Pipeline ready — purchasing submission credit.");
-        openSubmissionCheckoutModal({
-          projectId: pipeline.project?.id || "proj_123",
-          projectName: pipeline.project?.name || "Your App",
-          submissionType: "standard"
-        });
-        break;
-
-      case "proceed":
-        addUiLog("All checks passed — proceeding to submission.");
-        document.getElementById("pipelineStageLabel").textContent = "Submitting";
-        break;
-
-      default:
-        addUiLog(`Gate result: ${data.gate}`);
-    }
-  } catch (err) {
-    addUiLog("Pipeline gate request failed.");
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Run One-Click Pipeline";
+  renderPipelineSteps(pipeline.steps);
+  await routeSubmissionNextStep(pipeline);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindPricingButtons();
-  refreshBillingUi();
+  await refreshBillingUi();
 
   const refreshBtn = document.getElementById("refreshBillingBtn");
   if (refreshBtn) {

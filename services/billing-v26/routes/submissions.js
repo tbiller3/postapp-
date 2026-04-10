@@ -12,6 +12,17 @@ function hasUnusedSubmissionCredit(userId, projectId, db) {
   );
 }
 
+router.get("/credit-status/:projectId", async (req, res) => {
+  const db = req.app.locals.mockDb;
+  const credit = hasUnusedSubmissionCredit(req.user.id, req.params.projectId, db);
+
+  return res.json({
+    ok: true,
+    hasCredit: !!credit,
+    credit: credit || null
+  });
+});
+
 router.post("/start", requirePlan("submission_enabled"), async (req, res) => {
   const { projectId } = req.body;
   const db = req.app.locals.mockDb;
@@ -52,7 +63,6 @@ router.post("/consume-credit", requirePlan("submission_enabled"), async (req, re
   });
 });
 
-// Dev helper so you can test UI without webhook wiring
 router.post("/grant-dev-credit", async (req, res) => {
   const { projectId, type = "standard" } = req.body;
   const db = req.app.locals.mockDb;

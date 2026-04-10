@@ -136,6 +136,90 @@ async function grantDevCredit(projectId) {
   addUiLog(`Dev credit granted for project ${projectId}`);
 }
 
+async function runPipeline() {
+  const btn = document.getElementById("runPipelineBtn");
+  const stagesEl = document.getElementById("pipelineStages");
+  const logEl = document.getElementById("pipelineLog");
+  const summaryEl = document.getElementById("pipelineSummary");
+  const summaryTitle = document.getElementById("pipelineSummaryTitle");
+
+  const stageIds = ["upload", "analyze", "autofix", "billing", "submission"];
+
+  btn.disabled = true;
+  btn.textContent = "Running…";
+
+  stagesEl.style.display = "block";
+  logEl.style.display = "block";
+  summaryEl.style.display = "none";
+  logEl.textContent = "";
+
+  stageIds.forEach((id) => {
+    document.getElementById(`status-${id}`).textContent = "—";
+    document.getElementById(`stage-${id}`).className = "pipeline-stage";
+  });
+
+  addUiLog("One-Click Pipeline started.");
+
+  try {
+    const res = await fetch("/api/pipeline/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project: {} })
+    });
+
+    const data = await res.json();
+
+    if (data.log) {
+      logEl.textContent = data.log.join("\n");
+    }
+
+    const stageMap = {
+      upload: data.stages?.upload,
+      analyze: data.stages?.analyze,
+      autofix: data.stages?.autoFix,
+      billing: data.stages?.billing,
+      submission: data.stages?.submission
+    };
+
+    for (const [id, stage] of Object.entries(stageMap)) {
+      const el = document.getElementById(`status-${id}`);
+      const row = document.getElementById(`stage-${id}`);
+      if (!stage) continue;
+      if (stage.status === "ok" || stage.status === "ready") {
+        el.textContent = "✓";
+        row.classList.add("stage-ok");
+      } else if (stage.status === "blocked") {
+        el.textContent = "✗ Blocked";
+        row.classList.add("stage-blocked");
+      } else if (stage.status === "skipped") {
+        el.textContent = "— Skipped";
+        row.classList.add("stage-skipped");
+      }
+    }
+
+    summaryEl.style.display = "block";
+    if (data.ok) {
+      const s = data.summary;
+      summaryTitle.textContent =
+        `Pipeline complete — Score ${s.initialScore} → ${s.finalScore} | ` +
+        `${s.fixesApplied} fix(es) applied | ${s.readiness} readiness | Ready to submit`;
+      summaryEl.style.background = "#d4edda";
+    } else {
+      summaryTitle.textContent =
+        `Pipeline blocked — upgrade required (plan: ${data.stages?.billing?.plan})`;
+      summaryEl.style.background = "#f8d7da";
+    }
+
+    addUiLog(`Pipeline finished. ok=${data.ok}`);
+  } catch (err) {
+    logEl.textContent = "Pipeline request failed.";
+    addUiLog("Pipeline request failed.");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Run One-Click Pipeline";
+}
+
 async function runAnalyzer() {
   const res = await fetch("/api/analyzer/analyze");
   const data = await res.json();

@@ -260,3 +260,19 @@ body {
     border-bottom: 1px solid var(--line);
   }
 }
+
+/* Pipeline stage rows */
+.pipeline-stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.pipeline-stage:last-child { border-bottom: none; }
+.stage-label { font-weight: 500; color: var(--text); }
+.stage-status { font-size: 13px; color: var(--muted); }
+.stage-ok .stage-status { color: #1a7a3c; font-weight: 600; }
+.stage-blocked .stage-status { color: #c0392b; font-weight: 600; }
+.stage-skipped .stage-status { color: var(--muted); }

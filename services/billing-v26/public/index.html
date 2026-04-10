@@ -24,6 +24,7 @@
         <button class="nav-item" data-view="billingView">Billing</button>
         <button class="nav-item" data-view="submissionView">Submission</button>
         <button class="nav-item" data-view="analyzerView">Analyzer</button>
+        <button class="nav-item" data-view="pipelineView">Pipeline</button>
       </nav>
     </aside>
 
@@ -116,6 +117,52 @@
         <div class="panel">
           <button onclick="runAnalyzer()" class="primary-btn">Run Analyzer</button>
           <div id="analysisResults"></div>
+        </div>
+      </section>
+
+      <section id="pipelineView" class="view">
+        <header class="topbar">
+          <div>
+            <h2>One-Click Pipeline</h2>
+            <p>Upload → Analyze → Auto-Fix → Validate Billing → Start Submission</p>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="action-row">
+            <button id="runPipelineBtn" class="primary-btn" onclick="runPipeline()">
+              Run One-Click Pipeline
+            </button>
+          </div>
+
+          <div id="pipelineSummary" style="display:none;" class="log-box">
+            <strong id="pipelineSummaryTitle"></strong>
+          </div>
+
+          <div id="pipelineStages" style="display:none;">
+            <div class="pipeline-stage" id="stage-upload">
+              <span class="stage-label">1. Upload</span>
+              <span class="stage-status" id="status-upload">—</span>
+            </div>
+            <div class="pipeline-stage" id="stage-analyze">
+              <span class="stage-label">2. Analyze</span>
+              <span class="stage-status" id="status-analyze">—</span>
+            </div>
+            <div class="pipeline-stage" id="stage-autofix">
+              <span class="stage-label">3. Auto-Fix</span>
+              <span class="stage-status" id="status-autofix">—</span>
+            </div>
+            <div class="pipeline-stage" id="stage-billing">
+              <span class="stage-label">4. Billing</span>
+              <span class="stage-status" id="status-billing">—</span>
+            </div>
+            <div class="pipeline-stage" id="stage-submission">
+              <span class="stage-label">5. Submission</span>
+              <span class="stage-status" id="status-submission">—</span>
+            </div>
+          </div>
+
+          <div class="log-box" id="pipelineLog" style="display:none;"></div>
         </div>
       </section>
     </main>

@@ -375,7 +375,16 @@ router.post("/run", async (req, res) => {
   mockPipelineProject = result.project;
 
   addTimelineEvent(mockPipelineProject, "pipeline_complete", "Pipeline execution completed", result.ok ? "success" : "error");
-  res.json({ ok: true, project: mockPipelineProject });
+  res.json({
+    ok: true,
+    pipeline: {
+      ok: result.ok,
+      stage: result.stage,
+      analysis: result.analysis,
+      steps: result.steps
+    },
+    project: mockPipelineProject
+  });
 });
 
 module.exports = router;

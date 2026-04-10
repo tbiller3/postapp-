@@ -2,8 +2,12 @@ function analyzeProject(project) {
   let score = 100;
   let issues = [];
 
-  // Privacy Policy
-  if (!project.privacyPolicy) {
+  const privacyPolicy = project.privacyPolicy || project.metadata?.privacyPolicyUrl;
+  const supportUrl = project.supportUrl || project.metadata?.supportUrl;
+  const screenshots = project.screenshots || Object.values(project.screenshotMatrix || {}).flat();
+  const description = project.description || project.metadata?.description || "";
+
+  if (!privacyPolicy) {
     score -= 25;
     issues.push({
       type: "blocker",
@@ -12,8 +16,7 @@ function analyzeProject(project) {
     });
   }
 
-  // Support URL
-  if (!project.supportUrl) {
+  if (!supportUrl) {
     score -= 15;
     issues.push({
       type: "high",
@@ -22,8 +25,7 @@ function analyzeProject(project) {
     });
   }
 
-  // Screenshots
-  if (!project.screenshots || project.screenshots.length < 3) {
+  if (!screenshots || screenshots.length < 3) {
     score -= 15;
     issues.push({
       type: "high",
@@ -32,8 +34,7 @@ function analyzeProject(project) {
     });
   }
 
-  // Metadata
-  if (!project.description || project.description.length < 100) {
+  if (!description || description.length < 100) {
     score -= 10;
     issues.push({
       type: "medium",
@@ -42,7 +43,6 @@ function analyzeProject(project) {
     });
   }
 
-  // Web wrapper risk
   if (project.isWebWrapper) {
     score -= 10;
     issues.push({

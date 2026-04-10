@@ -11,22 +11,15 @@ const pipelineRoutes = require("./routes/pipeline");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Mock DB scaffold for now. Replace with your real DB later.
 app.locals.mockDb = {
   submission_credits: [],
   purchases: [],
   subscriptions: []
 };
 
-// Static files
 app.use(express.static(path.join(__dirname, "public")));
-
-// IMPORTANT:
-// In production, Stripe webhook should use raw body on a dedicated route.
-// For now, we keep JSON globally for easier local integration.
 app.use(express.json());
 
-// Mock auth middleware
 app.use((req, res, next) => {
   req.user = {
     id: "user_123",
@@ -47,11 +40,11 @@ app.use("/api/pipeline", pipelineRoutes);
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    app: "POSTAPP Billing Engine V26",
+    app: "POSTAPP V29 One-Click Pipeline",
     time: new Date().toISOString()
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`POSTAPP Billing Engine running on http://localhost:${PORT}`);
+  console.log(`POSTAPP V29 running on http://localhost:${PORT}`);
 });

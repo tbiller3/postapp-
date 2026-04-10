@@ -468,10 +468,15 @@ function renderPipelineProject(project) {
   }
 
   if (project.screenshotMatrix) {
-    document.getElementById("shotsIphone69").value = (project.screenshotMatrix.iphone69 || []).join(", ");
-    document.getElementById("shotsIphone65").value = (project.screenshotMatrix.iphone65 || []).join(", ");
-    document.getElementById("shotsIpad13").value = (project.screenshotMatrix.ipad13 || []).join(", ");
-    document.getElementById("shotsIpad129").value = (project.screenshotMatrix.ipad129 || []).join(", ");
+    const devices = ["iphone69", "iphone65", "ipad13", "ipad129"];
+    const inputMap = { iphone69: "shotsIphone69", iphone65: "shotsIphone65", ipad13: "shotsIpad13", ipad129: "shotsIpad129" };
+    devices.forEach(device => {
+      const names = project.screenshotMatrix[device] || [];
+      document.getElementById(inputMap[device]).value = names.join(", ");
+      screenshotFiles[device] = names.map(n => ({ name: n, url: "/screenshots/" + n + ".png", file: null }));
+      renderThumbnails(device);
+      updateBadge(device);
+    });
   }
 
   if (project.signingPrep) {

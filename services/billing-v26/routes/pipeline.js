@@ -7,11 +7,27 @@ const { initUploadState, prepareUpload } = require("../services/uploadService");
 
 const router = express.Router();
 
+const defaultScreenshots = [
+  "mission-control",
+  "active-targets",
+  "pipeline-settings",
+  "new-submission",
+  "checklist-complete",
+  "pricing",
+  "checklist-wrap",
+  "checklist-screenshots"
+];
+
 let mockPipelineProject = {
   id: "proj_123",
   name: "POSTAPP Demo Project",
   metadata: {},
-  screenshotMatrix: {},
+  screenshotMatrix: {
+    iphone69: defaultScreenshots.slice(0, 4),
+    iphone65: defaultScreenshots.slice(0, 4),
+    ipad13: defaultScreenshots.slice(4, 8),
+    ipad129: defaultScreenshots.slice(4, 8)
+  },
   reviewer: {},
   signingPrep: {},
   buildState: initBuildState(),
@@ -106,6 +122,18 @@ router.get("/metadata-score", async (req, res) => {
 
   const readiness = score >= 90 ? "Strong" : score >= 75 ? "Good" : score >= 55 ? "Needs Work" : "Weak";
   res.json({ ok: true, score, readiness, issues });
+});
+
+router.get("/screenshots/files", async (req, res) => {
+  const fs = require("fs");
+  const path = require("path");
+  const dir = path.join(__dirname, "../public/screenshots");
+  try {
+    const files = fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg)$/i.test(f));
+    res.json({ ok: true, files: files.map(f => ({ name: f.replace(/\.[^.]+$/, ""), filename: f, url: "/screenshots/" + f })) });
+  } catch (e) {
+    res.json({ ok: true, files: [] });
+  }
 });
 
 router.post("/screenshots", async (req, res) => {

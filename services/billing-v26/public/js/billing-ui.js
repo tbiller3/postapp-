@@ -193,6 +193,7 @@ async function grantDevCredit(projectId) {
   }
 
   addUiLog(`Dev credit granted for project ${projectId}`);
+  await refreshTimeline();
 }
 
 async function checkSubmissionCredit(projectId) {
@@ -223,12 +224,51 @@ async function savePipelineProject() {
   }
 }
 
+async function saveReviewerInfo() {
+  const payload = {
+    email: document.getElementById("reviewerEmail").value.trim(),
+    password: document.getElementById("reviewerPassword").value.trim(),
+    instructions: document.getElementById("reviewerInstructions").value.trim(),
+    notes: document.getElementById("reviewerNotes").value.trim()
+  };
+
+  const res = await fetch("/api/pipeline/reviewer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    renderReviewerInfo(data.reviewer);
+    addUiLog("Reviewer info saved.");
+    await refreshTimeline();
+  }
+}
+
+function renderReviewerInfo(reviewer) {
+  document.getElementById("reviewerEmail").value = reviewer.email || "";
+  document.getElementById("reviewerPassword").value = reviewer.password || "";
+  document.getElementById("reviewerInstructions").value = reviewer.instructions || "";
+  document.getElementById("reviewerNotes").value = reviewer.notes || "";
+
+  document.getElementById("reviewerPreviewEmail").textContent = reviewer.email || "—";
+  document.getElementById("reviewerPreviewPassword").textContent = reviewer.password || "—";
+  document.getElementById("reviewerPreviewInstructions").textContent = reviewer.instructions || "—";
+  document.getElementById("reviewerPreviewNotes").textContent = reviewer.notes || "—";
+}
+
 function renderPipelineProject(project) {
   document.getElementById("pipelineProjectId").value = project.id || "proj_123";
   document.getElementById("pipelineProjectName").value = project.name || "";
   document.getElementById("pipelineDescription").value = project.description || "";
   document.getElementById("pipelinePrivacyPolicy").value = project.privacyPolicy || "";
   document.getElementById("pipelineSupportUrl").value = project.supportUrl || "";
+
+  if (project.reviewer) {
+    renderReviewerInfo(project.reviewer);
+  }
 }
 
 function renderPipelineSteps(steps) {
@@ -259,7 +299,7 @@ async function startSubmissionFlow(projectId) {
 
   document.getElementById("pipelineNextActionLabel").textContent = "submission_started";
   addUiLog("Submission workflow started successfully.");
-  await loadTimeline();
+  await refreshTimeline();
 }
 
 async function routeSubmissionNextStep(pipeline) {
@@ -269,6 +309,7 @@ async function routeSubmissionNextStep(pipeline) {
   if (!pipeline.ok) {
     document.getElementById("pipelineNextActionLabel").textContent = "fix_blockers";
     addUiLog("Pipeline blocked. Fix blockers first.");
+    await refreshTimeline();
     return;
   }
 
@@ -276,6 +317,7 @@ async function routeSubmissionNextStep(pipeline) {
     document.getElementById("pipelineNextActionLabel").textContent = "upgrade_required";
     addUiLog("Submission requires a paid plan.");
     openUpgradeModal("submission_enabled");
+    await refreshTimeline();
     return;
   }
 
@@ -289,6 +331,7 @@ async function routeSubmissionNextStep(pipeline) {
       projectName,
       submissionType: "standard"
     });
+    await refreshTimeline();
     return;
   }
 
@@ -316,141 +359,64 @@ async function runPipeline() {
 
   renderPipelineSteps(pipeline.steps);
   await routeSubmissionNextStep(pipeline);
-  await loadTimeline();
 }
 
-// ─── Reviewer Mode ─────────────────────────────────────────────────────────
-
-async function loadReviewerCredentials() {
-  try {
-    const res = await fetch("/api/pipeline/project");
-    const data = await res.json();
-    if (data.ok && data.project.reviewer) renderReviewer(data.project.reviewer);
-  } catch (err) {}
-}
-
-function renderReviewer(reviewer) {
-  document.getElementById("reviewerEmail").value = reviewer.email || "";
-  document.getElementById("reviewerPassword").value = reviewer.password || "";
-  document.getElementById("reviewerInstructions").value = reviewer.instructions || "";
-  document.getElementById("reviewerDemoNotes").value = reviewer.demoNotes || reviewer.notes || "";
-  document.getElementById("reviewerFeatureExplanation").value = reviewer.featureExplanation || "";
-  document.getElementById("reviewerSpecialAccess").value = reviewer.specialAccess || "";
-}
-
-async function saveReviewerCredentials() {
-  const payload = {
-    email: document.getElementById("reviewerEmail").value.trim(),
-    password: document.getElementById("reviewerPassword").value.trim(),
-    instructions: document.getElementById("reviewerInstructions").value.trim(),
-    demoNotes: document.getElementById("reviewerDemoNotes").value.trim(),
-    featureExplanation: document.getElementById("reviewerFeatureExplanation").value.trim(),
-    specialAccess: document.getElementById("reviewerSpecialAccess").value.trim()
-  };
-
-  const res = await fetch("/api/pipeline/reviewer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
+async function refreshTimeline() {
+  const res = await fetch("/api/submissions/timeline");
   const data = await res.json();
-  if (data.ok) addUiLog("Reviewer credentials saved.");
-}
 
-// ─── Submission Timeline ────────────────────────────────────────────────────
+  const list = document.getElementById("timelineList");
+  list.innerHTML = "";
 
-const TIMELINE_LABELS = {
-  project_created:           "Project Created",
-  project_updated:           "Project Updated",
-  reviewer_updated:          "Reviewer Info Saved",
-  pipeline_run:              "Pipeline Run",
-  submission_blocked:        "Submission Blocked",
-  submission_credit_granted: "Submission Credit Granted",
-  submission_credit_used:    "Submission Credit Used",
-  submission_started:        "Submission Started",
-  waiting_review:            "Waiting for App Review",
-  approved:                  "App Approved",
-  rejected:                  "App Rejected",
-  resubmission_needed:       "Resubmission Needed"
-};
+  const timeline = data.timeline || [];
 
-async function loadTimeline() {
-  try {
-    const [projRes, subRes] = await Promise.all([
-      fetch("/api/pipeline/project"),
-      fetch("/api/submissions/timeline")
-    ]);
-
-    const projData = await projRes.json();
-    const subData  = await subRes.json();
-
-    const projEvents = projData.ok ? (projData.project.timeline || []) : [];
-    const subEvents  = subData.ok  ? (subData.timeline || [])          : [];
-
-    const all = [...projEvents, ...subEvents].sort(
-      (a, b) => new Date(a.at) - new Date(b.at)
-    );
-
-    renderTimeline(all);
-  } catch (err) {}
-}
-
-function renderTimeline(events) {
-  const box = document.getElementById("timelineContainer");
-  if (!box) return;
-  box.innerHTML = "";
-
-  if (!events.length) {
-    box.innerHTML =
-      '<p style="color:var(--text-soft);font-size:0.9rem;margin:0;">No events yet. Run the pipeline to start.</p>';
+  if (!timeline.length) {
+    list.innerHTML = '<div class="timeline-item"><strong>No timeline events yet.</strong></div>';
     return;
   }
 
-  events.forEach((event) => {
-    const item = document.createElement("div");
-    item.className = "timeline-item";
-
-    const dot = document.createElement("div");
-    dot.className = "timeline-dot " + (event.status || "complete");
-    item.appendChild(dot);
-
-    const content = document.createElement("div");
-    content.className = "timeline-content";
-
-    const label = document.createElement("div");
-    label.className = "timeline-label";
-    label.textContent = event.label || TIMELINE_LABELS[event.key] || event.key;
-    content.appendChild(label);
-
-    if (event.at) {
-      const time = document.createElement("div");
-      time.className = "timeline-time";
-      time.textContent = new Date(event.at).toLocaleString();
-      content.appendChild(time);
-    }
-
-    item.appendChild(content);
-    box.appendChild(item);
+  timeline.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = `timeline-item ${item.status || "complete"}`;
+    row.innerHTML = `
+      <div>
+        <strong>${item.label}</strong>
+        <p>${item.key} • ${new Date(item.at).toLocaleString()}</p>
+      </div>
+      <span class="timeline-status">${item.status}</span>
+    `;
+    list.appendChild(row);
   });
 }
 
-async function addTimelineEvent(key, label, status = "complete") {
-  await fetch("/api/pipeline/timeline", {
+async function updateReviewStatus(status) {
+  const res = await fetch("/api/submissions/review-status", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, label: label || TIMELINE_LABELS[key] || key, status })
+    body: JSON.stringify({ status })
   });
-  await loadTimeline();
+
+  const data = await res.json();
+
+  if (data.ok) {
+    addUiLog(`Review status updated: ${status}`);
+    await refreshTimeline();
+  }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   bindPricingButtons();
   await refreshBillingUi();
+  await refreshTimeline();
 
   const refreshBtn = document.getElementById("refreshBillingBtn");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", refreshBillingUi);
+  }
+
+  const timelineBtn = document.getElementById("refreshTimelineBtn");
+  if (timelineBtn) {
+    timelineBtn.addEventListener("click", refreshTimeline);
   }
 
   const standardBtn = document.getElementById("openStandardCheckout");
@@ -458,6 +424,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const grantBtn = document.getElementById("grantDevCreditBtn");
   const savePipelineBtn = document.getElementById("savePipelineProjectBtn");
   const runPipelineBtn = document.getElementById("runPipelineBtn");
+  const saveReviewerBtn = document.getElementById("saveReviewerBtn");
 
   if (standardBtn) {
     standardBtn.addEventListener("click", () => {
@@ -494,34 +461,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     runPipelineBtn.addEventListener("click", runPipeline);
   }
 
-  const saveReviewerBtn = document.getElementById("saveReviewerBtn");
   if (saveReviewerBtn) {
-    saveReviewerBtn.addEventListener("click", saveReviewerCredentials);
+    saveReviewerBtn.addEventListener("click", saveReviewerInfo);
   }
-
-  const resetTimelineBtn = document.getElementById("resetTimelineBtn");
-  if (resetTimelineBtn) {
-    resetTimelineBtn.addEventListener("click", async () => {
-      await loadTimeline();
-      addUiLog("Timeline refreshed.");
-    });
-  }
-
-  const logTimelineEventBtn = document.getElementById("logTimelineEventBtn");
-  if (logTimelineEventBtn) {
-    logTimelineEventBtn.addEventListener("click", async () => {
-      const key    = document.getElementById("timelineStageSelect").value;
-      const status = document.getElementById("timelineStatusSelect").value;
-      const note   = document.getElementById("timelineNoteInput").value.trim();
-      const label  = (note ? `${TIMELINE_LABELS[key] || key}: ${note}` : TIMELINE_LABELS[key] || key);
-      await addTimelineEvent(key, label, status);
-      document.getElementById("timelineNoteInput").value = "";
-      addUiLog(`Timeline event logged: ${label} (${status})`);
-    });
-  }
-
-  await loadTimeline();
-  await loadReviewerCredentials();
 
   try {
     const res = await fetch("/api/pipeline/project");

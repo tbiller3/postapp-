@@ -136,101 +136,73 @@ async function grantDevCredit(projectId) {
   addUiLog(`Dev credit granted for project ${projectId}`);
 }
 
-async function runPipeline() {
-  const btn = document.getElementById("runPipelineBtn");
-  const stagesEl = document.getElementById("pipelineStages");
-  const logEl = document.getElementById("pipelineLog");
-  const summaryEl = document.getElementById("pipelineSummary");
-  const summaryTitle = document.getElementById("pipelineSummaryTitle");
+async function savePipelineProject() {
+  const payload = {
+    name: document.getElementById("pipelineProjectName").value.trim(),
+    description: document.getElementById("pipelineDescription").value.trim(),
+    privacyPolicy: document.getElementById("pipelinePrivacyPolicy").value.trim() || null,
+    supportUrl: document.getElementById("pipelineSupportUrl").value.trim() || null
+  };
 
-  const stageIds = ["upload", "analyze", "autofix", "billing", "submission"];
-
-  btn.disabled = true;
-  btn.textContent = "Running…";
-
-  stagesEl.style.display = "block";
-  logEl.style.display = "block";
-  summaryEl.style.display = "none";
-  logEl.textContent = "";
-
-  stageIds.forEach((id) => {
-    document.getElementById(`status-${id}`).textContent = "—";
-    document.getElementById(`stage-${id}`).className = "pipeline-stage";
+  const res = await fetch("/api/pipeline/project", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   });
 
-  // billing stage is outside the engine — mark it N/A upfront
-  document.getElementById("status-billing").textContent = "N/A";
-
-  addUiLog("One-Click Pipeline started.");
-
-  try {
-    const res = await fetch("/api/pipeline/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ project: {} })
-    });
-
-    const data = await res.json();
-    const pipeline = data.pipeline;
-
-    // map step key → HTML stage id (submission_ready → submission)
-    const keyToId = { submission_ready: "submission" };
-
-    if (pipeline.steps) {
-      logEl.textContent = pipeline.steps.map((s) => `[${s.key}] ${s.message}`).join("\n");
-
-      for (const step of pipeline.steps) {
-        const id = keyToId[step.key] || step.key;
-        const el = document.getElementById(`status-${id}`);
-        const row = document.getElementById(`stage-${id}`);
-        if (!el || !row) continue;
-
-        if (step.status === "complete") {
-          el.textContent = "✓";
-          row.classList.add("stage-ok");
-        } else if (step.status === "blocked") {
-          el.textContent = "✗ Blocked";
-          row.classList.add("stage-blocked");
-        } else if (step.status === "skipped") {
-          el.textContent = "— Skipped";
-          row.classList.add("stage-skipped");
-        }
-      }
-    }
-
-    summaryEl.style.display = "block";
-    if (pipeline.ok) {
-      const a = pipeline.analysis;
-      summaryTitle.textContent =
-        `Pipeline complete — Score ${a.score} | ${a.readiness} readiness | Ready for submission`;
-      summaryEl.style.background = "#d4edda";
-    } else {
-      const blockers = pipeline.analysis?.issues?.filter((i) => i.type === "blocker") || [];
-      summaryTitle.textContent =
-        `Pipeline blocked — ${blockers.length} blocker(s) remain: ` +
-        blockers.map((b) => b.message).join(", ");
-      summaryEl.style.background = "#f8d7da";
-    }
-
-    addUiLog(`Pipeline finished. ok=${pipeline.ok} stage=${pipeline.stage}`);
-  } catch (err) {
-    logEl.textContent = "Pipeline request failed.";
-    addUiLog("Pipeline request failed.");
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Run One-Click Pipeline";
-}
-
-async function runAnalyzer() {
-  const res = await fetch("/api/analyzer/analyze");
   const data = await res.json();
 
-  document.getElementById("analysisResults").innerHTML =
-    JSON.stringify(data, null, 2);
+  if (data.ok) {
+    renderPipelineProject(data.project);
+  }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function renderPipelineProject(project) {
+  document.getElementById("pipelineProjectName").value = project.name || "";
+  document.getElementById("pipelineDescription").value = project.description || "";
+  document.getElementById("pipelinePrivacyPolicy").value = project.privacyPolicy || "";
+  document.getElementById("pipelineSupportUrl").value = project.supportUrl || "";
+}
+
+function renderPipelineSteps(steps) {
+  const box = document.getElementById("pipelineSteps");
+  box.innerHTML = "";
+
+  steps.forEach((step) => {
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    entry.textContent = `${step.key.toUpperCase()} • ${step.status} • ${step.message}`;
+    box.appendChild(entry);
+  });
+}
+
+async function runPipeline() {
+  await savePipelineProject();
+
+  const res = await fetch("/api/pipeline/run", {
+    method: "POST"
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) return;
+
+  const pipeline = data.pipeline;
+
+  document.getElementById("pipelineStageLabel").textContent = pipeline.stage;
+  document.getElementById("pipelineScoreLabel").textContent = pipeline.analysis?.score ?? "—";
+  document.getElementById("pipelineReadinessLabel").textContent = pipeline.analysis?.readiness ?? "—";
+
+  renderPipelineSteps(pipeline.steps);
+
+  if (pipeline.ok) {
+    addUiLog("Pipeline completed. Ready for submission checks.");
+  } else {
+    addUiLog("Pipeline stopped due to blockers.");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   bindPricingButtons();
   refreshBillingUi();
 
@@ -242,6 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const standardBtn = document.getElementById("openStandardCheckout");
   const complexBtn = document.getElementById("openComplexCheckout");
   const grantBtn = document.getElementById("grantDevCreditBtn");
+  const savePipelineBtn = document.getElementById("savePipelineProjectBtn");
+  const runPipelineBtn = document.getElementById("runPipelineBtn");
 
   if (standardBtn) {
     standardBtn.addEventListener("click", () => {
@@ -268,5 +242,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const projectId = document.getElementById("projectIdInput").value.trim();
       await grantDevCredit(projectId);
     });
+  }
+
+  if (savePipelineBtn) {
+    savePipelineBtn.addEventListener("click", savePipelineProject);
+  }
+
+  if (runPipelineBtn) {
+    runPipelineBtn.addEventListener("click", runPipeline);
+  }
+
+  try {
+    const res = await fetch("/api/pipeline/project");
+    const data = await res.json();
+    if (data.ok) renderPipelineProject(data.project);
+  } catch (err) {
+    addUiLog("Could not load pipeline project.");
   }
 });

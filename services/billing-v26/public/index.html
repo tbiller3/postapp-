@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POSTAPP Billing V26</title>
+  <title>POSTAPP V29</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,21 +15,70 @@
         </div>
         <div>
           <h1>POSTAPP</h1>
-          <p>Billing Engine V26</p>
+          <p>V29 One-Click Pipeline</p>
         </div>
       </div>
 
       <nav class="nav">
-        <button class="nav-item active" data-view="pricingView">Pricing</button>
+        <button class="nav-item active" data-view="pipelineView">Pipeline</button>
+        <button class="nav-item" data-view="pricingView">Pricing</button>
         <button class="nav-item" data-view="billingView">Billing</button>
         <button class="nav-item" data-view="submissionView">Submission</button>
-        <button class="nav-item" data-view="analyzerView">Analyzer</button>
-        <button class="nav-item" data-view="pipelineView">Pipeline</button>
       </nav>
     </aside>
 
     <main class="main">
-      <section id="pricingView" class="view active">
+      <section id="pipelineView" class="view active">
+        <header class="topbar">
+          <div>
+            <h2>One-Click Pipeline</h2>
+            <p>Upload, analyze, auto-fix, and prepare for submission in one flow.</p>
+          </div>
+        </header>
+
+        <div class="grid-main">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Pipeline Project</h3>
+              <span class="panel-tag">V29</span>
+            </div>
+
+            <label class="label">Project Name</label>
+            <input id="pipelineProjectName" class="input" type="text" value="POSTAPP iOS Wrapper" />
+
+            <label class="label">Description</label>
+            <textarea id="pipelineDescription" class="input textarea">Short desc</textarea>
+
+            <label class="label">Privacy Policy URL</label>
+            <input id="pipelinePrivacyPolicy" class="input" type="text" placeholder="https://yourapp.com/privacy" />
+
+            <label class="label">Support URL</label>
+            <input id="pipelineSupportUrl" class="input" type="text" placeholder="https://yourapp.com/support" />
+
+            <div class="action-row">
+              <button id="savePipelineProjectBtn" class="secondary-btn">Save Project</button>
+              <button id="runPipelineBtn" class="primary-btn">Run One-Click Pipeline</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Pipeline Status</h3>
+              <span class="panel-tag muted">Live</span>
+            </div>
+
+            <div class="status-box">
+              <div class="status-line"><span>Stage</span><strong id="pipelineStageLabel">Idle</strong></div>
+              <div class="status-line"><span>Score</span><strong id="pipelineScoreLabel">—</strong></div>
+              <div class="status-line"><span>Readiness</span><strong id="pipelineReadinessLabel">—</strong></div>
+            </div>
+
+            <div id="pipelineSteps" class="log-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricingView" class="view">
         <header class="topbar">
           <div>
             <h2>Pricing</h2>
@@ -104,65 +153,6 @@
           </div>
 
           <div class="log-box" id="uiLogBox"></div>
-        </div>
-      </section>
-
-      <section id="analyzerView" class="view">
-        <header class="topbar">
-          <div>
-            <h2>Analyzer</h2>
-            <p>Check your project's App Store readiness.</p>
-          </div>
-        </header>
-        <div class="panel">
-          <button onclick="runAnalyzer()" class="primary-btn">Run Analyzer</button>
-          <div id="analysisResults"></div>
-        </div>
-      </section>
-
-      <section id="pipelineView" class="view">
-        <header class="topbar">
-          <div>
-            <h2>One-Click Pipeline</h2>
-            <p>Upload → Analyze → Auto-Fix → Validate Billing → Start Submission</p>
-          </div>
-        </header>
-
-        <div class="panel">
-          <div class="action-row">
-            <button id="runPipelineBtn" class="primary-btn" onclick="runPipeline()">
-              Run One-Click Pipeline
-            </button>
-          </div>
-
-          <div id="pipelineSummary" style="display:none;" class="log-box">
-            <strong id="pipelineSummaryTitle"></strong>
-          </div>
-
-          <div id="pipelineStages" style="display:none;">
-            <div class="pipeline-stage" id="stage-upload">
-              <span class="stage-label">1. Upload</span>
-              <span class="stage-status" id="status-upload">—</span>
-            </div>
-            <div class="pipeline-stage" id="stage-analyze">
-              <span class="stage-label">2. Analyze</span>
-              <span class="stage-status" id="status-analyze">—</span>
-            </div>
-            <div class="pipeline-stage" id="stage-autofix">
-              <span class="stage-label">3. Auto-Fix</span>
-              <span class="stage-status" id="status-autofix">—</span>
-            </div>
-            <div class="pipeline-stage" id="stage-billing">
-              <span class="stage-label">4. Billing</span>
-              <span class="stage-status" id="status-billing">—</span>
-            </div>
-            <div class="pipeline-stage" id="stage-submission">
-              <span class="stage-label">5. Submission</span>
-              <span class="stage-status" id="status-submission">—</span>
-            </div>
-          </div>
-
-          <div class="log-box" id="pipelineLog" style="display:none;"></div>
         </div>
       </section>
     </main>

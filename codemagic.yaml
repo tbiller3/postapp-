@@ -1,20 +1,18 @@
 workflows:
-  ios-workflow:
-    name: POSTAPP iOS Build
+  ios-release:
+    name: POSTAPP iOS Release
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: "com.tbiller.postapp"
-      xcode: latest
-      cocoapods: default
-      groups:
-        - app_store_credentials
+        bundle_identifier: com.tbiller.postapp
       vars:
         BUNDLE_ID: "com.tbiller.postapp"
-        XCODE_SCHEME: App
-        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        APP_NAME: "POSTAPP"
+      node: 18
+      xcode: latest
+      cocoapods: default
     scripts:
       - name: Install dependencies
         script: npm install
@@ -27,8 +25,8 @@ workflows:
       - name: Build iOS IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App" \
             --config Release \
             --export-options-plist export_options.plist
     artifacts:
@@ -36,6 +34,8 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false

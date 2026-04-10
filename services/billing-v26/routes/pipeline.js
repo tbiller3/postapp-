@@ -17,6 +17,21 @@ let mockPipelineProject = {
     instructions: "",
     notes: ""
   },
+  metadata: {
+    appName: "",
+    subtitle: "",
+    keywords: "",
+    promoText: "",
+    description: "",
+    supportUrl: "",
+    privacyPolicyUrl: ""
+  },
+  screenshotMatrix: {
+    iphone69: [],
+    iphone65: [],
+    ipad13: [],
+    ipad129: []
+  },
   timeline: [
     {
       key: "project_created",
@@ -45,6 +60,8 @@ router.get("/project", (req, res) => {
 
 router.post("/project", (req, res) => {
   const previousReviewer = mockPipelineProject.reviewer || {};
+  const previousMetadata = mockPipelineProject.metadata || {};
+  const previousScreenshotMatrix = mockPipelineProject.screenshotMatrix || {};
 
   mockPipelineProject = {
     ...mockPipelineProject,
@@ -52,6 +69,14 @@ router.post("/project", (req, res) => {
     reviewer: {
       ...previousReviewer,
       ...(req.body.reviewer || {})
+    },
+    metadata: {
+      ...previousMetadata,
+      ...(req.body.metadata || {})
+    },
+    screenshotMatrix: {
+      ...previousScreenshotMatrix,
+      ...(req.body.screenshotMatrix || {})
     }
   };
 
@@ -84,6 +109,127 @@ router.post("/reviewer", (req, res) => {
   res.json({
     ok: true,
     reviewer: mockPipelineProject.reviewer
+  });
+});
+
+router.post("/metadata", (req, res) => {
+  mockPipelineProject.metadata = {
+    ...mockPipelineProject.metadata,
+    ...req.body
+  };
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "metadata_updated",
+    "Metadata workspace updated",
+    "complete"
+  );
+
+  res.json({
+    ok: true,
+    metadata: mockPipelineProject.metadata
+  });
+});
+
+router.post("/screenshots", (req, res) => {
+  mockPipelineProject.screenshotMatrix = {
+    ...mockPipelineProject.screenshotMatrix,
+    ...req.body
+  };
+
+  addTimelineEvent(
+    mockPipelineProject,
+    "screenshots_updated",
+    "Screenshot matrix updated",
+    "complete"
+  );
+
+  res.json({
+    ok: true,
+    screenshotMatrix: mockPipelineProject.screenshotMatrix
+  });
+});
+
+router.get("/metadata-score", (req, res) => {
+  const metadata = mockPipelineProject.metadata || {};
+  let score = 100;
+  const issues = [];
+
+  if (!metadata.appName) {
+    score -= 20;
+    issues.push("Missing app name");
+  }
+  if (!metadata.subtitle) {
+    score -= 10;
+    issues.push("Missing subtitle");
+  }
+  if (!metadata.keywords) {
+    score -= 10;
+    issues.push("Missing keywords");
+  }
+  if (!metadata.promoText) {
+    score -= 5;
+    issues.push("Missing promo text");
+  }
+  if (!metadata.description || metadata.description.length < 120) {
+    score -= 20;
+    issues.push("Description too short");
+  }
+  if (!metadata.supportUrl) {
+    score -= 15;
+    issues.push("Missing support URL");
+  }
+  if (!metadata.privacyPolicyUrl) {
+    score -= 20;
+    issues.push("Missing privacy policy URL");
+  }
+
+  const readiness =
+    score >= 90 ? "Strong" :
+    score >= 75 ? "Good" :
+    score >= 55 ? "Needs Work" :
+    "Weak";
+
+  res.json({
+    ok: true,
+    score,
+    readiness,
+    issues
+  });
+});
+
+router.get("/screenshot-score", (req, res) => {
+  const matrix = mockPipelineProject.screenshotMatrix || {};
+
+  const requirements = {
+    iphone69: 3,
+    iphone65: 3,
+    ipad13: 3,
+    ipad129: 3
+  };
+
+  const statuses = {};
+  let completeCount = 0;
+
+  for (const key of Object.keys(requirements)) {
+    const count = Array.isArray(matrix[key]) ? matrix[key].length : 0;
+
+    if (count >= requirements[key]) {
+      statuses[key] = "complete";
+      completeCount++;
+    } else if (count > 0) {
+      statuses[key] = "partial";
+    } else {
+      statuses[key] = "missing";
+    }
+  }
+
+  const score = Math.round((completeCount / Object.keys(requirements).length) * 100);
+
+  res.json({
+    ok: true,
+    score,
+    statuses
   });
 });
 

@@ -20,11 +20,18 @@ workflows:
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
+      - name: Generate certificate key
+        script: |
+          openssl req -new -newkey rsa:2048 -nodes \
+            -keyout /tmp/cert_key.pem \
+            -out /tmp/cert_request.csr \
+            -subj "/CN=POSTAPP Distribution/O=POSTAPP/C=US"
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files "com.tbiller.postapp" \
             --type IOS_APP_STORE \
-            --create
+            --create \
+            --certificate-key /tmp/cert_key.pem
       - name: Set up keychain
         script: keychain initialize
       - name: Add certificates to keychain

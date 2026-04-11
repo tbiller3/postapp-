@@ -22,11 +22,11 @@ workflows:
         script: npx cap sync ios
       - name: Fetch signing files
         script: |
-          openssl genrsa -out /tmp/cert_key.pem 2048
+          openssl genrsa 2048 2>/dev/null > /tmp/cert_key.pem
+          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
           app-store-connect fetch-signing-files "com.tbiller.postapp" \
             --type IOS_APP_STORE \
-            --create \
-            --certificate-key /tmp/cert_key.pem
+            --create
       - name: Set up keychain
         script: keychain initialize
       - name: Add certificates to keychain

@@ -29,8 +29,6 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
       - name: Fetch signing files
         script: |
-          openssl genrsa 2048 2>/dev/null > /tmp/cert_key.pem
-          export CERTIFICATE_PRIVATE_KEY=$(cat /tmp/cert_key.pem)
           app-store-connect fetch-signing-files "com.tbiller.postapp" \
             --type IOS_APP_STORE \
             --create

@@ -20,6 +20,10 @@ workflows:
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
+      - name: Set export compliance
+        script: |
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
       - name: Fetch signing files
         script: |
           openssl genrsa 2048 2>/dev/null > /tmp/cert_key.pem

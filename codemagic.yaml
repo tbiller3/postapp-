@@ -4,15 +4,15 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.tbiller.postapp
+      xcode: latest
+      node: 18
+      cocoapods: default
+      groups:
+        - app_store_credentials
       vars:
         BUNDLE_ID: "com.tbiller.postapp"
-        APP_NAME: "POSTAPP"
-      node: 18
-      xcode: latest
-      cocoapods: default
+        XCODE_SCHEME: App
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
     scripts:
       - name: Install dependencies
         script: npm install
@@ -20,15 +20,23 @@ workflows:
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Set up code signing
-        script: xcode-project use-profiles --type app-store
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "com.tbiller.postapp" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+      - name: Apply provisioning profiles
+        script: xcode-project use-profiles
       - name: Build iOS IPA
         script: |
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App" \
-            --config Release \
-            --export-options-plist export_options.plist
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

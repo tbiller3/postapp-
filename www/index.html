@@ -304,6 +304,37 @@ select option { background: #141d2e; }
 
 .api-url { font-size: 11px; color: var(--text3); text-align: center; margin-top: 8px; }
 
+.fetch-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  background: rgba(0,200,255,0.08);
+  border-bottom: 1px solid rgba(0,200,255,0.15);
+  font-size: 13px; color: var(--accent); flex-shrink: 0;
+}
+.fetch-banner .spinner { width: 14px; height: 14px; flex-shrink: 0; }
+.setup-status-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.field-autofilled {
+  border-color: rgba(0,230,118,0.4) !important;
+  background: rgba(0,230,118,0.04) !important;
+}
+.express-submit-card {
+  margin: 0 20px 16px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(0,230,118,0.08);
+  border: 1px solid rgba(0,230,118,0.25);
+}
+.express-label {
+  font-size: 13px; color: var(--accent2);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+
 /* ── Agent Chat ───────────────────────── */
 .agent-fab {
   position: fixed;
@@ -497,7 +528,17 @@ select option { background: #141d2e; }
     <button class="topbar-back" onclick="showScreen('screen-apps')">←</button>
     <div>
       <div class="topbar-title" id="setup-app-name">New Submission</div>
-      <div class="topbar-sub">Step 1 of 4 — App Details</div>
+      <div class="topbar-sub">App Details</div>
+    </div>
+  </div>
+  <div class="setup-status-bar" id="setup-status-bar" style="display:none;"></div>
+  <div class="fetch-banner" id="setup-fetch-banner" style="display:none;">
+    <div class="spinner"></div>Fetching your existing listing from Apple...
+  </div>
+  <div id="express-submit-wrap" style="display:none; padding:16px 20px 0;">
+    <div class="express-submit-card">
+      <div class="express-label">✅ All fields filled from your existing listing</div>
+      <button class="btn btn-primary" onclick="expressSubmit()">🚀 Submit Update — One Tap</button>
     </div>
   </div>
   <div class="scroll">
@@ -750,9 +791,9 @@ async function loadSavedCreds() {
         issuer: cfg.issuerId,
         keyId: cfg.keyId,
         privateKey: cfg.privateKey,
-        codemagic: cfg.codemagicToken || ''
+        codemagic: cfg.codemagicToken || '',
+        codemagicAppId: cfg.codemagicAppId || '69d994395d3f3efd84e6dfbb'
       };
-      // Pre-fill settings form fields (visible only if user taps Settings)
       document.getElementById('cred-issuer').value = cfg.issuerId;
       document.getElementById('cred-keyid').value = cfg.keyId;
       document.getElementById('cred-key').value = cfg.privateKey;
@@ -928,12 +969,34 @@ async function loadApps() {
 
 function selectApp(id, name, bundleId) {
   selectedApp = { id, name: unescape(name), bundleId };
+
+  // Reset the setup screen
   document.getElementById('setup-app-name').textContent = unescape(name);
   document.getElementById('meta-name').value = unescape(name);
   document.getElementById('meta-bundle').value = bundleId;
-  document.getElementById('meta-support').value = 'https://app-export-tool.replit.app';
-  document.getElementById('meta-privacy').value = 'https://app-export-tool.replit.app/privacy';
+  document.getElementById('meta-subtitle').value = '';
+  document.getElementById('meta-desc').value = '';
+  document.getElementById('meta-keywords').value = '';
+  document.getElementById('meta-whatsnew').value = '';
+  document.getElementById('meta-support').value = '';
+  document.getElementById('meta-marketing').value = '';
+  document.getElementById('meta-privacy').value = '';
+  document.getElementById('meta-version').value = '';
+  document.getElementById('setup-status-bar').style.display = 'none';
+  document.getElementById('express-submit-wrap').style.display = 'none';
+
+  // Clear any autofill highlights
+  ['meta-name','meta-subtitle','meta-desc','meta-keywords','meta-whatsnew',
+   'meta-support','meta-marketing','meta-privacy','meta-version','meta-bundle']
+    .forEach(fid => {
+      const el = document.getElementById(fid);
+      if (el) { el.classList.remove('field-autofilled'); el.style.borderColor = ''; el.style.background = ''; }
+    });
+
   showScreen('screen-setup');
+
+  // Auto-fetch all metadata from Apple — fills every field possible
+  fetchAppMetadata(id);
 }
 
 function showNewSubmission() {
@@ -941,7 +1004,138 @@ function showNewSubmission() {
   document.getElementById('setup-app-name').textContent = 'New Submission';
   document.getElementById('meta-name').value = '';
   document.getElementById('meta-bundle').value = '';
+  document.getElementById('setup-status-bar').style.display = 'none';
+  document.getElementById('express-submit-wrap').style.display = 'none';
+  document.getElementById('setup-fetch-banner').style.display = 'none';
   showScreen('screen-setup');
+}
+
+// ─── Auto Metadata Fetch ─────────────────────────────
+function autoFillField(id, value) {
+  if (!value?.trim()) return false;
+  const el = document.getElementById(id);
+  if (!el) return false;
+  el.value = value;
+  el.classList.add('field-autofilled');
+  return true;
+}
+
+function bumpVersion(v) {
+  if (!v) return '1.1';
+  const parts = v.split('.');
+  if (parts.length === 1) return v + '.1';
+  parts[parts.length - 1] = String(parseInt(parts[parts.length - 1] || '0') + 1);
+  return parts.join('.');
+}
+
+async function fetchAppMetadata(appId) {
+  document.getElementById('setup-fetch-banner').style.display = 'flex';
+
+  try {
+    // Get latest iOS version
+    const vData = await appleProxy(
+      `/apps/${appId}/appStoreVersions?filter[platform]=IOS&sort=-createdDate&limit=1` +
+      `&fields[appStoreVersions]=versionString,appStoreState`
+    );
+    const version = vData.data?.[0];
+
+    if (version) {
+      const state = version.attributes?.appStoreState;
+      const vString = version.attributes?.versionString;
+
+      // Show current status on setup screen
+      const s = STATE_MAP[state];
+      const bar = document.getElementById('setup-status-bar');
+      if (bar) {
+        const badgeHtml = s ? `<span class="badge ${s.badge}">${s.label}</span>` : '';
+        bar.innerHTML = `${badgeHtml}<span style="font-size:13px;color:var(--text2)">Current version: ${vString || '—'}</span>`;
+        bar.style.display = 'flex';
+      }
+
+      // Auto-bump version for the new submission
+      autoFillField('meta-version', bumpVersion(vString));
+
+      // Fetch version localizations (description, keywords, subtitle, urls, whatsNew)
+      const locData = await appleProxy(
+        `/appStoreVersions/${version.id}/appStoreVersionLocalizations?filter[locale]=en-US` +
+        `&fields[appStoreVersionLocalizations]=description,keywords,subtitle,supportUrl,marketingUrl,whatsNew`
+      );
+      const loc = locData.data?.[0]?.attributes || {};
+      autoFillField('meta-subtitle', loc.subtitle);
+      autoFillField('meta-desc', loc.description);
+      autoFillField('meta-keywords', loc.keywords);
+      autoFillField('meta-support', loc.supportUrl);
+      autoFillField('meta-marketing', loc.marketingUrl);
+      // Don't auto-fill whatsNew — user should write fresh release notes
+    }
+
+    // Fetch privacy URL from app infos
+    const infoData = await appleProxy(
+      `/apps/${appId}/appInfos?limit=1&fields[appInfos]=primaryLocaleId`
+    );
+    const infoId = infoData.data?.[0]?.id;
+    if (infoId) {
+      const infoLocData = await appleProxy(
+        `/appInfos/${infoId}/appInfoLocalizations?filter[locale]=en-US` +
+        `&fields[appInfoLocalizations]=privacyPolicyUrl,name`
+      );
+      const infoLoc = infoLocData.data?.[0]?.attributes || {};
+      autoFillField('meta-privacy', infoLoc.privacyPolicyUrl);
+    }
+
+    // Check if all required fields are now populated
+    const required = ['meta-name','meta-desc','meta-support','meta-privacy','meta-bundle','meta-version'];
+    const missing = required.filter(fid => !document.getElementById(fid)?.value?.trim());
+    if (missing.length === 0) {
+      document.getElementById('express-submit-wrap').style.display = 'block';
+    }
+
+  } catch(e) {
+    console.log('Metadata fetch error:', e);
+  } finally {
+    document.getElementById('setup-fetch-banner').style.display = 'none';
+  }
+}
+
+// Alias for STATUS_MAP used in setup screen
+const STATE_MAP = {
+  IN_REVIEW:                    { label: 'In Review',  badge: 'badge-blue'   },
+  WAITING_FOR_REVIEW:           { label: 'In Review',  badge: 'badge-blue'   },
+  PENDING_APPLE_RELEASE:        { label: 'In Review',  badge: 'badge-blue'   },
+  WAITING_FOR_EXPORT_COMPLIANCE:{ label: 'In Review',  badge: 'badge-blue'   },
+  REJECTED:                     { label: 'Revisions',  badge: 'badge-danger' },
+  METADATA_REJECTED:            { label: 'Revisions',  badge: 'badge-danger' },
+  DEVELOPER_REJECTED:           { label: 'Revisions',  badge: 'badge-danger' },
+  INVALID_BINARY:               { label: 'Revisions',  badge: 'badge-danger' },
+  PREPARE_FOR_SUBMISSION:       { label: 'Ready',      badge: 'badge-warn'   },
+  PROCESSING_FOR_APP_STORE:     { label: 'Processing', badge: 'badge-warn'   },
+  PENDING_DEVELOPER_RELEASE:    { label: 'Approved',   badge: 'badge-green'  },
+  READY_FOR_SALE:               { label: 'Live',       badge: 'badge-green'  },
+};
+
+// ─── Express Submit (one-tap) ────────────────────────
+async function expressSubmit() {
+  const wrap = document.getElementById('express-submit-wrap');
+  const btn = wrap?.querySelector('button');
+  if (btn) { btn.textContent = '🔍 Finding latest build...'; btn.disabled = true; }
+
+  try {
+    // Look for the most recent valid build for this app
+    const buildsData = await appleProxy(
+      `/builds?filter[app]=${selectedApp.id}&filter[processingState]=VALID` +
+      `&sort=-uploadedDate&limit=1&fields[builds]=version,uploadedDate,processingState`
+    );
+    const latestBuild = buildsData.data?.[0];
+    if (latestBuild) {
+      document.getElementById('build-existing-id').value = latestBuild.id;
+      triggeredBuildId = null;
+      document.getElementById('build-id-label').textContent = latestBuild.id;
+    }
+  } catch(e) {}
+
+  if (btn) { btn.textContent = '🚀 Submit Update — One Tap'; btn.disabled = false; }
+  buildChecklist();
+  showScreen('screen-submit');
 }
 
 // ─── Navigation ─────────────────────────────────────
@@ -956,9 +1150,14 @@ function goToBuild() {
     return showToast('Please fill in all required fields.', 'error');
   }
 
-  if (creds.codemagic) {
-    document.getElementById('build-app-id').value = '';
+  // Pre-fill build fields from server config
+  const appIdEl = document.getElementById('build-app-id');
+  if (appIdEl && !appIdEl.value.trim()) {
+    appIdEl.value = creds.codemagicAppId || '69d994395d3f3efd84e6dfbb';
   }
+  document.getElementById('build-workflow').value = document.getElementById('build-workflow').value || 'ios-release';
+  document.getElementById('build-branch').value = document.getElementById('build-branch').value || 'main';
+
   showScreen('screen-build');
 }
 

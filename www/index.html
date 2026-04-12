@@ -200,6 +200,32 @@ select option { background: #141d2e; }
 .badge-warn { background: rgba(255,171,0,0.12); color: var(--warn); }
 .badge-danger { background: rgba(255,82,82,0.12); color: var(--danger); }
 
+.status-filter-bar {
+  display: flex; gap: 8px; padding: 10px 20px 12px;
+  overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.status-filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  white-space: nowrap; padding: 7px 14px;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text2);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.filter-chip.active-all    { border-color: var(--text2); color: var(--text); background: rgba(255,255,255,0.07); }
+.filter-chip.active-review { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.1); }
+.filter-chip.active-revisions { border-color: var(--danger); color: var(--danger); background: rgba(255,82,82,0.1); }
+.filter-chip.active-ready  { border-color: var(--warn); color: var(--warn); background: rgba(255,171,0,0.1); }
+.filter-chip.active-approved { border-color: var(--accent2); color: var(--accent2); background: rgba(0,230,118,0.1); }
+.chip-count {
+  background: currentColor; color: var(--bg);
+  border-radius: 10px; padding: 1px 6px;
+  font-size: 11px; font-weight: 800; min-width: 18px;
+  text-align: center; opacity: 0.9; display: inline-block;
+}
+
 .step-row {
   display: flex;
   align-items: center;
@@ -455,6 +481,13 @@ select option { background: #141d2e; }
       </div>
       <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-welcome')">Settings</button>
     </div>
+  </div>
+  <div class="status-filter-bar" id="status-filter-bar">
+    <button class="filter-chip active-all" id="chip-all" onclick="setStatusFilter('all')">All</button>
+    <button class="filter-chip" id="chip-review" onclick="setStatusFilter('review')">In Review</button>
+    <button class="filter-chip" id="chip-revisions" onclick="setStatusFilter('revisions')">Revisions</button>
+    <button class="filter-chip" id="chip-ready" onclick="setStatusFilter('ready')">Ready</button>
+    <button class="filter-chip" id="chip-approved" onclick="setStatusFilter('approved')">Approved</button>
   </div>
   <div class="scroll" id="apps-list">
     <div class="empty-state">
@@ -771,45 +804,127 @@ async function appleProxy(path, method = 'GET', body = null) {
   return res.json();
 }
 
-// ─── Load Apps ──────────────────────────────────────
+// ─── App Status + Filtering ─────────────────────────
+let allAppsData = [];
+let activeStatusFilter = 'all';
+
+const STATUS_MAP = {
+  IN_REVIEW:                    { key: 'review',    label: 'In Review',  badge: 'badge-blue'   },
+  WAITING_FOR_REVIEW:           { key: 'review',    label: 'In Review',  badge: 'badge-blue'   },
+  PENDING_APPLE_RELEASE:        { key: 'review',    label: 'In Review',  badge: 'badge-blue'   },
+  WAITING_FOR_EXPORT_COMPLIANCE:{ key: 'review',    label: 'In Review',  badge: 'badge-blue'   },
+  REJECTED:                     { key: 'revisions', label: 'Revisions',  badge: 'badge-danger' },
+  METADATA_REJECTED:            { key: 'revisions', label: 'Revisions',  badge: 'badge-danger' },
+  DEVELOPER_REJECTED:           { key: 'revisions', label: 'Revisions',  badge: 'badge-danger' },
+  INVALID_BINARY:               { key: 'revisions', label: 'Revisions',  badge: 'badge-danger' },
+  PREPARE_FOR_SUBMISSION:       { key: 'ready',     label: 'Ready',      badge: 'badge-warn'   },
+  PROCESSING_FOR_APP_STORE:     { key: 'ready',     label: 'Processing', badge: 'badge-warn'   },
+  PENDING_DEVELOPER_RELEASE:    { key: 'approved',  label: 'Approved',   badge: 'badge-green'  },
+  READY_FOR_SALE:               { key: 'approved',  label: 'Approved',   badge: 'badge-green'  },
+};
+
+function getAppStatus(app, included) {
+  const refs = app.relationships?.appStoreVersions?.data || [];
+  const version = refs
+    .map(r => (included || []).find(i => i.type === 'appStoreVersions' && i.id === r.id))
+    .find(v => v && v.attributes?.platform === 'IOS');
+  const state = version?.attributes?.appStoreState;
+  return STATUS_MAP[state] || null;
+}
+
+function updateFilterChips(counts) {
+  const chips = { all: 'all', review: 'review', revisions: 'revisions', ready: 'ready', approved: 'approved' };
+  Object.entries(chips).forEach(([key, activeClass]) => {
+    const chip = document.getElementById('chip-' + key);
+    if (!chip) return;
+    chip.className = 'filter-chip' + (activeStatusFilter === key ? ' active-' + activeClass : '');
+    const n = key === 'all' ? allAppsData.length : (counts[key] || 0);
+    const badge = n > 0 ? ` <span class="chip-count">${n}</span>` : '';
+    chip.innerHTML = (key === 'all' ? 'All' : key === 'review' ? 'In Review' : key.charAt(0).toUpperCase() + key.slice(1)) + badge;
+  });
+}
+
+function renderAppsList(apps) {
+  const list = document.getElementById('apps-list');
+  if (apps.length === 0) {
+    const label = activeStatusFilter === 'all' ? '' : { review: 'In Review', revisions: 'Revisions', ready: 'Ready', approved: 'Approved' }[activeStatusFilter] || '';
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No ${label} apps</div><div class="empty-sub">None of your apps are currently in this status.</div></div>`;
+    return;
+  }
+  list.innerHTML = apps.map(({ app, status }) => {
+    const badgeHtml = status ? `<span class="badge ${status.badge}" style="font-size:10px;">${status.label}</span>` : '';
+    return `
+      <div class="app-row" onclick="selectApp('${app.id}', '${escape(app.attributes.name)}', '${app.attributes.bundleId}')">
+        <div class="app-icon">${app.attributes.name.charAt(0).toUpperCase()}</div>
+        <div class="app-info">
+          <div class="app-name">${app.attributes.name}</div>
+          <div class="app-bundle">${app.attributes.bundleId}</div>
+          ${badgeHtml ? `<div style="margin-top:4px;">${badgeHtml}</div>` : ''}
+        </div>
+        <div class="app-arrow">›</div>
+      </div>`;
+  }).join('');
+}
+
+function setStatusFilter(key) {
+  activeStatusFilter = key;
+  const counts = {};
+  allAppsData.forEach(({ status }) => {
+    if (status) counts[status.key] = (counts[status.key] || 0) + 1;
+  });
+  updateFilterChips(counts);
+  const filtered = key === 'all' ? allAppsData : allAppsData.filter(({ status }) => status?.key === key);
+  renderAppsList(filtered);
+}
+
 async function loadApps() {
   showScreen('screen-apps');
+  activeStatusFilter = 'all';
   const list = document.getElementById('apps-list');
   list.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 16px;"></div><div class="empty-title">Loading your apps...</div></div>';
 
-  try {
-    const data = await appleProxy('/apps?fields[apps]=name,bundleId,primaryLocale&limit=50');
+  // Reset chips to plain state while loading
+  ['all','review','revisions','ready','approved'].forEach(k => {
+    const c = document.getElementById('chip-' + k);
+    if (c) { c.className = 'filter-chip' + (k === 'all' ? ' active-all' : ''); c.innerHTML = k === 'all' ? 'All' : k === 'review' ? 'In Review' : k.charAt(0).toUpperCase() + k.slice(1); }
+  });
 
-    // Apple returned an error — show it clearly
+  try {
+    const data = await appleProxy(
+      '/apps?fields[apps]=name,bundleId,primaryLocale&limit=50' +
+      '&include=appStoreVersions&fields[appStoreVersions]=appStoreState,platform'
+    );
+
     if (data.errors && data.errors.length > 0) {
       const msg = data.errors[0]?.detail || data.errors[0]?.title || 'Apple API error';
       list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-title">Credentials Error</div><div class="empty-sub">${msg}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('screen-welcome')">Fix Credentials</button></div>`;
       return;
     }
 
-    // Server returned an error
     if (data.error) {
       list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error</div><div class="empty-sub">${data.error}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('screen-welcome')">Fix Credentials</button></div>`;
       return;
     }
 
     const apps = data.data || [];
+    const included = data.included || [];
 
     if (apps.length === 0) {
       list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No apps found</div><div class="empty-sub">No apps in your App Store Connect account.<br>Make sure this key has App Manager access.</div><button class="btn btn-ghost" style="margin-top:16px;" onclick="showScreen(\'screen-welcome\')">Check Credentials</button></div>';
       return;
     }
 
-    list.innerHTML = apps.map(app => `
-      <div class="app-row" onclick="selectApp('${app.id}', '${escape(app.attributes.name)}', '${app.attributes.bundleId}')">
-        <div class="app-icon">${app.attributes.name.charAt(0).toUpperCase()}</div>
-        <div class="app-info">
-          <div class="app-name">${app.attributes.name}</div>
-          <div class="app-bundle">${app.attributes.bundleId}</div>
-        </div>
-        <div class="app-arrow">›</div>
-      </div>
-    `).join('');
+    // Build enriched list
+    allAppsData = apps.map(app => ({ app, status: getAppStatus(app, included) }));
+
+    // Count by status
+    const counts = {};
+    allAppsData.forEach(({ status }) => {
+      if (status) counts[status.key] = (counts[status.key] || 0) + 1;
+    });
+    updateFilterChips(counts);
+    renderAppsList(allAppsData);
+
   } catch(e) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Connection Error</div><div class="empty-sub">${e.message || 'Could not reach Apple. Check your internet connection.'}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="loadApps()">Retry</button></div>`;
   }

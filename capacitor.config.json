@@ -3,9 +3,7 @@
   "appName": "POSTAPP",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "url": "https://app-export-tool.replit.app",
-    "cleartext": false
+    "androidScheme": "https"
   },
   "ios": {
     "contentInset": "automatic",

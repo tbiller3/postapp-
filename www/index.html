@@ -579,7 +579,7 @@ function saveCredentials() {
   loadApps();
 }
 
-function loadSavedCreds() {
+async function loadSavedCreds() {
   try {
     const saved = localStorage.getItem('postapp_creds');
     if (saved) {
@@ -589,6 +589,18 @@ function loadSavedCreds() {
       document.getElementById('cred-key').value = creds.privateKey || '';
       document.getElementById('cred-codemagic').value = creds.codemagic || '';
       if (creds.issuer && creds.keyId && creds.privateKey) loadApps();
+    }
+  } catch(e) {}
+
+  // Auto-fill Codemagic token from server if not already saved
+  try {
+    if (!document.getElementById('cred-codemagic').value) {
+      const r = await fetch(API + '/mobile/config');
+      const cfg = await r.json();
+      if (cfg.codemagicToken) {
+        document.getElementById('cred-codemagic').value = cfg.codemagicToken;
+        if (creds) creds.codemagic = cfg.codemagicToken;
+      }
     }
   } catch(e) {}
 }

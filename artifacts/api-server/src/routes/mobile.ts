@@ -24,6 +24,12 @@ function makeToken(issuerId: string, keyId: string, privateKey: string): string 
 
 const ASC = "https://api.appstoreconnect.apple.com/v1";
 
+router.get("/mobile/config", (_req, res): void => {
+  res.json({
+    codemagicToken: process.env.CODEMAGIC_API_TOKEN || "",
+  });
+});
+
 router.post("/mobile/proxy", async (req, res): Promise<void> => {
   const { issuerId, keyId, privateKey, method = "GET", path, body: reqBody } = req.body;
 

@@ -277,6 +277,121 @@ select option { background: #141d2e; }
 .charge-price { font-size: 15px; font-weight: 700; color: var(--accent); }
 
 .api-url { font-size: 11px; color: var(--text3); text-align: center; margin-top: 8px; }
+
+/* ── Agent Chat ───────────────────────── */
+.agent-fab {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 82px);
+  right: 18px;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  box-shadow: 0 4px 20px rgba(124,58,237,0.5);
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 100;
+  transition: transform 0.15s;
+}
+.agent-fab:active { transform: scale(0.92); }
+.agent-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  padding-top: calc(var(--safe-top) + 16px);
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  flex-shrink: 0;
+}
+.agent-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.agent-header-info { flex: 1; }
+.agent-header-name { font-weight: 700; font-size: 15px; color: #fff; }
+.agent-header-sub { font-size: 12px; color: rgba(255,255,255,0.7); }
+.agent-back { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 8px; }
+.agent-messages {
+  flex: 1; overflow-y: auto;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.msg { display: flex; gap: 8px; align-items: flex-end; }
+.msg.user { flex-direction: row-reverse; }
+.msg-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px; line-height: 1.55;
+  white-space: pre-wrap;
+}
+.msg.agent .msg-bubble {
+  background: #1a2035;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  color: var(--text);
+}
+.msg.user .msg-bubble {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  border-bottom-right-radius: 4px;
+  color: #fff;
+}
+.msg-dot {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+}
+.typing-indicator {
+  display: flex; gap: 5px; padding: 12px 16px;
+  background: #1a2035; border: 1px solid var(--border);
+  border-radius: 18px; border-bottom-left-radius: 4px;
+  width: fit-content;
+}
+.typing-indicator span {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text2); animation: dot 1.2s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%,80%,100%{opacity:0.3;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+.agent-quick {
+  display: flex; gap: 8px; padding: 0 16px 10px;
+  overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
+}
+.agent-quick::-webkit-scrollbar { display: none; }
+.quick-chip {
+  white-space: nowrap; padding: 7px 14px;
+  border-radius: 20px; border: 1px solid rgba(124,58,237,0.4);
+  background: rgba(124,58,237,0.1); color: #a78bfa;
+  font-size: 13px; cursor: pointer; flex-shrink: 0;
+}
+.quick-chip:active { background: rgba(124,58,237,0.25); }
+.agent-input-row {
+  display: flex; gap: 8px; align-items: flex-end;
+  padding: 10px 16px;
+  padding-bottom: calc(var(--safe-bottom) + 10px);
+  background: var(--surface); border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.agent-textarea {
+  flex: 1; padding: 10px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); font-size: 14px; outline: none;
+  resize: none; max-height: 100px; line-height: 1.4;
+  font-family: inherit;
+}
+.agent-send-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  border: none; color: #fff; font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.agent-send-btn:disabled { opacity: 0.35; }
+#screen-agent { display: flex; flex-direction: column; }
 </style>
 </head>
 <body>
@@ -552,6 +667,29 @@ select option { background: #141d2e; }
     <button class="btn btn-ghost btn-danger" onclick="startOver()" style="margin-top:10px;">Start New Submission</button>
   </div>
 </div>
+
+<!-- SCREEN: Agent Chat -->
+<div class="screen" id="screen-agent">
+  <div class="agent-header">
+    <button class="agent-back" onclick="closeAgent()">←</button>
+    <div class="agent-avatar">🤖</div>
+    <div class="agent-header-info">
+      <div class="agent-header-name">POSTAPP Agent</div>
+      <div class="agent-header-sub" id="agent-status-line">Here to help you submit</div>
+    </div>
+  </div>
+  <div class="agent-messages" id="agent-messages"></div>
+  <div class="agent-quick" id="agent-quick-actions"></div>
+  <div class="agent-input-row">
+    <textarea class="agent-textarea" id="agent-input" placeholder="Ask anything about your submission..." rows="1"
+      oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();agentSend();}"></textarea>
+    <button class="agent-send-btn" id="agent-send" onclick="agentSend()">↑</button>
+  </div>
+</div>
+
+<!-- Floating Agent Button (shown on main screens) -->
+<button class="agent-fab" id="agent-fab" onclick="openAgent()" title="Ask the POSTAPP Agent">🤖</button>
 
 <div class="toast" id="toast"></div>
 
@@ -1003,6 +1141,125 @@ function startOver() {
   selectedApp = null;
   triggeredBuildId = null;
   showScreen('screen-apps');
+}
+
+// ─── Agent Chat ──────────────────────────────────────
+let agentHistory = [];
+let agentPrevScreen = 'screen-apps';
+let agentBusy = false;
+
+const QUICK_ACTIONS = [
+  { label: "What do I do next?", msg: "What should I do next to get my app submitted?" },
+  { label: "Why was I rejected?", msg: "My app was rejected. What do I do?" },
+  { label: "How long is review?", msg: "How long does Apple review take?" },
+  { label: "Screenshot sizes", msg: "What screenshot sizes does Apple require?" },
+  { label: "I'm stuck", msg: "I'm stuck and don't know what to do." },
+];
+
+function openAgent() {
+  const active = document.querySelector('.screen.active');
+  agentPrevScreen = active ? active.id : 'screen-apps';
+  showScreen('screen-agent');
+  document.getElementById('agent-fab').style.display = 'none';
+
+  // Show quick actions if fresh conversation
+  if (agentHistory.length === 0) {
+    renderQuickActions();
+    addAgentMessage("Hey! I'm the POSTAPP Agent. I know the Apple submission process inside and out — I've run it dozens of times.\n\nWhat are you trying to do today?");
+  }
+
+  setTimeout(() => document.getElementById('agent-input')?.focus(), 300);
+}
+
+function closeAgent() {
+  showScreen(agentPrevScreen);
+  document.getElementById('agent-fab').style.display = 'flex';
+}
+
+function renderQuickActions() {
+  const el = document.getElementById('agent-quick-actions');
+  el.innerHTML = QUICK_ACTIONS.map(q =>
+    `<button class="quick-chip" onclick="agentQuick('${q.msg.replace(/'/g, "\\'")}')">${q.label}</button>`
+  ).join('');
+}
+
+function clearQuickActions() {
+  document.getElementById('agent-quick-actions').innerHTML = '';
+}
+
+function addAgentMessage(text, role = 'agent') {
+  const el = document.getElementById('agent-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  if (role === 'agent') {
+    div.innerHTML = `<div class="msg-dot">🤖</div><div class="msg-bubble">${text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>`;
+  } else {
+    div.innerHTML = `<div class="msg-bubble">${text.replace(/</g,'&lt;')}</div>`;
+  }
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const el = document.getElementById('agent-messages');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.id = 'typing-indicator';
+  div.innerHTML = `<div class="msg-dot">🤖</div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('typing-indicator')?.remove();
+}
+
+async function agentSend(override) {
+  const input = document.getElementById('agent-input');
+  const msg = (override || input.value).trim();
+  if (!msg || agentBusy) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  clearQuickActions();
+  addAgentMessage(msg, 'user');
+  agentHistory.push({ role: 'user', content: msg });
+  agentBusy = true;
+  document.getElementById('agent-send').disabled = true;
+  showTyping();
+
+  try {
+    const appCtx = selectedApp
+      ? { appName: selectedApp.name, step: document.querySelector('.screen.active')?.id || '' }
+      : {};
+
+    const res = await fetch(API + '/mobile/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, history: agentHistory.slice(-12), appContext: appCtx })
+    });
+
+    const data = await res.json();
+    removeTyping();
+
+    if (data.ok && data.reply) {
+      addAgentMessage(data.reply);
+      agentHistory.push({ role: 'assistant', content: data.reply });
+    } else {
+      addAgentMessage("Sorry, I couldn't reach the server. Check your internet connection and try again.");
+    }
+  } catch(e) {
+    removeTyping();
+    addAgentMessage("Connection error. Make sure you have internet and try again.");
+  } finally {
+    agentBusy = false;
+    document.getElementById('agent-send').disabled = false;
+  }
+}
+
+function agentQuick(msg) {
+  agentSend(msg);
 }
 
 // ─── Init ────────────────────────────────────────────

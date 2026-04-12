@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import jwt from "jsonwebtoken";
+import { openai } from "@workspace/integrations-openai-ai-server";
+import { POSTAPP_SKILLS } from "./assistant/postapp-skills.js";
 
 const router: IRouter = Router();
 
@@ -170,6 +172,46 @@ router.post("/mobile/screenshot", async (req, res): Promise<void> => {
     res.status(commitRes.ok ? 200 : commitRes.status).json(commitData);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+const MOBILE_AGENT_PROMPT = `You are the POSTAPP Agent running inside the POSTAPP iOS app. You are talking directly to someone who is trying to get their iOS app onto the Apple App Store. They are not technical — explain everything in plain language. Be concise, warm, and action-oriented.
+
+${POSTAPP_SKILLS}`;
+
+router.post("/mobile/chat", async (req, res): Promise<void> => {
+  const { message, history = [], appContext } = req.body as {
+    message: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
+    appContext?: { appName?: string; step?: string };
+  };
+
+  if (!message?.trim()) {
+    res.status(400).json({ error: "Message required" });
+    return;
+  }
+
+  try {
+    let contextNote = "";
+    if (appContext?.appName) contextNote = `\n\n[User is currently working on: "${appContext.appName}"${appContext.step ? `, at step: ${appContext.step}` : ""}]`;
+
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: MOBILE_AGENT_PROMPT + contextNote },
+      ...history.slice(-10),
+      { role: "user", content: message },
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_completion_tokens: 600,
+      messages,
+    });
+
+    const reply = completion.choices[0]?.message?.content ?? "Sorry, I couldn't respond right now.";
+    res.json({ ok: true, reply });
+  } catch (err: any) {
+    console.error("Mobile chat error:", err);
+    res.status(500).json({ error: "Agent unavailable. Try again." });
   }
 });
 

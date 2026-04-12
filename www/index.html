@@ -632,10 +632,24 @@ async function loadApps() {
 
   try {
     const data = await appleProxy('/apps?fields[apps]=name,bundleId,primaryLocale&limit=50');
+
+    // Apple returned an error — show it clearly
+    if (data.errors && data.errors.length > 0) {
+      const msg = data.errors[0]?.detail || data.errors[0]?.title || 'Apple API error';
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-title">Credentials Error</div><div class="empty-sub">${msg}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('screen-welcome')">Fix Credentials</button></div>`;
+      return;
+    }
+
+    // Server returned an error
+    if (data.error) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error</div><div class="empty-sub">${data.error}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="showScreen('screen-welcome')">Fix Credentials</button></div>`;
+      return;
+    }
+
     const apps = data.data || [];
 
     if (apps.length === 0) {
-      list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No apps found</div><div class="empty-sub">No apps found in your App Store Connect account.</div></div>';
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No apps found</div><div class="empty-sub">No apps in your App Store Connect account.<br>Make sure this key has App Manager access.</div><button class="btn btn-ghost" style="margin-top:16px;" onclick="showScreen(\'screen-welcome\')">Check Credentials</button></div>';
       return;
     }
 
@@ -650,8 +664,7 @@ async function loadApps() {
       </div>
     `).join('');
   } catch(e) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Connection Error</div><div class="empty-sub">Check your credentials and try again.</div></div>';
-    showToast('Failed to load apps: ' + e.message, 'error');
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Connection Error</div><div class="empty-sub">${e.message || 'Could not reach Apple. Check your internet connection.'}</div><button class="btn btn-primary" style="margin-top:16px;" onclick="loadApps()">Retry</button></div>`;
   }
 }
 

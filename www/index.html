@@ -423,7 +423,7 @@ select option { background: #141d2e; }
 <body>
 
 <!-- SCREEN: Welcome / Onboarding -->
-<div class="screen active" id="screen-welcome">
+<div class="screen" id="screen-welcome">
   <div class="logo-bar">
     <div class="logo">&gt;_ POST<span>APP</span></div>
   </div>
@@ -463,7 +463,7 @@ select option { background: #141d2e; }
 </div>
 
 <!-- SCREEN: App List -->
-<div class="screen" id="screen-apps">
+<div class="screen active" id="screen-apps">
   <div class="logo-bar">
     <div style="display:flex; align-items:center; justify-content:space-between;">
       <div>
@@ -741,6 +741,28 @@ function saveCredentials() {
 }
 
 async function loadSavedCreds() {
+  // 1. Try server first — it's always the authoritative source
+  try {
+    const r = await fetch(API + '/mobile/config');
+    const cfg = await r.json();
+    if (cfg.issuerId && cfg.keyId && cfg.privateKey) {
+      creds = {
+        issuer: cfg.issuerId,
+        keyId: cfg.keyId,
+        privateKey: cfg.privateKey,
+        codemagic: cfg.codemagicToken || ''
+      };
+      // Pre-fill settings form fields (visible only if user taps Settings)
+      document.getElementById('cred-issuer').value = cfg.issuerId;
+      document.getElementById('cred-keyid').value = cfg.keyId;
+      document.getElementById('cred-key').value = cfg.privateKey;
+      localStorage.setItem('postapp_creds', JSON.stringify(creds));
+      loadApps();
+      return;
+    }
+  } catch(e) {}
+
+  // 2. Fall back to locally saved credentials
   try {
     const saved = localStorage.getItem('postapp_creds');
     if (saved) {
@@ -748,29 +770,15 @@ async function loadSavedCreds() {
       document.getElementById('cred-issuer').value = creds.issuer || '';
       document.getElementById('cred-keyid').value = creds.keyId || '';
       document.getElementById('cred-key').value = creds.privateKey || '';
-      if (creds.issuer && creds.keyId && creds.privateKey) loadApps();
+      if (creds.issuer && creds.keyId && creds.privateKey) {
+        loadApps();
+        return;
+      }
     }
   } catch(e) {}
 
-  // Always sync credentials from server — server is the source of truth
-  try {
-    const r = await fetch(API + '/mobile/config');
-    const cfg = await r.json();
-    if (cfg.issuerId && cfg.keyId && cfg.privateKey) {
-      // Server has credentials — always use them (overrides any local entry)
-      creds = {
-        issuer: cfg.issuerId,
-        keyId: cfg.keyId,
-        privateKey: cfg.privateKey,
-        codemagic: cfg.codemagicToken || (creds?.codemagic || '')
-      };
-      document.getElementById('cred-issuer').value = cfg.issuerId;
-      document.getElementById('cred-keyid').value = cfg.keyId;
-      document.getElementById('cred-key').value = cfg.privateKey;
-      localStorage.setItem('postapp_creds', JSON.stringify(creds));
-      loadApps();
-    }
-  } catch(e) {}
+  // 3. No credentials anywhere — show the setup screen
+  showScreen('screen-welcome');
 }
 
 // ─── Apple API Proxy ────────────────────────────────

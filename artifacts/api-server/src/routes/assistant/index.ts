@@ -27,6 +27,49 @@ When the user provides context about their app (name, bundle ID, checklist statu
 
 Always be encouraging — App Store submission can be frustrating, and you're here to make it less so.`;
 
+router.post("/agent/chat", async (req, res): Promise<void> => {
+  const { message, appContext } = req.body as {
+    message: string;
+    appContext?: {
+      appName?: string;
+      bundleId?: string;
+      checklistTotal?: number;
+      checklistDone?: number;
+      pendingItems?: string[];
+    };
+  };
+
+  if (!message?.trim()) {
+    res.status(400).json({ error: "Message is required" });
+    return;
+  }
+
+  try {
+    let contextBlock = "";
+    if (appContext?.appName) {
+      const pending = appContext.pendingItems?.length
+        ? `\nPending checklist items:\n${appContext.pendingItems.map((i) => `- ${i}`).join("\n")}`
+        : "";
+      contextBlock = `\n\n[Current app context: "${appContext.appName}" (${appContext.bundleId || "no bundle ID"}), ${appContext.checklistDone ?? 0}/${appContext.checklistTotal ?? 0} checklist items complete.${pending}]`;
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      max_completion_tokens: 1024,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT + contextBlock },
+        { role: "user", content: message },
+      ],
+    });
+
+    const reply = completion.choices[0]?.message?.content ?? "Sorry, I couldn't generate a response.";
+    res.json({ ok: true, reply, actions: [] });
+  } catch (err) {
+    console.error("Agent chat error:", err);
+    res.status(500).json({ error: "Assistant unavailable. Please try again." });
+  }
+});
+
 router.post("/assistant/conversations", async (req, res): Promise<void> => {
   try {
     const { title } = req.body as { title?: string };

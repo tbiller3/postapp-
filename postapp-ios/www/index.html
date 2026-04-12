@@ -821,7 +821,7 @@ async function runFullSubmission() {
     const locsData = await appleProxy(`/appStoreVersions/${versionId}/appStoreVersionLocalizations?fields[appStoreVersionLocalizations]=locale`);
     const locs = locsData.data || [];
 
-    const metaAttrs: Record<string,string> = { description: desc, keywords, supportUrl: support };
+    const metaAttrs = { description: desc, keywords, supportUrl: support };
     if (marketing) metaAttrs.marketingUrl = marketing;
     if (whatsnew) metaAttrs.whatsNew = whatsnew;
 

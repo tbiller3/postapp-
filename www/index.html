@@ -567,9 +567,10 @@ select option { background: #141d2e; }
         <div class="field-hint">Comma-separated, 100 chars max total</div>
       </div>
 
-      <div class="field-group">
-        <label>What's New (for updates)</label>
-        <textarea id="meta-whatsnew" placeholder="What changed in this version? Leave blank for new apps." style="min-height:70px;"></textarea>
+      <div class="field-group" id="whatsnew-group" style="display:none;">
+        <label>What's New</label>
+        <textarea id="meta-whatsnew" placeholder="What changed in this version?" style="min-height:70px;"></textarea>
+        <div class="field-hint">Shown to users on the App Store update page</div>
       </div>
     </div>
 
@@ -984,6 +985,7 @@ function selectApp(id, name, bundleId) {
   document.getElementById('meta-version').value = '';
   document.getElementById('setup-status-bar').style.display = 'none';
   document.getElementById('express-submit-wrap').style.display = 'none';
+  document.getElementById('whatsnew-group').style.display = 'none';
 
   // Clear any autofill highlights
   ['meta-name','meta-subtitle','meta-desc','meta-keywords','meta-whatsnew',
@@ -1007,6 +1009,7 @@ function showNewSubmission() {
   document.getElementById('setup-status-bar').style.display = 'none';
   document.getElementById('express-submit-wrap').style.display = 'none';
   document.getElementById('setup-fetch-banner').style.display = 'none';
+  document.getElementById('whatsnew-group').style.display = 'none';
   showScreen('screen-setup');
 }
 
@@ -1054,6 +1057,9 @@ async function fetchAppMetadata(appId) {
 
       // Auto-bump version for the new submission
       autoFillField('meta-version', bumpVersion(vString));
+
+      // This is an update — show "What's New" field
+      document.getElementById('whatsnew-group').style.display = 'block';
 
       // Fetch version localizations (description, keywords, subtitle, urls, whatsNew)
       const locData = await appleProxy(

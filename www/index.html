@@ -454,15 +454,6 @@ select option { background: #141d2e; }
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">Build Service (Optional)</div>
-      <div class="field-group">
-        <label>Codemagic API Token</label>
-        <input id="cred-codemagic" type="text" placeholder="Your Codemagic token" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Required to trigger iOS builds. Get it from codemagic.io → Teams → Settings</div>
-      </div>
-    </div>
-
     <button class="btn btn-primary" onclick="saveCredentials()">
       <span>Connect to App Store Connect</span> →
     </button>
@@ -736,7 +727,6 @@ function saveCredentials() {
   const issuer = document.getElementById('cred-issuer').value.trim();
   const keyId = document.getElementById('cred-keyid').value.trim();
   const privateKey = document.getElementById('cred-key').value.trim();
-  const codemagic = document.getElementById('cred-codemagic').value.trim();
 
   if (!issuer || !keyId || !privateKey) {
     return showToast('Please fill in all Apple credential fields.', 'error');
@@ -745,7 +735,7 @@ function saveCredentials() {
     return showToast('Private key must start with -----BEGIN PRIVATE KEY-----', 'error');
   }
 
-  creds = { issuer, keyId, privateKey, codemagic };
+  creds = { issuer, keyId, privateKey, codemagic: creds.codemagic || '' };
   localStorage.setItem('postapp_creds', JSON.stringify(creds));
   loadApps();
 }
@@ -758,7 +748,6 @@ async function loadSavedCreds() {
       document.getElementById('cred-issuer').value = creds.issuer || '';
       document.getElementById('cred-keyid').value = creds.keyId || '';
       document.getElementById('cred-key').value = creds.privateKey || '';
-      document.getElementById('cred-codemagic').value = creds.codemagic || '';
       if (creds.issuer && creds.keyId && creds.privateKey) loadApps();
     }
   } catch(e) {}
@@ -778,7 +767,6 @@ async function loadSavedCreds() {
       document.getElementById('cred-issuer').value = cfg.issuerId;
       document.getElementById('cred-keyid').value = cfg.keyId;
       document.getElementById('cred-key').value = cfg.privateKey;
-      document.getElementById('cred-codemagic').value = creds.codemagic;
       localStorage.setItem('postapp_creds', JSON.stringify(creds));
       loadApps();
     }

@@ -6,9 +6,9 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.postapp.ios
+        bundle_identifier: com.tbiller.postapp
       vars:
-        BUNDLE_ID: "com.postapp.ios"
+        BUNDLE_ID: "com.tbiller.postapp"
         APP_NAME: "POSTAPP"
       node: 18
       xcode: latest

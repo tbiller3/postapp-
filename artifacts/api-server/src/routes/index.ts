@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
+import mobileRouter from "./mobile";
 import appsRouter from "./apps";
 import workspaceRouter from "./workspace";
 import appleRouter from "./apple";
@@ -25,6 +26,8 @@ router.use(healthRouter);
 router.use(authRouter);
 // Stripe plans are public (no auth required)
 router.use(stripeRouter);
+// Mobile routes are public (use caller-supplied Apple credentials)
+router.use(mobileRouter);
 router.use(requireAuth);
 router.use(appsRouter);
 router.use(workspaceRouter);

@@ -27,6 +27,9 @@ const ASC = "https://api.appstoreconnect.apple.com/v1";
 router.get("/mobile/config", (_req, res): void => {
   res.json({
     codemagicToken: process.env.CODEMAGIC_API_TOKEN || "",
+    issuerId: process.env.APPLE_ISSUER_ID || "",
+    keyId: process.env.APPLE_KEY_ID || "",
+    privateKey: process.env.APPLE_PRIVATE_KEY || "",
   });
 });
 

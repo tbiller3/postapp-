@@ -592,14 +592,41 @@ async function loadSavedCreds() {
     }
   } catch(e) {}
 
-  // Auto-fill Codemagic token from server if not already saved
+  // Auto-fill credentials from server if any are missing
   try {
-    if (!document.getElementById('cred-codemagic').value) {
+    const needsFill = !document.getElementById('cred-codemagic').value ||
+                      !document.getElementById('cred-issuer').value ||
+                      !document.getElementById('cred-keyid').value ||
+                      !document.getElementById('cred-key').value;
+    if (needsFill) {
       const r = await fetch(API + '/mobile/config');
       const cfg = await r.json();
-      if (cfg.codemagicToken) {
+      if (cfg.codemagicToken && !document.getElementById('cred-codemagic').value) {
         document.getElementById('cred-codemagic').value = cfg.codemagicToken;
         if (creds) creds.codemagic = cfg.codemagicToken;
+      }
+      if (cfg.issuerId && !document.getElementById('cred-issuer').value) {
+        document.getElementById('cred-issuer').value = cfg.issuerId;
+        if (creds) creds.issuer = cfg.issuerId;
+      }
+      if (cfg.keyId && !document.getElementById('cred-keyid').value) {
+        document.getElementById('cred-keyid').value = cfg.keyId;
+        if (creds) creds.keyId = cfg.keyId;
+      }
+      if (cfg.privateKey && !document.getElementById('cred-key').value) {
+        document.getElementById('cred-key').value = cfg.privateKey;
+        if (creds) creds.privateKey = cfg.privateKey;
+      }
+      // If all Apple creds now filled and not already loaded, connect automatically
+      if (cfg.issuerId && cfg.keyId && cfg.privateKey && !creds?.issuer) {
+        creds = {
+          issuer: cfg.issuerId,
+          keyId: cfg.keyId,
+          privateKey: cfg.privateKey,
+          codemagic: cfg.codemagicToken || ''
+        };
+        localStorage.setItem('postapp_creds', JSON.stringify(creds));
+        loadApps();
       }
     }
   } catch(e) {}

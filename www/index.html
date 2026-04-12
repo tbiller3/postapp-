@@ -1051,8 +1051,13 @@ async function fetchAppMetadata(appId) {
       const bar = document.getElementById('setup-status-bar');
       if (bar) {
         const badgeHtml = s ? `<span class="badge ${s.badge}">${s.label}</span>` : '';
-        bar.innerHTML = `${badgeHtml}<span style="font-size:13px;color:var(--text2)">Current version: ${vString || '—'}</span>`;
+        const inReview = ['IN_REVIEW','WAITING_FOR_REVIEW','READY_FOR_REVIEW'].includes(state);
+        const removeBtn = inReview
+          ? `<button class="btn btn-ghost btn-danger btn-sm" style="margin-left:auto;font-size:12px;padding:5px 12px;" onclick="removeFromReview()">Remove from Review</button>`
+          : '';
+        bar.innerHTML = `${badgeHtml}<span style="font-size:13px;color:var(--text2)">v${vString || '—'}</span>${removeBtn}`;
         bar.style.display = 'flex';
+        bar.style.flexWrap = 'wrap';
       }
 
       // Auto-bump version for the new submission
@@ -1118,6 +1123,47 @@ const STATE_MAP = {
   PENDING_DEVELOPER_RELEASE:    { label: 'Approved',   badge: 'badge-green'  },
   READY_FOR_SALE:               { label: 'Live',       badge: 'badge-green'  },
 };
+
+// ─── Remove from Review ──────────────────────────────
+async function removeFromReview() {
+  if (!selectedApp) return;
+  const bar = document.getElementById('setup-status-bar');
+  const btn = bar?.querySelector('button');
+  if (btn) { btn.textContent = 'Removing...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch(API + '/mobile/remove-from-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        issuerId: creds.issuer,
+        keyId: creds.keyId,
+        privateKey: creds.privateKey,
+        appId: selectedApp.id
+      })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      showToast('Removed from review. You can now submit the updated build.', 'success');
+      // Refresh the status bar to reflect the new state
+      if (bar) {
+        bar.innerHTML = `<span class="badge badge-warn">Removed from Review</span><span style="font-size:13px;color:var(--text2)">Ready for new submission</span>`;
+      }
+      // Show the express submit button if fields are ready
+      const required = ['meta-name','meta-desc','meta-support','meta-privacy','meta-bundle','meta-version'];
+      if (required.every(id => document.getElementById(id)?.value?.trim())) {
+        document.getElementById('express-submit-wrap').style.display = 'block';
+      }
+    } else {
+      showToast(data.message || data.error || 'Could not remove from review.', 'error');
+      if (btn) { btn.textContent = 'Remove from Review'; btn.disabled = false; }
+    }
+  } catch(e) {
+    showToast('Connection error. Try again.', 'error');
+    if (btn) { btn.textContent = 'Remove from Review'; btn.disabled = false; }
+  }
+}
 
 // ─── Express Submit (one-tap) ────────────────────────
 async function expressSubmit() {

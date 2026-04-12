@@ -70,6 +70,50 @@ router.post("/mobile/proxy", async (req, res): Promise<void> => {
   }
 });
 
+router.post("/mobile/remove-from-review", async (req, res): Promise<void> => {
+  const { issuerId, keyId, privateKey, appId } = req.body;
+  if (!issuerId || !keyId || !privateKey || !appId) {
+    res.status(400).json({ error: "Missing credentials or appId" });
+    return;
+  }
+  try {
+    const token = makeToken(issuerId, keyId, privateKey);
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+    // Find active review submissions for this app
+    const subRes = await fetch(
+      `${ASC}/reviewSubmissions?filter[app]=${appId}&filter[platform]=IOS`,
+      { headers }
+    );
+    const subData = await subRes.json() as any;
+    const active = (subData.data || []).find((s: any) =>
+      ["WAITING_FOR_REVIEW", "IN_REVIEW", "READY_FOR_REVIEW"].includes(s.attributes?.state)
+    );
+    if (!active) {
+      res.json({ ok: true, message: "No active submission found — nothing to remove." });
+      return;
+    }
+    // Cancel it
+    const cancelRes = await fetch(`${ASC}/reviewSubmissions/${active.id}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({
+        data: { type: "reviewSubmissions", id: active.id, attributes: { canceled: true } },
+      }),
+    });
+    const cancelData = await cancelRes.json() as any;
+    res.status(cancelRes.ok ? 200 : cancelRes.status).json({
+      ok: cancelRes.ok,
+      state: cancelData.data?.attributes?.state,
+      submissionId: active.id,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/mobile/build", async (req, res): Promise<void> => {
   const { codemagicToken, appId, workflowId = "ios-release", branch = "main" } = req.body;
 

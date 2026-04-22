@@ -1,11 +1,9 @@
 workflows:
-  ios-release:
-    name: POSTAPP iOS Release
+  ios-workflow:
+    name: POSTAPP iOS Build
     max_build_duration: 60
-    instance_type: mac_mini_m2
     environment:
       xcode: latest
-      node: 18
       cocoapods: default
       groups:
         - app_store_credentials
@@ -20,71 +18,61 @@ workflows:
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Set custom app icon
+      - name: Bump iOS build number from App Store Connect
         script: |
-          ICON_SET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
-          mkdir -p "$ICON_SET"
-          SIZES="20 29 40 58 60 76 80 87 120 152 167 180 1024"
-          for SIZE in $SIZES; do
-            sips -z $SIZE $SIZE AppIcon-1024.png --out "$ICON_SET/icon-${SIZE}.png" > /dev/null 2>&1
-          done
-          cat > "$ICON_SET/Contents.json" << 'ICONJSON'
-          {
-            "images": [
-              {"size":"20x20","idiom":"iphone","filename":"icon-40.png","scale":"2x"},
-              {"size":"20x20","idiom":"iphone","filename":"icon-60.png","scale":"3x"},
-              {"size":"29x29","idiom":"iphone","filename":"icon-58.png","scale":"2x"},
-              {"size":"29x29","idiom":"iphone","filename":"icon-87.png","scale":"3x"},
-              {"size":"40x40","idiom":"iphone","filename":"icon-80.png","scale":"2x"},
-              {"size":"40x40","idiom":"iphone","filename":"icon-120.png","scale":"3x"},
-              {"size":"60x60","idiom":"iphone","filename":"icon-120.png","scale":"2x"},
-              {"size":"60x60","idiom":"iphone","filename":"icon-180.png","scale":"3x"},
-              {"size":"20x20","idiom":"ipad","filename":"icon-20.png","scale":"1x"},
-              {"size":"20x20","idiom":"ipad","filename":"icon-40.png","scale":"2x"},
-              {"size":"29x29","idiom":"ipad","filename":"icon-29.png","scale":"1x"},
-              {"size":"29x29","idiom":"ipad","filename":"icon-58.png","scale":"2x"},
-              {"size":"40x40","idiom":"ipad","filename":"icon-40.png","scale":"1x"},
-              {"size":"40x40","idiom":"ipad","filename":"icon-80.png","scale":"2x"},
-              {"size":"76x76","idiom":"ipad","filename":"icon-76.png","scale":"1x"},
-              {"size":"76x76","idiom":"ipad","filename":"icon-152.png","scale":"2x"},
-              {"size":"83.5x83.5","idiom":"ipad","filename":"icon-167.png","scale":"2x"},
-              {"size":"1024x1024","idiom":"ios-marketing","filename":"icon-1024.png","scale":"1x"}
-            ],
-            "info":{"version":1,"author":"xcode"}
-          }
-          ICONJSON
-          echo "Custom app icon set with $(ls $ICON_SET/*.png | wc -l) sizes"
-      - name: Set build number and export compliance
+          set -e
+          BUILD_NUM=""
+          if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
+            APP_APPLE_ID=$(app-store-connect apps list --bundle-ids "$BUNDLE_ID" --json 2>/dev/null \
+              | python3 -c "import sys,json;d=json.load(sys.stdin);print((d[0] if isinstance(d,list) else d.get('data',[{}])[0]).get('id','') if d else '')" 2>/dev/null) || true
+            if [ -n "$APP_APPLE_ID" ]; then
+              LATEST=$(app-store-connect get-latest-build-number "$APP_APPLE_ID" 2>/dev/null || echo 0)
+              BUILD_NUM=$((LATEST + 1))
+              echo "Latest build on App Store Connect for $BUNDLE_ID: $LATEST → bumping CFBundleVersion to $BUILD_NUM"
+            else
+              echo "Could not resolve Apple App ID for $BUNDLE_ID — falling back to timestamp."
+            fi
+          else
+            echo "App Store Connect credentials not present in env — falling back to timestamp."
+          fi
+          if [ -z "$BUILD_NUM" ]; then
+            BUILD_NUM=$(($(date +%s) / 60))
+            echo "Using timestamp build number: $BUILD_NUM"
+          fi
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" ios/App/App/Info.plist
+          echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
+      - name: Initialize keychain
         script: |
-          BUILD_NUM=$(($(date +%s) / 60))
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist
-          echo "Build number set to $BUILD_NUM"
-          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
-          /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
+          keychain initialize
       - name: Fetch signing files
         script: |
-          app-store-connect fetch-signing-files "com.tbiller.postapp" \
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
-      - name: Set up keychain
-        script: keychain initialize
       - name: Add certificates to keychain
-        script: keychain add-certificates
-      - name: Apply provisioning profiles
-        script: xcode-project use-profiles
-      - name: Build iOS IPA
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME" \
-            --config Release
+          keychain add-certificates
+      - name: Apply signing profiles
+        script: |
+          xcode-project use-profiles
+      - name: Build iOS
+        script: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive
+      - name: Export IPA
+        script: |
+          cd ios/App
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ../../export_options.plist \
+            -exportPath build/ipa
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ios/App/build/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
-        submit_to_app_store: false

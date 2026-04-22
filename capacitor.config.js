@@ -4,7 +4,7 @@ const config = {
   appName: 'POSTAPP',
   webDir: 'www',
   server: {
-    url: 'https://postapp.replit.app',
+    url: 'https://app-export-tool.replit.app/',
     cleartext: false,
     allowNavigation: [],
   },

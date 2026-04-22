@@ -4,7 +4,8 @@
   "description": "Native iOS wrapper for POSTAPP",
   "scripts": {
     "cap:ios": "npx cap add ios && npx cap sync ios",
-    "cap:sync": "npx cap sync ios"
+    "cap:sync": "npx cap sync ios",
+    "cap:open": "npx cap open ios"
   },
   "dependencies": {
     "@capacitor/core": "^6.0.0",

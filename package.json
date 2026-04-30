@@ -1,10 +1,11 @@
 {
   "name": "postapp",
   "version": "1.0.0",
-  "description": "Native iOS wrapper for POSTAPP",
+  "private": true,
   "scripts": {
-    "cap:ios": "npx cap add ios && npx cap sync ios",
-    "cap:sync": "npx cap sync ios",
+    "build": "echo no-build",
+    "cap:ios": "npx cap add ios && npx cap sync",
+    "cap:sync": "npx cap sync",
     "cap:open": "npx cap open ios"
   },
   "dependencies": {

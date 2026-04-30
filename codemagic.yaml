@@ -23,13 +23,17 @@ workflows:
           cd ios/App
           pod install
           cd ../..
-      - name: Bump build number
+      - name: Bump build number and version
         script: |
           set -e
           BUILD_NUM=$(($(date +%s) / 60))
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null \
-            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" ios/App/App/Info.plist
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1" "$PLIST" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.1" "$PLIST"
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
+          echo "Set version 1.1, build $BUILD_NUM"
       - name: Add usage descriptions
         script: |
           PLIST="ios/App/App/Info.plist"

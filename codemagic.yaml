@@ -21,12 +21,44 @@ workflows:
       - name: Generate app icon
         script: |
           set -e
-          # AppIcon-1024.png is in the repo root
-          npm install -g @capacitor/assets
-          npx @capacitor/assets generate \
-            --iconPath AppIcon-1024.png \
-            --ios true \
-            --android false
+          SRC="AppIcon-1024.png"
+          DIR="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          mkdir -p "$DIR"
+          # Generate all required iOS icon sizes using sips (macOS built-in)
+          sips -z 40   40   "$SRC" --out "$DIR/Icon-20@2x.png"
+          sips -z 60   60   "$SRC" --out "$DIR/Icon-20@3x.png"
+          sips -z 58   58   "$SRC" --out "$DIR/Icon-29@2x.png"
+          sips -z 87   87   "$SRC" --out "$DIR/Icon-29@3x.png"
+          sips -z 80   80   "$SRC" --out "$DIR/Icon-40@2x.png"
+          sips -z 120  120  "$SRC" --out "$DIR/Icon-40@3x.png"
+          sips -z 120  120  "$SRC" --out "$DIR/Icon-60@2x.png"
+          sips -z 180  180  "$SRC" --out "$DIR/Icon-60@3x.png"
+          sips -z 76   76   "$SRC" --out "$DIR/Icon-76@1x.png"
+          sips -z 152  152  "$SRC" --out "$DIR/Icon-76@2x.png"
+          sips -z 167  167  "$SRC" --out "$DIR/Icon-83.5@2x.png"
+          sips -z 1024 1024 "$SRC" --out "$DIR/Icon-1024.png"
+          # Write Contents.json
+          cat > "$DIR/Contents.json" << 'JSON'
+          {
+            "images": [
+              {"size":"20x20","idiom":"iphone","filename":"Icon-20@2x.png","scale":"2x"},
+              {"size":"20x20","idiom":"iphone","filename":"Icon-20@3x.png","scale":"3x"},
+              {"size":"29x29","idiom":"iphone","filename":"Icon-29@2x.png","scale":"2x"},
+              {"size":"29x29","idiom":"iphone","filename":"Icon-29@3x.png","scale":"3x"},
+              {"size":"40x40","idiom":"iphone","filename":"Icon-40@2x.png","scale":"2x"},
+              {"size":"40x40","idiom":"iphone","filename":"Icon-40@3x.png","scale":"3x"},
+              {"size":"60x60","idiom":"iphone","filename":"Icon-60@2x.png","scale":"2x"},
+              {"size":"60x60","idiom":"iphone","filename":"Icon-60@3x.png","scale":"3x"},
+              {"size":"76x76","idiom":"ipad","filename":"Icon-76@1x.png","scale":"1x"},
+              {"size":"76x76","idiom":"ipad","filename":"Icon-76@2x.png","scale":"2x"},
+              {"size":"83.5x83.5","idiom":"ipad","filename":"Icon-83.5@2x.png","scale":"2x"},
+              {"size":"1024x1024","idiom":"ios-marketing","filename":"Icon-1024.png","scale":"1x"}
+            ],
+            "info":{"version":1,"author":"xcode"}
+          }
+          JSON
+          echo "Icons generated successfully"
+          ls -la "$DIR"
       - name: Install CocoaPods
         script: |
           cd ios/App

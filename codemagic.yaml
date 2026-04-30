@@ -38,6 +38,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'This app does not use the microphone.'" "$PLIST" 2>/dev/null || true
       - name: Set up keychain and signing
         script: |
+          set -e
           keychain initialize
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
@@ -45,12 +46,36 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
+
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          PROFILE_PATH=$(ls "$PROFILES_DIR"/*.mobileprovision 2>/dev/null | head -1)
+          if [ -z "$PROFILE_PATH" ]; then
+            echo "ERROR: No .mobileprovision found after fetch-signing-files"
+            exit 1
+          fi
+
+          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin)
+          PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin)
+          TEAM_ID=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /dev/stdin)
+
+          echo "Profile UUID: $PROFILE_UUID"
+          echo "Profile Name: $PROFILE_NAME"
+          echo "Team ID: $TEAM_ID"
+
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $CM_ENV
+          echo "PROFILE_NAME=$PROFILE_NAME" >> $CM_ENV
+          echo "TEAM_ID=$TEAM_ID" >> $CM_ENV
       - name: Build and export IPA
         script: |
           set -e
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            -- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="iPhone Distribution"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

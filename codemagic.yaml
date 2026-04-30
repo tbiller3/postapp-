@@ -30,10 +30,10 @@ workflows:
           PLIST="ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST" 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1" "$PLIST" 2>/dev/null \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.2" "$PLIST" 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.1" "$PLIST"
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
-          echo "Set version 1.1, build $BUILD_NUM"
+          echo "Set version 1.2, build $BUILD_NUM"
       - name: Add usage descriptions
         script: |
           PLIST="ios/App/App/Info.plist"
@@ -64,3 +64,4 @@ workflows:
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: false
+

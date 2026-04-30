@@ -50,14 +50,18 @@ workflows:
           PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           PROFILE_PATH=$(ls "$PROFILES_DIR"/*.mobileprovision 2>/dev/null | head -1)
           if [ -z "$PROFILE_PATH" ]; then
-            echo "ERROR: No .mobileprovision found after fetch-signing-files"
+            echo "ERROR: No .mobileprovision found"
             exit 1
           fi
+          echo "Found profile: $PROFILE_PATH"
 
-          PROFILE_UUID=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :UUID" /dev/stdin)
-          PROFILE_NAME=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin)
-          TEAM_ID=$(security cms -D -i "$PROFILE_PATH" | /usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /dev/stdin)
-
+          eval $(security cms -D -i "$PROFILE_PATH" | python3 -c "
+import sys, plistlib
+data = plistlib.loads(sys.stdin.buffer.read())
+print('export PROFILE_UUID=' + repr(data.get('UUID','')))
+print('export TEAM_ID=' + repr(data.get('TeamIdentifier',[''])[0]))
+print('export PROFILE_NAME=' + repr(data.get('Name','')))
+")
           echo "Profile UUID: $PROFILE_UUID"
           echo "Profile Name: $PROFILE_NAME"
           echo "Team ID: $TEAM_ID"

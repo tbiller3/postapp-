@@ -18,61 +18,36 @@ workflows:
         script: npx cap add ios || true
       - name: Sync Capacitor
         script: npx cap sync ios
-      - name: Bump iOS build number from App Store Connect
+      - name: Bump build number
         script: |
           set -e
-          BUILD_NUM=""
-          if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
-            APP_APPLE_ID=$(app-store-connect apps list --bundle-ids "$BUNDLE_ID" --json 2>/dev/null \
-              | python3 -c "import sys,json;d=json.load(sys.stdin);print((d[0] if isinstance(d,list) else d.get('data',[{}])[0]).get('id','') if d else '')" 2>/dev/null) || true
-            if [ -n "$APP_APPLE_ID" ]; then
-              LATEST=$(app-store-connect get-latest-build-number "$APP_APPLE_ID" 2>/dev/null || echo 0)
-              BUILD_NUM=$((LATEST + 1))
-              echo "Latest build on App Store Connect for $BUNDLE_ID: $LATEST → bumping CFBundleVersion to $BUILD_NUM"
-            else
-              echo "Could not resolve Apple App ID for $BUNDLE_ID — falling back to timestamp."
-            fi
-          else
-            echo "App Store Connect credentials not present in env — falling back to timestamp."
-          fi
-          if [ -z "$BUILD_NUM" ]; then
-            BUILD_NUM=$(($(date +%s) / 60))
-            echo "Using timestamp build number: $BUILD_NUM"
-          fi
+          BUILD_NUM=$(($(date +%s) / 60))
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" ios/App/App/Info.plist
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
-      - name: Initialize keychain
+      - name: Add usage descriptions
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'This app does not use the camera.'" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'This app does not access your photo library.'" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'This app does not use the microphone.'" "$PLIST" 2>/dev/null || true
+      - name: Set up keychain and signing
         script: |
           keychain initialize
-      - name: Fetch signing files
-        script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
-      - name: Add certificates to keychain
-        script: |
           keychain add-certificates
-      - name: Apply signing profiles
-        script: |
           xcode-project use-profiles
-      - name: Build iOS
-        script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath build/App.xcarchive \
-            archive
-      - name: Export IPA
-        script: |
-          cd ios/App
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist ../../export_options.plist \
-            -exportPath build/ipa
+      - name: Build and export IPA
+        script: xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
     artifacts:
-      - ios/App/build/ipa/*.ipa
+      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false

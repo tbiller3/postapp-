@@ -26,8 +26,9 @@ workflows:
       - name: Bump build number
         script: |
           set -e
-          BUILD_NUM=$((7576591 / 60))
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" ios/App/App/Info.plist
+          BUILD_NUM=$(($(date +%s) / 60))
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" ios/App/App/Info.plist
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
       - name: Add usage descriptions
         script: |
@@ -38,16 +39,18 @@ workflows:
       - name: Set up keychain and signing
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID"             --type IOS_APP_STORE             --certificate-key=@env:CERTIFICATE_PRIVATE_KEY             --create
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
           keychain add-certificates
-          xcode-project use-profiles --verbose
-          echo "--- Checking CODE_SIGN_STYLE after use-profiles ---"
-          grep -r "CODE_SIGN_STYLE" ios/App/App.xcodeproj/project.pbxproj 2>/dev/null | head -5 || echo "Not found"
-          grep -r "PROVISIONING_PROFILE_SPECIFIER" ios/App/App.xcodeproj/project.pbxproj 2>/dev/null | head -5 || echo "Not found"
+          xcode-project use-profiles
       - name: Build and export IPA
         script: |
           set -e
-          xcode-project build-ipa             --workspace "$XCODE_WORKSPACE"             --scheme "$XCODE_SCHEME"             --             CODE_SIGN_STYLE=Manual             CODE_SIGNING_REQUIRED=YES             DEVELOPMENT_TEAM=""
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

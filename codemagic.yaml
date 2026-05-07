@@ -72,7 +72,7 @@ workflows:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST" 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.6" "$PLIST" 2>/dev/null \
-            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.5" "$PLIST"
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.6" "$PLIST"
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
           echo "Set version 1.6, build $BUILD_NUM"
       - name: Add usage descriptions

@@ -14,6 +14,10 @@ workflows:
     scripts:
       - name: Install dependencies
         script: npm install
+      - name: Copy latest web app build
+        script: |
+          cp services/billing-v26/public/index.html www/index.html
+          echo "Web assets updated from billing-v26/public"
       - name: Add iOS platform
         script: npx cap add ios || true
       - name: Sync Capacitor
@@ -71,10 +75,10 @@ workflows:
           PLIST="ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST" 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $BUILD_NUM" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.6" "$PLIST" 2>/dev/null \
-            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.6" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.7" "$PLIST" 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string 1.7" "$PLIST"
           echo "BUILD_NUMBER=$BUILD_NUM" >> $CM_ENV
-          echo "Set version 1.6, build $BUILD_NUM"
+          echo "Set version 1.7, build $BUILD_NUM"
       - name: Add usage descriptions
         script: |
           PLIST="ios/App/App/Info.plist"

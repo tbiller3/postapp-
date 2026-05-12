@@ -33,13 +33,13 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Shared screen system ── */
+/* ── Screen system ── */
 .screen { display: none; flex-direction: column; min-height: 100vh; padding-bottom: calc(var(--safe-bottom) + 20px); }
 .screen.active { display: flex; }
 .auth-screen { display: none; flex-direction: column; min-height: 100vh; background: var(--bg); }
 .auth-screen.active { display: flex; }
 
-/* ── Existing layout components ── */
+/* ── Layout ── */
 .topbar { padding: calc(var(--safe-top) + 12px) 20px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
 .topbar-back { width: 36px; height: 36px; border-radius: 10px; background: var(--card); border: none; color: var(--accent); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .topbar-title { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
@@ -60,7 +60,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); backgro
 textarea { resize: none; min-height: 90px; line-height: 1.5; }
 select option { background: #141d2e; }
 .field-group { margin-bottom: 4px; }
-.field-hint { font-size: 12px; color: var(--text3); margin-top: -10px; margin-bottom: 14px; }
+.field-hint { font-size: 12px; color: var(--text3); margin-top: -10px; margin-bottom: 14px; line-height: 1.4; }
+.field-hint.warn { color: var(--warn); }
 .btn { width: 100%; padding: 15px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: opacity 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .btn:active { opacity: 0.75; }
 .btn-primary { background: linear-gradient(135deg, #00c8ff, #0080ff); color: #fff; }
@@ -81,20 +82,11 @@ select option { background: #141d2e; }
 .badge-green { background: rgba(0,230,118,0.12); color: var(--accent2); }
 .badge-warn { background: rgba(255,171,0,0.12); color: var(--warn); }
 .badge-danger { background: rgba(255,82,82,0.12); color: var(--danger); }
-.step-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
-.step-row:last-child { border-bottom: none; }
-.step-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
-.step-num.done { background: rgba(0,230,118,0.15); color: var(--accent2); }
-.step-num.active { background: rgba(0,200,255,0.15); color: var(--accent); }
-.step-num.pending { background: var(--surface); color: var(--text3); }
-.step-text { flex: 1; }
-.step-name { font-size: 15px; font-weight: 600; }
-.step-detail { font-size: 12px; color: var(--text2); margin-top: 2px; }
 .status-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .status-row:last-child { border-bottom: none; }
 .status-key { font-size: 13px; color: var(--text2); }
-.status-val { font-size: 13px; font-weight: 600; text-align: right; }
-.toast { position: fixed; bottom: calc(var(--safe-bottom) + 20px); left: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; font-size: 14px; font-weight: 500; display: none; z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.status-val { font-size: 13px; font-weight: 600; text-align: right; max-width: 60%; word-break: break-all; }
+.toast { position: fixed; bottom: calc(var(--safe-bottom) + 20px); left: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; font-size: 14px; font-weight: 500; display: none; z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 .toast.show { display: block; }
 .toast.success { border-color: rgba(0,230,118,0.4); }
 .toast.error { border-color: rgba(255,82,82,0.4); }
@@ -107,390 +99,279 @@ select option { background: #141d2e; }
 .empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 .empty-sub { font-size: 14px; color: var(--text2); line-height: 1.5; }
 .divider { height: 1px; background: var(--border); margin: 20px 0; }
-.charge-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
-.charge-row:last-child { border-bottom: none; }
-.charge-name { font-size: 15px; }
-.charge-price { font-size: 15px; font-weight: 700; color: var(--accent); }
 .api-url { font-size: 11px; color: var(--text3); text-align: center; margin-top: 8px; }
 
-/* ══════════════════════════════════════
-   LOGIN SCREEN STYLES
-   ══════════════════════════════════════ */
-.auth-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 32px 28px;
-  padding-top: calc(var(--safe-top) + 40px);
-  padding-bottom: calc(var(--safe-bottom) + 32px);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-.auth-wordmark {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.auth-wordmark-text {
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 4px;
-  color: var(--accent);
-}
+/* ══ AUTH ══ */
+.auth-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 32px 28px; padding-top: calc(var(--safe-top) + 40px); padding-bottom: calc(var(--safe-bottom) + 32px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.auth-wordmark { text-align: center; margin-bottom: 40px; }
+.auth-wordmark-text { font-size: 28px; font-weight: 900; letter-spacing: 4px; color: var(--accent); }
 .auth-wordmark-text span { color: rgba(255,255,255,0.25); font-weight: 300; }
-.auth-wordmark-sub {
-  font-size: 13px;
-  color: var(--text3);
-  margin-top: 6px;
-  letter-spacing: 0.3px;
-}
-.auth-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  margin-bottom: 7px;
-}
-.auth-input {
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1.5px solid rgba(255,255,255,0.09);
-  border-radius: 13px;
-  padding: 15px 16px;
-  color: var(--text);
-  font-size: 16px;
-  font-family: inherit;
-  outline: none;
-  -webkit-appearance: none;
-  transition: border-color 0.15s, background 0.15s;
-  margin-bottom: 16px;
-}
-.auth-input:focus {
-  border-color: var(--accent);
-  background: rgba(0,200,255,0.04);
-}
+.auth-wordmark-sub { font-size: 13px; color: var(--text3); margin-top: 6px; letter-spacing: 0.3px; }
+.auth-label { display: block; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 7px; }
+.auth-input { width: 100%; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.09); border-radius: 13px; padding: 15px 16px; color: var(--text); font-size: 16px; font-family: inherit; outline: none; -webkit-appearance: none; transition: border-color 0.15s, background 0.15s; margin-bottom: 16px; }
+.auth-input:focus { border-color: var(--accent); background: rgba(0,200,255,0.04); }
 .auth-input::placeholder { color: rgba(255,255,255,0.18); }
-.auth-submit {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  border: none;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  background: linear-gradient(135deg, #00c8ff 0%, #0070f0 100%);
-  color: #fff;
-  font-family: inherit;
-  -webkit-appearance: none;
-  transition: opacity 0.15s;
-  margin-top: 4px;
-  letter-spacing: 0.3px;
-}
+.auth-submit { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, #00c8ff 0%, #0070f0 100%); color: #fff; font-family: inherit; -webkit-appearance: none; transition: opacity 0.15s; margin-top: 4px; letter-spacing: 0.3px; }
 .auth-submit:active { opacity: 0.8; }
 .auth-submit:disabled { opacity: 0.45; }
-.auth-error {
-  background: rgba(255,82,82,0.09);
-  border: 1px solid rgba(255,82,82,0.28);
-  border-radius: 11px;
-  padding: 12px 14px;
-  font-size: 13px;
-  color: #ff9090;
-  margin-bottom: 16px;
-  display: none;
-  text-align: center;
-  line-height: 1.5;
-}
+.auth-error { background: rgba(255,82,82,0.09); border: 1px solid rgba(255,82,82,0.28); border-radius: 11px; padding: 12px 14px; font-size: 13px; color: #ff9090; margin-bottom: 16px; display: none; text-align: center; line-height: 1.5; }
 .auth-error.show { display: block; }
-.auth-links {
-  margin-top: 22px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-.auth-link-row {
-  font-size: 14px;
-  color: var(--text2);
-  cursor: pointer;
-  text-align: center;
-  line-height: 1.5;
-}
+.auth-links { margin-top: 22px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.auth-link-row { font-size: 14px; color: var(--text2); cursor: pointer; text-align: center; line-height: 1.5; }
 .auth-link-row b { color: var(--accent); font-weight: 600; }
-.auth-link-muted {
-  font-size: 13px;
-  color: var(--text3);
-  cursor: pointer;
-}
+.auth-link-muted { font-size: 13px; color: var(--text3); cursor: pointer; }
 .auth-link-muted:active { color: var(--accent); }
 
-/* Loading splash */
-.splash {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 20px;
-  z-index: 9999;
-}
-.splash-logo {
-  font-size: 26px; font-weight: 900;
-  letter-spacing: 4px; color: var(--accent);
-}
+/* Splash */
+.splash { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 9999; }
+.splash-logo { font-size: 26px; font-weight: 900; letter-spacing: 4px; color: var(--accent); }
 .splash-logo span { color: rgba(255,255,255,0.2); font-weight: 300; }
 
 /* Reset success */
-.auth-success {
-  background: rgba(0,230,118,0.09);
-  border: 1px solid rgba(0,230,118,0.28);
-  border-radius: 11px;
-  padding: 14px;
-  font-size: 14px;
-  color: var(--accent2);
-  margin-bottom: 16px;
-  display: none;
-  text-align: center;
-  line-height: 1.5;
-}
+.auth-success { background: rgba(0,230,118,0.09); border: 1px solid rgba(0,230,118,0.28); border-radius: 11px; padding: 14px; font-size: 14px; color: var(--accent2); margin-bottom: 16px; display: none; text-align: center; line-height: 1.5; }
 .auth-success.show { display: block; }
 
-/* Sign-out button inside app */
-.sign-out-btn {
-  width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,82,82,0.22);
-  background: rgba(255,82,82,0.07);
-  color: #ff8080;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  -webkit-appearance: none;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
+/* Sign-out btn */
+.sign-out-btn { width: 100%; padding: 14px; margin-top: 10px; border-radius: 12px; border: 1px solid rgba(255,82,82,0.22); background: rgba(255,82,82,0.07); color: #ff8080; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; -webkit-appearance: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .sign-out-btn:active { opacity: 0.75; }
 
-/* User avatar chip */
-.user-chip {
-  display: flex; align-items: center; gap: 8px;
-}
-.user-initial {
-  width: 30px; height: 30px; border-radius: 50%;
-  background: linear-gradient(135deg, #00c8ff, #0060d0);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
+/* User chip */
+.user-chip { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.user-initial { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00c8ff, #0060d0); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+
+/* ══ HELP ACCORDION ══ */
+.help-accordion { margin-bottom: 14px; }
+.help-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; background: rgba(0,200,255,0.06); border: 1px solid rgba(0,200,255,0.18); border-radius: 12px; padding: 14px 16px; cursor: pointer; font-family: inherit; color: var(--accent); font-size: 14px; font-weight: 600; -webkit-appearance: none; }
+.help-arrow { font-size: 11px; transition: transform 0.2s; display: inline-block; }
+.help-toggle.open .help-arrow { transform: rotate(180deg); }
+.help-body { display: none; background: rgba(0,200,255,0.03); border: 1px solid rgba(0,200,255,0.12); border-top: none; border-radius: 0 0 12px 12px; padding: 16px; margin-top: -1px; }
+.help-body.open { display: block; }
+.help-step { display: flex; gap: 12px; margin-bottom: 14px; }
+.help-step:last-child { margin-bottom: 0; }
+.help-num { width: 22px; height: 22px; border-radius: 50%; background: rgba(0,200,255,0.15); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.help-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.help-text b { color: var(--text); font-weight: 600; }
+
+/* ══ BUILD POLL ══ */
+.poll-box { background: rgba(0,200,255,0.05); border: 1px solid rgba(0,200,255,0.18); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+.poll-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+.poll-label { font-size: 12px; color: var(--text2); }
+.poll-value { font-size: 13px; font-weight: 600; }
+.poll-countdown { font-size: 11px; color: var(--text3); text-align: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.build-badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+.build-badge.queued  { background: rgba(255,171,0,0.12); color: var(--warn); }
+.build-badge.running { background: rgba(0,200,255,0.12); color: var(--accent); }
+.build-badge.finished { background: rgba(0,230,118,0.12); color: var(--accent2); }
+.build-badge.failed  { background: rgba(255,82,82,0.12); color: var(--danger); }
+
+/* ══ INFO BANNER ══ */
+.info-banner { background: rgba(0,200,255,0.06); border: 1px solid rgba(0,200,255,0.15); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 14px; }
+.info-banner b { color: var(--accent); }
+
+/* ══ HISTORY ══ */
+.history-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; }
+.history-app { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.history-meta { font-size: 12px; color: var(--text2); }
+
+/* ══ ACCOUNT ══ */
+.acct-avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #00c8ff, #0060d0); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; color: #fff; margin: 0 auto 14px; }
+.acct-email { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 4px; }
+.acct-since { font-size: 12px; color: var(--text3); text-align: center; margin-bottom: 28px; }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════
-     SPLASH  — shown while Firebase checks auth
-     ══════════════════════════════════════════════ -->
+<!-- ══ SPLASH ══ -->
 <div class="splash" id="splash">
   <div class="splash-logo">&gt;_ POST<span>APP</span></div>
   <div class="spinner" style="width:26px;height:26px;border-width:3px;"></div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     SIGN IN SCREEN
-     ══════════════════════════════════════════════ -->
+<!-- ══ SIGN IN ══ -->
 <div class="auth-screen" id="screen-login">
   <div class="auth-body">
-
     <div class="auth-wordmark">
       <div class="auth-wordmark-text">&gt;_ POST<span>APP</span></div>
       <div class="auth-wordmark-sub">App Store Submission Manager</div>
     </div>
-
     <div class="auth-error" id="login-error"></div>
-
     <label class="auth-label">Email</label>
-    <input class="auth-input" type="email" id="login-email"
-      placeholder="you@example.com"
-      autocomplete="email" autocorrect="off"
-      autocapitalize="none" spellcheck="false"
+    <input class="auth-input" type="email" id="login-email" placeholder="you@example.com"
+      autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
       onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
-
     <label class="auth-label">Password</label>
-    <input class="auth-input" type="password" id="login-pw"
-      placeholder="••••••••"
+    <input class="auth-input" type="password" id="login-pw" placeholder="••••••••"
       autocomplete="current-password"
       onkeydown="if(event.key==='Enter')doSignIn()">
-
-    <button class="auth-submit" id="login-btn" onclick="doSignIn()">
-      Sign In
-    </button>
-
+    <button class="auth-submit" id="login-btn" onclick="doSignIn()">Sign In</button>
     <div class="auth-links">
-      <div class="auth-link-row" onclick="showAuth('screen-register')">
-        New here? <b>Create a free account</b>
-      </div>
-      <div class="auth-link-muted" onclick="showAuth('screen-reset')">
-        Forgot your password?
-      </div>
+      <div class="auth-link-row" onclick="showAuth('screen-register')">New here? <b>Create a free account</b></div>
+      <div class="auth-link-muted" onclick="showAuth('screen-reset')">Forgot your password?</div>
     </div>
-
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     CREATE ACCOUNT SCREEN
-     ══════════════════════════════════════════════ -->
+<!-- ══ CREATE ACCOUNT ══ -->
 <div class="auth-screen" id="screen-register">
   <div class="auth-body">
-
     <div class="auth-wordmark">
       <div class="auth-wordmark-text">&gt;_ POST<span>APP</span></div>
       <div class="auth-wordmark-sub">Create your account</div>
     </div>
-
     <div class="auth-error" id="register-error"></div>
-
     <label class="auth-label">Email</label>
-    <input class="auth-input" type="email" id="reg-email"
-      placeholder="you@example.com"
-      autocomplete="email" autocorrect="off"
-      autocapitalize="none" spellcheck="false"
+    <input class="auth-input" type="email" id="reg-email" placeholder="you@example.com"
+      autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
       onkeydown="if(event.key==='Enter')document.getElementById('reg-pw').focus()">
-
     <label class="auth-label">Password <span style="font-weight:400;text-transform:none;letter-spacing:0;">(min 6 characters)</span></label>
-    <input class="auth-input" type="password" id="reg-pw"
-      placeholder="••••••••"
+    <input class="auth-input" type="password" id="reg-pw" placeholder="••••••••"
       autocomplete="new-password"
       onkeydown="if(event.key==='Enter')document.getElementById('reg-pw2').focus()">
-
     <label class="auth-label">Confirm Password</label>
-    <input class="auth-input" type="password" id="reg-pw2"
-      placeholder="••••••••"
+    <input class="auth-input" type="password" id="reg-pw2" placeholder="••••••••"
       autocomplete="new-password"
       onkeydown="if(event.key==='Enter')doCreateAccount()">
-
-    <button class="auth-submit" id="register-btn" onclick="doCreateAccount()">
-      Create Account
-    </button>
-
+    <button class="auth-submit" id="register-btn" onclick="doCreateAccount()">Create Account</button>
     <div class="auth-links">
-      <div class="auth-link-row" onclick="showAuth('screen-login')">
-        Already have an account? <b>Sign In</b>
-      </div>
+      <div class="auth-link-row" onclick="showAuth('screen-login')">Already have an account? <b>Sign In</b></div>
     </div>
-
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     FORGOT PASSWORD SCREEN
-     ══════════════════════════════════════════════ -->
+<!-- ══ FORGOT PASSWORD ══ -->
 <div class="auth-screen" id="screen-reset">
   <div class="auth-body">
-
     <div class="auth-wordmark">
       <div class="auth-wordmark-text">&gt;_ POST<span>APP</span></div>
       <div class="auth-wordmark-sub">Reset your password</div>
     </div>
-
     <div class="auth-error" id="reset-error"></div>
-
     <div class="auth-success" id="reset-success">
       ✅ Check your inbox — a reset link is on its way. Click it to set a new password, then come back and sign in.
     </div>
-
     <p style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;">
       Enter your email and we'll send a password reset link straight to your inbox.
     </p>
-
     <label class="auth-label">Email</label>
-    <input class="auth-input" type="email" id="reset-email"
-      placeholder="you@example.com"
-      autocomplete="email" autocorrect="off"
-      autocapitalize="none" spellcheck="false"
+    <input class="auth-input" type="email" id="reset-email" placeholder="you@example.com"
+      autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
       onkeydown="if(event.key==='Enter')doReset()">
-
-    <button class="auth-submit" id="reset-btn" onclick="doReset()">
-      Send Reset Link
-    </button>
-
+    <button class="auth-submit" id="reset-btn" onclick="doReset()">Send Reset Link</button>
     <div class="auth-links">
-      <div class="auth-link-row" onclick="showAuth('screen-login')">
-        Back to <b>Sign In</b>
-      </div>
+      <div class="auth-link-row" onclick="showAuth('screen-login')">Back to <b>Sign In</b></div>
     </div>
-
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     EXISTING APP SCREENS
-     ══════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════
+     APP SCREENS
+     ════════════════════════════════════════ -->
 
-<!-- Welcome / Credentials -->
+<!-- ══ CREDENTIALS / SETTINGS ══ -->
 <div class="screen" id="screen-welcome">
   <div class="logo-bar">
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="logo">&gt;_ POST<span>APP</span></div>
-      <div class="user-chip">
+      <div class="user-chip" onclick="showScreen('screen-account')">
         <div class="user-initial" id="user-initial">?</div>
       </div>
     </div>
   </div>
   <div class="scroll">
-    <div class="hero">
-      <div class="hero-icon">🚀</div>
-      <div class="hero-title">App Store, Automated.</div>
-      <div class="hero-sub">Enter your Apple Developer credentials once. POSTAPP handles every step of your submission.</div>
+    <div class="hero" style="padding-top:24px;padding-bottom:20px;">
+      <div class="hero-icon">🔑</div>
+      <div class="hero-title" style="font-size:22px;">Connect to App Store</div>
+      <div class="hero-sub">Enter your Apple Developer API credentials once. POSTAPP handles everything else.</div>
+    </div>
+
+    <!-- ── Help accordion ── -->
+    <div class="help-accordion">
+      <button class="help-toggle" id="help-btn" onclick="toggleHelp()">
+        <span>📖 How to get your credentials</span>
+        <span class="help-arrow">▼</span>
+      </button>
+      <div class="help-body" id="help-body">
+        <div class="help-step">
+          <div class="help-num">1</div>
+          <div class="help-text">Go to <b>appstoreconnect.apple.com</b> and sign in with your Apple Developer account.</div>
+        </div>
+        <div class="help-step">
+          <div class="help-num">2</div>
+          <div class="help-text">Tap <b>Users and Access</b> in the top menu, then choose <b>Integrations → App Store Connect API</b>.</div>
+        </div>
+        <div class="help-step">
+          <div class="help-num">3</div>
+          <div class="help-text">Click <b>Generate API Key</b>. Give it any name and set the role to <b>Admin</b>.</div>
+        </div>
+        <div class="help-step">
+          <div class="help-num">4</div>
+          <div class="help-text">Copy the <b>Issuer ID</b> shown at the top of the page, and the <b>Key ID</b> shown next to your new key.</div>
+        </div>
+        <div class="help-step">
+          <div class="help-num">5</div>
+          <div class="help-text">Click <b>Download API Key</b> to get the .p8 file. Open it in any text editor and paste the full contents into the Private Key field below.</div>
+        </div>
+        <div class="help-step">
+          <div class="help-num">6</div>
+          <div class="help-text"><b>Codemagic Token (optional):</b> Log in to <b>codemagic.io</b>, go to <b>Teams → Integrations → Codemagic API</b>, and copy your token. Only required to trigger builds directly from this app.</div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
       <div class="card-title">Apple Developer Credentials</div>
       <div class="field-group">
         <label>Issuer ID</label>
-        <input id="cred-issuer" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Found in App Store Connect → Users → Keys</div>
+        <input id="cred-issuer" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">App Store Connect → Users & Access → Integrations → App Store Connect API</div>
       </div>
       <div class="field-group">
         <label>Key ID</label>
-        <input id="cred-keyid" type="text" placeholder="XXXXXXXXXX" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+        <input id="cred-keyid" type="text" placeholder="XXXXXXXXXX"
+          autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
       </div>
       <div class="field-group">
-        <label>Private Key (.p8)</label>
-        <textarea id="cred-key" placeholder="-----BEGIN PRIVATE KEY-----&#10;...paste your .p8 file contents...&#10;-----END PRIVATE KEY-----" autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
+        <label>Private Key (.p8 file contents)</label>
+        <textarea id="cred-key"
+          placeholder="-----BEGIN PRIVATE KEY-----&#10;...paste the full contents of your .p8 file here...&#10;-----END PRIVATE KEY-----"
+          autocorrect="off" autocapitalize="none" spellcheck="false"></textarea>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Build Service (Optional)</div>
+      <div class="card-title">Build Service <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">(Optional)</span></div>
       <div class="field-group">
         <label>Codemagic API Token</label>
-        <input id="cred-codemagic" type="text" placeholder="Your Codemagic token" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Required to trigger iOS builds. Get it from codemagic.io → Teams → Settings</div>
+        <input id="cred-codemagic" type="text" placeholder="Your Codemagic API token"
+          autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">codemagic.io → Teams → Integrations → Codemagic API</div>
       </div>
     </div>
 
     <button class="btn btn-primary" onclick="saveCredentials()">
       <span>Connect to App Store Connect</span> →
     </button>
-
-    <p class="api-url">Credentials are stored on this device only</p>
-
-    <button class="sign-out-btn" onclick="doSignOut()">
-      Sign Out
-    </button>
+    <p class="api-url" style="margin-top:10px;">🔒 Credentials stored on this device only — never sent to third parties</p>
+    <button class="sign-out-btn" onclick="doSignOut()">🚪 Sign Out</button>
   </div>
 </div>
 
-<!-- App List -->
+<!-- ══ APP LIST ══ -->
 <div class="screen" id="screen-apps">
   <div class="logo-bar">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div>
         <div class="logo">&gt;_ POST<span>APP</span></div>
         <div style="font-size:12px;color:var(--text2);margin-top:2px;">Your Apps</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-welcome')">Settings</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-history')">📋</button>
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-account')">
+          <div class="user-initial" id="user-initial-apps" style="width:22px;height:22px;font-size:11px;">?</div>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="showScreen('screen-welcome')">⚙️</button>
+      </div>
     </div>
   </div>
   <div class="scroll" id="apps-list">
@@ -504,7 +385,7 @@ select option { background: #141d2e; }
   </div>
 </div>
 
-<!-- Submission Setup -->
+<!-- ══ SUBMISSION SETUP ══ -->
 <div class="screen" id="screen-setup">
   <div class="topbar">
     <button class="topbar-back" onclick="showScreen('screen-apps')">←</button>
@@ -517,40 +398,47 @@ select option { background: #141d2e; }
     <div class="card">
       <div class="card-title">App Store Metadata</div>
       <div class="field-group">
-        <label>App Name</label>
+        <label>App Name <span style="color:var(--danger);font-weight:400;text-transform:none;">*</span></label>
         <input id="meta-name" type="text" placeholder="My App" autocorrect="off">
       </div>
       <div class="field-group">
-        <label>Subtitle</label>
-        <input id="meta-subtitle" type="text" placeholder="Short tagline (30 chars max)" autocorrect="off">
+        <label>Subtitle <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional, 30 chars max)</span></label>
+        <input id="meta-subtitle" type="text" placeholder="Short tagline for your app" autocorrect="off">
       </div>
       <div class="field-group">
-        <label>Description</label>
-        <textarea id="meta-desc" placeholder="Describe what your app does..." style="min-height:120px;"></textarea>
+        <label>Description <span style="color:var(--danger);font-weight:400;text-transform:none;">*</span></label>
+        <textarea id="meta-desc" placeholder="Describe what your app does (at least 50 characters)..." style="min-height:120px;"></textarea>
       </div>
       <div class="field-group">
-        <label>Keywords</label>
-        <input id="meta-keywords" type="text" placeholder="keyword1, keyword2, keyword3" autocorrect="off" autocapitalize="none">
-        <div class="field-hint">Comma-separated, 100 chars max total</div>
+        <label>Keywords <span style="color:var(--danger);font-weight:400;text-transform:none;">*</span></label>
+        <input id="meta-keywords" type="text" placeholder="keyword1, keyword2, keyword3"
+          autocorrect="off" autocapitalize="none">
+        <div class="field-hint">Comma-separated · 100 characters max total · boosts App Store discoverability</div>
       </div>
       <div class="field-group">
-        <label>What's New (for updates)</label>
-        <textarea id="meta-whatsnew" placeholder="What changed in this version? Leave blank for new apps." style="min-height:70px;"></textarea>
+        <label>What's New <span id="whatsnew-req" style="font-weight:400;text-transform:none;letter-spacing:0;"></span></label>
+        <textarea id="meta-whatsnew" placeholder="Describe what changed in this version..." style="min-height:70px;"></textarea>
+        <div class="field-hint warn" id="whatsnew-hint" style="display:none;">⚠️ Required for app updates — Apple will reject without it</div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">URLs</div>
       <div class="field-group">
-        <label>Support URL</label>
-        <input id="meta-support" type="url" placeholder="https://yoursite.com/support" autocorrect="off" autocapitalize="none">
+        <label>Support URL <span style="color:var(--danger);font-weight:400;text-transform:none;">*</span></label>
+        <input id="meta-support" type="url" placeholder="https://yoursite.com/support"
+          autocorrect="off" autocapitalize="none">
+        <div class="field-hint">Must be a live, working URL — Apple will check this</div>
       </div>
       <div class="field-group">
-        <label>Marketing URL (optional)</label>
-        <input id="meta-marketing" type="url" placeholder="https://yoursite.com" autocorrect="off" autocapitalize="none">
+        <label>Marketing URL <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input id="meta-marketing" type="url" placeholder="https://yoursite.com"
+          autocorrect="off" autocapitalize="none">
       </div>
       <div class="field-group">
-        <label>Privacy Policy URL</label>
-        <input id="meta-privacy" type="url" placeholder="https://yoursite.com/privacy" autocorrect="off" autocapitalize="none">
+        <label>Privacy Policy URL <span style="color:var(--danger);font-weight:400;text-transform:none;">*</span></label>
+        <input id="meta-privacy" type="url" placeholder="https://yoursite.com/privacy"
+          autocorrect="off" autocapitalize="none">
+        <div class="field-hint">Required for all App Store apps</div>
       </div>
     </div>
     <div class="card">
@@ -558,17 +446,19 @@ select option { background: #141d2e; }
       <div class="field-group">
         <label>Version Number</label>
         <input id="meta-version" type="text" placeholder="1.0" value="1.0" autocorrect="off">
+        <div class="field-hint" id="version-hint"></div>
       </div>
       <div class="field-group">
         <label>Bundle ID</label>
-        <input id="meta-bundle" type="text" placeholder="com.company.appname" autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input id="meta-bundle" type="text" placeholder="com.company.appname"
+          autocorrect="off" autocapitalize="none" spellcheck="false">
       </div>
     </div>
     <button class="btn btn-primary" onclick="goToBuild()">Continue → Build</button>
   </div>
 </div>
 
-<!-- Build -->
+<!-- ══ BUILD ══ -->
 <div class="screen" id="screen-build">
   <div class="topbar">
     <button class="topbar-back" onclick="showScreen('screen-setup')">←</button>
@@ -579,43 +469,60 @@ select option { background: #141d2e; }
   </div>
   <div class="scroll">
     <div class="card">
-      <div class="card-title">Option A — Trigger a Build</div>
+      <div class="card-title">Option A — Trigger a New Build</div>
       <div class="field-group">
         <label>Codemagic App ID</label>
-        <input id="build-app-id" type="text" placeholder="69d8fe93edc544..." autocorrect="off" autocapitalize="none" spellcheck="false">
+        <input id="build-app-id" type="text" placeholder="69d8fe93edc544..."
+          autocorrect="off" autocapitalize="none" spellcheck="false">
         <div class="field-hint">Found in your Codemagic app settings URL</div>
       </div>
       <div class="field-group">
         <label>Workflow ID</label>
-        <input id="build-workflow" type="text" value="ios-release" autocorrect="off" autocapitalize="none">
+        <input id="build-workflow" type="text" value="ios-release"
+          autocorrect="off" autocapitalize="none">
       </div>
       <div class="field-group">
         <label>Branch</label>
-        <input id="build-branch" type="text" value="main" autocorrect="off" autocapitalize="none">
+        <input id="build-branch" type="text" value="main"
+          autocorrect="off" autocapitalize="none">
       </div>
-      <button class="btn btn-ghost" onclick="triggerBuild()">Trigger Build</button>
-      <div id="build-status-box" style="display:none;margin-top:14px;">
-        <div class="status-row"><span class="status-key">Build ID</span><span class="status-val" id="build-id-label">—</span></div>
-        <div class="status-row"><span class="status-key">Status</span><span class="status-val" id="build-status-label">—</span></div>
-        <div id="build-poll-btn-wrap" style="margin-top:12px;display:none;">
-          <button class="btn btn-ghost" onclick="pollBuild()">Check Build Status</button>
+      <button class="btn btn-ghost" id="trigger-build-btn" onclick="triggerBuild()">⚡ Trigger Build</button>
+
+      <!-- Auto-poll status box -->
+      <div class="poll-box" id="poll-box" style="display:none;">
+        <div class="poll-row">
+          <span class="poll-label">Build ID</span>
+          <span class="poll-value" id="build-id-label" style="font-size:11px;color:var(--text3);">—</span>
         </div>
+        <div class="poll-row">
+          <span class="poll-label">Status</span>
+          <span class="build-badge queued" id="build-status-label">Queued</span>
+        </div>
+        <div class="poll-row" id="poll-duration-row" style="display:none;">
+          <span class="poll-label">Build Time</span>
+          <span class="poll-value" id="build-duration-label">—</span>
+        </div>
+        <div class="poll-countdown" id="poll-countdown">Checking automatically…</div>
       </div>
     </div>
+
     <div class="divider"></div>
+
     <div class="card">
-      <div class="card-title">Option B — Use Existing Build</div>
+      <div class="card-title">Option B — Use an Existing Build</div>
       <div class="field-group">
         <label>Build UUID (from App Store Connect)</label>
-        <input id="build-existing-id" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocorrect="off" autocapitalize="none" spellcheck="false">
-        <div class="field-hint">Paste the build ID of a VALID build in App Store Connect</div>
+        <input id="build-existing-id" type="text"
+          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          autocorrect="off" autocapitalize="none" spellcheck="false">
+        <div class="field-hint">Paste the ID of a valid, processed build from App Store Connect</div>
       </div>
     </div>
     <button class="btn btn-primary" onclick="goToSubmit()">Continue → Review & Submit</button>
   </div>
 </div>
 
-<!-- Submit -->
+<!-- ══ SUBMIT ══ -->
 <div class="screen" id="screen-submit">
   <div class="topbar">
     <button class="topbar-back" onclick="showScreen('screen-build')">←</button>
@@ -630,30 +537,38 @@ select option { background: #141d2e; }
     </div>
     <div class="card">
       <div class="card-title">Review Notes for Apple</div>
-      <div class="field-group">
-        <label>Demo Account (if required)</label>
-        <input id="review-email" type="email" placeholder="test@example.com" autocorrect="off" autocapitalize="none">
+      <div class="info-banner">
+        💡 Apple reviewers need a demo account to test your app. These notes are <b>saved per app</b> — you only have to enter them once.
       </div>
       <div class="field-group">
-        <label>Demo Password</label>
-        <input id="review-password" type="text" placeholder="password123" autocorrect="off" autocapitalize="none">
+        <label>Demo Account Email</label>
+        <input id="review-email" type="email" placeholder="testuser@example.com"
+          autocorrect="off" autocapitalize="none"
+          onblur="autoSaveReviewNotes()">
+      </div>
+      <div class="field-group">
+        <label>Demo Account Password</label>
+        <input id="review-password" type="text" placeholder="Enter demo password"
+          autocorrect="off" autocapitalize="none"
+          onblur="autoSaveReviewNotes()">
       </div>
       <div class="field-group">
         <label>Notes for Reviewer</label>
-        <textarea id="review-notes" placeholder="Any special instructions for the Apple reviewer..." style="min-height:80px;"></textarea>
+        <textarea id="review-notes"
+          placeholder="Any special instructions for the Apple reviewer (e.g. how to navigate the app, which features to test)..."
+          style="min-height:80px;"
+          oninput="autoSaveReviewNotes()"></textarea>
       </div>
     </div>
-    <div id="submit-btn-area">
-      <button class="btn btn-primary" onclick="runFullSubmission()">🚀 Submit to App Store</button>
-    </div>
+    <button class="btn btn-success" onclick="runFullSubmission()">🚀 Submit to App Store</button>
   </div>
 </div>
 
-<!-- Progress -->
+<!-- ══ PROGRESS ══ -->
 <div class="screen" id="screen-progress">
   <div class="topbar">
     <div>
-      <div class="topbar-title">Submitting...</div>
+      <div class="topbar-title">Submitting…</div>
       <div class="topbar-sub" id="progress-sub">Working on it</div>
     </div>
   </div>
@@ -667,7 +582,7 @@ select option { background: #141d2e; }
   </div>
 </div>
 
-<!-- Done -->
+<!-- ══ DONE ══ -->
 <div class="screen" id="screen-done">
   <div class="logo-bar"><div class="logo">&gt;_ POST<span>APP</span></div></div>
   <div class="scroll">
@@ -677,22 +592,78 @@ select option { background: #141d2e; }
       <div class="hero-sub" id="done-sub">Your app is now in Apple's review queue.</div>
     </div>
     <div class="card" id="done-details"></div>
-    <button class="btn btn-ghost" onclick="showScreen('screen-apps')" style="margin-top:10px;">Back to My Apps</button>
-    <button class="btn btn-ghost btn-danger" onclick="startOver()" style="margin-top:10px;">Start New Submission</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-apps')" style="margin-top:10px;">← Back to My Apps</button>
+    <button class="btn btn-ghost" onclick="showScreen('screen-history')" style="margin-top:10px;">📋 View History</button>
+    <button class="btn btn-danger" onclick="startOver()" style="margin-top:10px;">Start New Submission</button>
+  </div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="screen" id="screen-history">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-apps')">←</button>
+    <div>
+      <div class="topbar-title">Submission History</div>
+      <div class="topbar-sub">Your past submissions</div>
+    </div>
+  </div>
+  <div class="scroll" id="history-list">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No submissions yet</div>
+      <div class="empty-sub">After your first successful submission, you'll see a full log here.</div>
+    </div>
+  </div>
+  <div style="padding:0 20px 10px;">
+    <button class="btn btn-danger" style="opacity:0.7;" onclick="clearHistory()">Clear History</button>
+  </div>
+</div>
+
+<!-- ══ ACCOUNT ══ -->
+<div class="screen" id="screen-account">
+  <div class="topbar">
+    <button class="topbar-back" onclick="showScreen('screen-apps')">←</button>
+    <div>
+      <div class="topbar-title">My Account</div>
+      <div class="topbar-sub">Account & settings</div>
+    </div>
+  </div>
+  <div class="scroll">
+    <div style="padding-top:20px;">
+      <div class="acct-avatar" id="acct-avatar">?</div>
+      <div class="acct-email" id="acct-email-display">—</div>
+      <div class="acct-since" id="acct-since">—</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Account</div>
+      <div class="status-row">
+        <span class="status-key">Email</span>
+        <span class="status-val" id="acct-email-val" style="font-size:12px;">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Total Submissions</span>
+        <span class="status-val" id="acct-submission-count">0</span>
+      </div>
+      <div class="status-row">
+        <span class="status-key">Apps Connected</span>
+        <span class="status-val" id="acct-app-count">—</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Navigation</div>
+      <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="showScreen('screen-welcome')">⚙️ Manage Credentials</button>
+      <button class="btn btn-ghost" onclick="showScreen('screen-history')">📋 View Submission History</button>
+    </div>
+    <button class="sign-out-btn" onclick="doSignOut()">🚪 Sign Out</button>
+    <p class="api-url" style="margin-top:14px;">POSTAPP v2.0 · App Store Submission Manager</p>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- ══════════════════════════════════════════════
+<!-- ════════════════════════════════════════
      FIREBASE AUTH
-     ══════════════════════════════════════════════
-     HOW TO FILL THIS IN:
-     1. Go to console.firebase.google.com
-     2. Open your project → click the gear ⚙ → Project Settings
-     3. Scroll down to "Your apps" → click your web app (or add one)
-     4. Copy the firebaseConfig values and paste them below
-     ══════════════════════════════════════════════ -->
+     ════════════════════════════════════════ -->
 <script type="module">
 import { initializeApp }
   from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js';
@@ -701,9 +672,6 @@ import { initializeAuth, browserLocalPersistence, onAuthStateChanged,
          sendPasswordResetEmail, signOut }
   from 'https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js';
 
-/* ─────────────────────────────────────────────
-   PASTE YOUR FIREBASE CONFIG HERE
-   ───────────────────────────────────────────── */
 const firebaseConfig = {
   apiKey:            "AIzaSyA0Q4uaX7fGE0ON5LsTJ-YFwq7IGpbCQIY",
   authDomain:        "postapp3.firebaseapp.com",
@@ -712,22 +680,15 @@ const firebaseConfig = {
   messagingSenderId: "504608928810",
   appId:             "1:504608928810:web:8204115d151ebd8dbb3f53"
 };
-/* ───────────────────────────────────────────── */
 
 const app  = initializeApp(firebaseConfig);
 const auth = initializeAuth(app, { persistence: browserLocalPersistence });
 
-// ── Watch auth state — this runs on every app open ──
 onAuthStateChanged(auth, user => {
   hideSplash();
-  if (user) {
-    afterLogin(user);
-  } else {
-    showAuth('screen-login');
-  }
+  if (user) { afterLogin(user); } else { showAuth('screen-login'); }
 });
 
-// ── Sign In ──
 window.doSignIn = async function() {
   clearErr('login-error');
   const email = document.getElementById('login-email').value.trim();
@@ -743,7 +704,6 @@ window.doSignIn = async function() {
   }
 };
 
-// ── Create Account ──
 window.doCreateAccount = async function() {
   clearErr('register-error');
   const email = document.getElementById('reg-email').value.trim();
@@ -762,7 +722,6 @@ window.doCreateAccount = async function() {
   }
 };
 
-// ── Password Reset ──
 window.doReset = async function() {
   clearErr('reset-error');
   const email = document.getElementById('reset-email').value.trim();
@@ -778,32 +737,45 @@ window.doReset = async function() {
   }
 };
 
-// ── Sign Out ──
 window.doSignOut = async function() {
   try { await signOut(auth); } catch(e) {}
   showAuth('screen-login');
 };
 
-// ── After successful login ──
+window._currentUser = null;
+
 function afterLogin(user) {
-  // Show user's first initial in the avatar chip
+  window._currentUser = user;
   const letter = (user.displayName || user.email || '?').charAt(0).toUpperCase();
-  const el = document.getElementById('user-initial');
-  if (el) el.textContent = letter;
-  // Hand off to existing app logic
+  // Set initials everywhere
+  ['user-initial','user-initial-apps'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = letter;
+  });
+  // Account screen
+  const avatarEl = document.getElementById('acct-avatar');
+  if (avatarEl) avatarEl.textContent = letter;
+  const emailDisplay = document.getElementById('acct-email-display');
+  if (emailDisplay) emailDisplay.textContent = user.email || '';
+  const emailVal = document.getElementById('acct-email-val');
+  if (emailVal) emailVal.textContent = user.email || '';
+  const sinceEl = document.getElementById('acct-since');
+  if (sinceEl && user.metadata?.creationTime) {
+    sinceEl.textContent = 'Member since ' + new Date(user.metadata.creationTime)
+      .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+  updateAccountStats();
   if (typeof loadSavedCreds === 'function') loadSavedCreds();
 }
 
-// ── Auth screen switcher ──
 window.showAuth = function(id) {
   document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   hideSplash();
   const el = document.getElementById(id);
-  if (el) { el.classList.add('active'); window.scrollTo(0,0); }
+  if (el) { el.classList.add('active'); window.scrollTo(0, 0); }
 };
 
-// ── Helpers ──
 function hideSplash() {
   const s = document.getElementById('splash');
   if (s) s.style.display = 'none';
@@ -824,33 +796,41 @@ function setBtnLoading(id, loading, label) {
 }
 function niceError(code) {
   return ({
-    'auth/user-not-found':        'No account found with that email. Want to create one?',
-    'auth/wrong-password':        'Incorrect password. Please try again.',
-    'auth/invalid-credential':    'Incorrect email or password. Please try again.',
-    'auth/email-already-in-use':  'An account with this email already exists. Try signing in.',
-    'auth/weak-password':         'Password must be at least 6 characters.',
-    'auth/invalid-email':         'Please enter a valid email address.',
-    'auth/too-many-requests':     'Too many attempts. Please wait a moment and try again.',
-    'auth/network-request-failed':'No internet connection. Please check your network.',
+    'auth/user-not-found':         'No account found with that email. Want to create one?',
+    'auth/wrong-password':         'Incorrect password. Please try again.',
+    'auth/invalid-credential':     'Incorrect email or password. Please try again.',
+    'auth/email-already-in-use':   'An account with this email already exists. Try signing in.',
+    'auth/weak-password':          'Password must be at least 6 characters.',
+    'auth/invalid-email':          'Please enter a valid email address.',
+    'auth/too-many-requests':      'Too many attempts. Please wait a moment and try again.',
+    'auth/network-request-failed': 'No internet connection. Please check your network.',
   })[code] || 'Something went wrong. Please try again.';
 }
 </script>
 
-<!-- ══════════════════════════════════════════════
-     EXISTING APP JAVASCRIPT
-     ══════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════
+     APP LOGIC
+     ════════════════════════════════════════ -->
 <script>
 const API = 'https://app-export-tool.replit.app/api';
 let creds = {};
 let selectedApp = null;
+let triggeredBuildId = null;
+let _pollInterval = null;
+let _pollCountdown = 30;
 
+/* ─────────────────────────────────────────
+   CREDENTIALS
+───────────────────────────────────────── */
 function saveCredentials() {
   const issuer     = document.getElementById('cred-issuer').value.trim();
   const keyId      = document.getElementById('cred-keyid').value.trim();
   const privateKey = document.getElementById('cred-key').value.trim();
   const codemagic  = document.getElementById('cred-codemagic').value.trim();
-  if (!issuer || !keyId || !privateKey) return showToast('Please fill in all Apple credential fields.', 'error');
-  if (!privateKey.includes('BEGIN PRIVATE KEY')) return showToast('Private key must start with -----BEGIN PRIVATE KEY-----', 'error');
+  if (!issuer || !keyId || !privateKey)
+    return showToast('Please fill in all three Apple credential fields.', 'error');
+  if (!privateKey.includes('BEGIN PRIVATE KEY'))
+    return showToast('Private key must start with -----BEGIN PRIVATE KEY-----', 'error');
   creds = { issuer, keyId, privateKey, codemagic };
   localStorage.setItem('postapp_creds', JSON.stringify(creds));
   loadApps();
@@ -861,132 +841,365 @@ function loadSavedCreds() {
     const saved = localStorage.getItem('postapp_creds');
     if (saved) {
       creds = JSON.parse(saved);
-      document.getElementById('cred-issuer').value   = creds.issuer || '';
-      document.getElementById('cred-keyid').value    = creds.keyId  || '';
-      document.getElementById('cred-key').value      = creds.privateKey || '';
-      document.getElementById('cred-codemagic').value = creds.codemagic || '';
+      document.getElementById('cred-issuer').value    = creds.issuer     || '';
+      document.getElementById('cred-keyid').value     = creds.keyId      || '';
+      document.getElementById('cred-key').value       = creds.privateKey || '';
+      document.getElementById('cred-codemagic').value = creds.codemagic  || '';
       if (creds.issuer && creds.keyId && creds.privateKey) { loadApps(); return; }
     }
   } catch(e) {}
   showScreen('screen-welcome');
 }
 
+/* ─────────────────────────────────────────
+   APPLE API PROXY
+───────────────────────────────────────── */
 async function appleProxy(path, method = 'GET', body = null) {
-  const payload = { issuerId: creds.issuer, keyId: creds.keyId, privateKey: creds.privateKey, method, path };
+  const payload = {
+    issuerId: creds.issuer, keyId: creds.keyId,
+    privateKey: creds.privateKey, method, path
+  };
   if (body) payload.body = body;
-  const res = await fetch(API + '/mobile/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const res = await fetch(API + '/mobile/proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
   return res.json();
 }
 
+/* ─────────────────────────────────────────
+   LOAD APPS
+───────────────────────────────────────── */
 async function loadApps() {
   showScreen('screen-apps');
   const list = document.getElementById('apps-list');
-  list.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 16px;"></div><div class="empty-title">Loading your apps...</div></div>';
+  list.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 16px;"></div><div class="empty-title">Loading your apps…</div></div>';
   try {
     const data = await appleProxy('/apps?fields[apps]=name,bundleId,primaryLocale&limit=50');
     const apps = data.data || [];
-    if (!apps.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No apps found</div><div class="empty-sub">No apps in your App Store Connect account.</div></div>'; return; }
-    list.innerHTML = apps.map(a => `<div class="app-row" onclick="selectApp('${a.id}','${escape(a.attributes.name)}','${a.attributes.bundleId}')"><div class="app-icon">${a.attributes.name.charAt(0).toUpperCase()}</div><div class="app-info"><div class="app-name">${a.attributes.name}</div><div class="app-bundle">${a.attributes.bundleId}</div></div><div class="app-arrow">›</div></div>`).join('');
+    // Update account stats
+    const appCountEl = document.getElementById('acct-app-count');
+    if (appCountEl) appCountEl.textContent = apps.length;
+    if (!apps.length) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No apps found</div><div class="empty-sub">No apps found in your App Store Connect account. Check your credentials.</div></div>';
+      return;
+    }
+    list.innerHTML = apps.map(a =>
+      `<div class="app-row" onclick="selectApp('${a.id}','${escape(a.attributes.name)}','${a.attributes.bundleId}')">
+        <div class="app-icon">${a.attributes.name.charAt(0).toUpperCase()}</div>
+        <div class="app-info">
+          <div class="app-name">${a.attributes.name}</div>
+          <div class="app-bundle">${a.attributes.bundleId}</div>
+        </div>
+        <div class="app-arrow">›</div>
+      </div>`
+    ).join('');
   } catch(e) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Connection Error</div><div class="empty-sub">Check your credentials and try again.</div></div>';
-    showToast('Failed to load apps: ' + e.message, 'error');
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">⚠️</div>
+      <div class="empty-title">Connection Error</div>
+      <div class="empty-sub">${e.message || 'Could not connect to App Store Connect. Check your credentials and internet connection.'}</div>
+      <button class="btn btn-ghost" style="margin-top:20px;width:auto;padding:12px 28px;" onclick="loadApps()">↺ Retry</button>
+    </div>`;
+    showToast('Failed to load apps — tap Retry to try again.', 'error');
   }
 }
 
-function selectApp(id, name, bundleId) {
+/* ─────────────────────────────────────────
+   SELECT APP
+───────────────────────────────────────── */
+async function selectApp(id, name, bundleId) {
   selectedApp = { id, name: unescape(name), bundleId };
   document.getElementById('setup-app-name').textContent = unescape(name);
-  document.getElementById('meta-name').value   = unescape(name);
-  document.getElementById('meta-bundle').value = bundleId;
-  document.getElementById('meta-support').value  = 'https://app-export-tool.replit.app';
-  document.getElementById('meta-privacy').value  = 'https://app-export-tool.replit.app/privacy';
+  document.getElementById('meta-name').value    = unescape(name);
+  document.getElementById('meta-bundle').value  = bundleId;
+  // Clear URL fields — user must enter their own URLs
+  document.getElementById('meta-support').value  = '';
+  document.getElementById('meta-privacy').value  = '';
+  document.getElementById('meta-marketing').value = '';
+  document.getElementById('meta-keywords').value  = '';
+  document.getElementById('meta-desc').value      = '';
+  document.getElementById('meta-subtitle').value  = '';
+  document.getElementById('meta-whatsnew').value  = '';
+  // Show "What's New required" hint for updates
+  document.getElementById('whatsnew-hint').style.display = 'block';
+  document.getElementById('whatsnew-req').innerHTML =
+    '<span style="color:var(--warn);font-size:11px;">(required for updates)</span>';
+  // Detect current version from App Store Connect
+  const versionHint = document.getElementById('version-hint');
+  versionHint.textContent = 'Fetching current version…';
+  try {
+    const versData = await appleProxy(
+      `/apps/${id}/appStoreVersions?filter[platform]=IOS&fields[appStoreVersions]=versionString,appStoreState&limit=5`
+    );
+    const versions = versData.data || [];
+    const liveVer = versions.find(v => v.attributes.appStoreState === 'READY_FOR_SALE')
+      || versions.find(v => v.attributes.appStoreState === 'PROCESSING')
+      || versions[0];
+    if (liveVer) {
+      const current = liveVer.attributes.versionString;
+      const parts = current.split('.').map(Number);
+      parts[parts.length - 1] += 1;
+      const suggested = parts.join('.');
+      document.getElementById('meta-version').value = suggested;
+      versionHint.textContent = `Live version is ${current} — suggesting ${suggested} for this update`;
+    } else {
+      document.getElementById('meta-version').value = '1.0';
+      versionHint.textContent = '';
+    }
+  } catch(e) {
+    document.getElementById('meta-version').value = '1.0';
+    versionHint.textContent = '';
+  }
+  // Load saved review notes for this app
+  loadReviewNotes(bundleId);
   showScreen('screen-setup');
 }
 
 function showNewSubmission() {
   selectedApp = null;
   document.getElementById('setup-app-name').textContent = 'New Submission';
-  document.getElementById('meta-name').value   = '';
-  document.getElementById('meta-bundle').value = '';
+  document.getElementById('meta-name').value    = '';
+  document.getElementById('meta-bundle').value  = '';
+  document.getElementById('meta-support').value = '';
+  document.getElementById('meta-privacy').value = '';
+  document.getElementById('meta-version').value = '1.0';
+  document.getElementById('meta-whatsnew').value = '';
+  document.getElementById('meta-keywords').value = '';
+  document.getElementById('meta-desc').value     = '';
+  document.getElementById('version-hint').textContent = '';
+  document.getElementById('whatsnew-hint').style.display = 'none';
+  document.getElementById('whatsnew-req').innerHTML = '';
   showScreen('screen-setup');
 }
 
+/* ─────────────────────────────────────────
+   SCREEN SWITCHER
+───────────────────────────────────────── */
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
   const splash = document.getElementById('splash');
   if (splash) splash.style.display = 'none';
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0, 0);
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('active'); window.scrollTo(0, 0); }
+  if (id === 'screen-history') renderHistory();
+  if (id !== 'screen-build')   stopBuildPoll();
 }
 
+/* ─────────────────────────────────────────
+   HELP ACCORDION
+───────────────────────────────────────── */
+function toggleHelp() {
+  const btn  = document.getElementById('help-btn');
+  const body = document.getElementById('help-body');
+  const open = body.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* ─────────────────────────────────────────
+   URL VALIDATION
+───────────────────────────────────────── */
+function isValidUrl(str) {
+  if (!str) return false;
+  try {
+    const u = new URL(str);
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch(e) { return false; }
+}
+
+/* ─────────────────────────────────────────
+   NAVIGATION GUARDS
+───────────────────────────────────────── */
 function goToBuild() {
   const name    = document.getElementById('meta-name').value.trim();
   const desc    = document.getElementById('meta-desc').value.trim();
   const support = document.getElementById('meta-support').value.trim();
   const privacy = document.getElementById('meta-privacy').value.trim();
   const bundle  = document.getElementById('meta-bundle').value.trim();
-  if (!name || !desc || !support || !privacy || !bundle) return showToast('Please fill in all required fields.', 'error');
+  if (!name || !bundle)
+    return showToast('App Name and Bundle ID are required.', 'error');
+  if (!desc || desc.length < 50)
+    return showToast('Description is required and must be at least 50 characters.', 'error');
+  if (!support || !isValidUrl(support))
+    return showToast('A valid Support URL is required (must start with https://).', 'error');
+  if (!privacy || !isValidUrl(privacy))
+    return showToast('A valid Privacy Policy URL is required (must start with https://).', 'error');
   showScreen('screen-build');
 }
 
 function goToSubmit() {
-  const existing = document.getElementById('build-existing-id').value.trim();
-  if (!existing && !document.getElementById('build-id-label').textContent.match(/[a-f0-9-]{36}/i)) return showToast('Provide a build ID or trigger a build first.', 'error');
+  const existingId  = document.getElementById('build-existing-id').value.trim();
+  const statusLabel = document.getElementById('build-status-label');
+  const buildDone   = triggeredBuildId && statusLabel && statusLabel.textContent.toLowerCase() === 'finished';
+  if (!existingId && !buildDone)
+    return showToast('Provide a build UUID or trigger & wait for a build to finish.', 'error');
   buildChecklist();
+  if (selectedApp) loadReviewNotes(selectedApp.bundleId);
   showScreen('screen-submit');
 }
 
+/* ─────────────────────────────────────────
+   PRE-FLIGHT CHECKLIST
+───────────────────────────────────────── */
 function buildChecklist() {
   const items = [
-    { label:'App Name',      value: document.getElementById('meta-name').value },
-    { label:'Description',   value: document.getElementById('meta-desc').value.length+' chars', ok: document.getElementById('meta-desc').value.length >= 50 },
-    { label:'Keywords',      value: document.getElementById('meta-keywords').value||'Not set', ok:!!document.getElementById('meta-keywords').value },
-    { label:'Support URL',   value: document.getElementById('meta-support').value },
-    { label:'Privacy Policy',value: document.getElementById('meta-privacy').value },
-    { label:'Bundle ID',     value: document.getElementById('meta-bundle').value },
-    { label:'Version',       value: document.getElementById('meta-version').value },
+    { label: 'App Name',       value: document.getElementById('meta-name').value },
+    { label: 'Description',    value: document.getElementById('meta-desc').value.length + ' chars',
+      ok: document.getElementById('meta-desc').value.length >= 50 },
+    { label: 'Keywords',       value: document.getElementById('meta-keywords').value || '⚠️ Not set',
+      ok: !!document.getElementById('meta-keywords').value },
+    { label: 'Support URL',    value: document.getElementById('meta-support').value,
+      ok: isValidUrl(document.getElementById('meta-support').value) },
+    { label: 'Privacy Policy', value: document.getElementById('meta-privacy').value,
+      ok: isValidUrl(document.getElementById('meta-privacy').value) },
+    { label: 'Bundle ID',      value: document.getElementById('meta-bundle').value },
+    { label: 'Version',        value: document.getElementById('meta-version').value },
+    { label: "What's New",     value: document.getElementById('meta-whatsnew').value ? '✅ Filled in' : '⚠️ Empty',
+      ok: !!document.getElementById('meta-whatsnew').value },
   ];
-  document.getElementById('submit-checklist').innerHTML = '<div class="card-title">Pre-Flight Checklist</div>' +
-    items.map(i=>`<div class="status-row"><span class="status-key">${i.label}</span><span class="status-val" style="color:${i.ok===false?'var(--warn)':'var(--accent2)'}">${i.value}</span></div>`).join('');
+  document.getElementById('submit-checklist').innerHTML =
+    '<div class="card-title">Pre-Flight Checklist</div>' +
+    items.map(i =>
+      `<div class="status-row">
+        <span class="status-key">${i.label}</span>
+        <span class="status-val" style="color:${i.ok === false ? 'var(--warn)' : 'var(--accent2)'};font-size:12px;">${i.value}</span>
+      </div>`
+    ).join('');
 }
 
-let triggeredBuildId = null;
-
+/* ─────────────────────────────────────────
+   BUILD TRIGGER + AUTO-POLL
+───────────────────────────────────────── */
 async function triggerBuild() {
-  const appId = document.getElementById('build-app-id').value.trim();
+  const appId      = document.getElementById('build-app-id').value.trim();
   const workflowId = document.getElementById('build-workflow').value.trim() || 'ios-release';
-  const branch = document.getElementById('build-branch').value.trim() || 'main';
-  if (!appId) return showToast('Enter your Codemagic App ID', 'error');
-  if (!creds.codemagic) return showToast('Enter your Codemagic token in Settings', 'error');
-  showToast('Triggering build...', 'success');
+  const branch     = document.getElementById('build-branch').value.trim() || 'main';
+  if (!appId)           return showToast('Enter your Codemagic App ID.', 'error');
+  if (!creds.codemagic) return showToast('Enter your Codemagic API token in Settings first.', 'error');
+  const btn = document.getElementById('trigger-build-btn');
+  btn.disabled = true; btn.textContent = 'Queuing build…';
   try {
-    const res = await fetch(API + '/mobile/build', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ codemagicToken:creds.codemagic, appId, workflowId, branch }) });
+    const res  = await fetch(API + '/mobile/build', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codemagicToken: creds.codemagic, appId, workflowId, branch })
+    });
     const data = await res.json();
     if (data.buildId) {
       triggeredBuildId = data.buildId;
-      document.getElementById('build-status-box').style.display = 'block';
-      document.getElementById('build-id-label').textContent = data.buildId;
-      document.getElementById('build-status-label').textContent = 'Queued';
-      document.getElementById('build-poll-btn-wrap').style.display = 'block';
-      showToast('Build queued! Tap "Check Build Status" to monitor.', 'success');
-    } else { showToast('Failed: ' + JSON.stringify(data), 'error'); }
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+      showPollBox(data.buildId, 'queued');
+      btn.textContent = '✅ Build Queued';
+      showToast('Build queued! Status updates automatically every 30s.', 'success');
+      startBuildPoll();
+    } else {
+      btn.disabled = false; btn.textContent = '⚡ Trigger Build';
+      showToast('Failed to queue build: ' + JSON.stringify(data), 'error');
+    }
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '⚡ Trigger Build';
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function showPollBox(buildId, status) {
+  document.getElementById('poll-box').style.display = 'block';
+  document.getElementById('build-id-label').textContent = buildId.slice(0, 10) + '…';
+  setBuildBadge(status);
+}
+
+function setBuildBadge(status) {
+  const el = document.getElementById('build-status-label');
+  const s  = (status || '').toLowerCase();
+  el.className = 'build-badge ' + (
+    s === 'finished' ? 'finished' :
+    s === 'running'  ? 'running'  :
+    s === 'failed' || s === 'error' ? 'failed' : 'queued'
+  );
+  el.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function startBuildPoll() {
+  stopBuildPoll();
+  _pollCountdown = 30;
+  updateCountdown();
+  _pollInterval = setInterval(async () => {
+    _pollCountdown--;
+    updateCountdown();
+    if (_pollCountdown <= 0) {
+      _pollCountdown = 30;
+      await pollBuild();
+    }
+  }, 1000);
+}
+
+function stopBuildPoll() {
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+}
+
+function updateCountdown() {
+  const el = document.getElementById('poll-countdown');
+  if (el) el.textContent = `Auto-checking status in ${_pollCountdown}s…`;
 }
 
 async function pollBuild() {
   if (!triggeredBuildId) return;
   try {
-    const res = await fetch(API + '/mobile/build/' + triggeredBuildId + '?codemagicToken=' + encodeURIComponent(creds.codemagic));
+    const res  = await fetch(API + '/mobile/build/' + triggeredBuildId +
+      '?codemagicToken=' + encodeURIComponent(creds.codemagic));
     const data = await res.json();
-    const status = data.build?.status || 'unknown';
-    document.getElementById('build-status-label').textContent = status;
-    showToast('Build status: ' + status, status === 'finished' ? 'success' : '');
-    if (status === 'finished') document.getElementById('build-existing-id').value = triggeredBuildId;
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    const status = (data.build?.status || 'unknown').toLowerCase();
+    setBuildBadge(status);
+    if (data.build?.duration) {
+      document.getElementById('poll-duration-row').style.display = 'flex';
+      document.getElementById('build-duration-label').textContent =
+        Math.round(data.build.duration / 60) + ' min';
+    }
+    if (status === 'finished') {
+      stopBuildPoll();
+      document.getElementById('poll-countdown').textContent = '✅ Build complete — tap Continue to submit!';
+      document.getElementById('build-existing-id').value = triggeredBuildId;
+      showToast('✅ Build finished! Ready to submit.', 'success');
+    } else if (status === 'failed' || status === 'error') {
+      stopBuildPoll();
+      document.getElementById('poll-countdown').textContent = '❌ Build failed — check Codemagic for logs.';
+      showToast('Build failed. Check Codemagic for details.', 'error');
+    }
+  } catch(e) {
+    document.getElementById('poll-countdown').textContent = 'Could not check status — will retry…';
+  }
 }
 
+/* ─────────────────────────────────────────
+   REVIEW NOTES PERSISTENCE
+───────────────────────────────────────── */
+function reviewKey(bundleId) { return 'postapp_review_' + (bundleId || 'default'); }
+
+function loadReviewNotes(bundleId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(reviewKey(bundleId)) || '{}');
+    document.getElementById('review-email').value    = saved.email    || '';
+    document.getElementById('review-password').value = saved.password || '';
+    document.getElementById('review-notes').value    = saved.notes    || '';
+  } catch(e) {}
+}
+
+function autoSaveReviewNotes() {
+  if (!selectedApp) return;
+  try {
+    localStorage.setItem(reviewKey(selectedApp.bundleId), JSON.stringify({
+      email:    document.getElementById('review-email').value,
+      password: document.getElementById('review-password').value,
+      notes:    document.getElementById('review-notes').value,
+    }));
+  } catch(e) {}
+}
+
+/* ─────────────────────────────────────────
+   FULL SUBMISSION PIPELINE
+───────────────────────────────────────── */
 async function runFullSubmission() {
+  if (selectedApp) autoSaveReviewNotes();
   const appId      = selectedApp?.id;
   const versionStr = document.getElementById('meta-version').value.trim() || '1.0';
   const buildId    = document.getElementById('build-existing-id').value.trim() || triggeredBuildId;
@@ -995,98 +1208,258 @@ async function runFullSubmission() {
   const support    = document.getElementById('meta-support').value.trim();
   const marketing  = document.getElementById('meta-marketing').value.trim();
   const whatsnew   = document.getElementById('meta-whatsnew').value.trim();
-  if (!appId)   return showToast('Select an app first', 'error');
-  if (!buildId) return showToast('Provide a build ID', 'error');
+  if (!appId)   return showToast('Select an app first.', 'error');
+  if (!buildId) return showToast('A build ID is required.', 'error');
 
   showScreen('screen-progress');
   const steps = [];
+  const TOTAL = 7;
 
   function addStep(name, status, detail) {
-    steps.push({ name, status, detail });
+    // Replace last active step or push new one
+    const lastIdx = steps.findIndex(s => s.status === 'active');
+    if (lastIdx >= 0 && status !== 'active') {
+      steps[lastIdx] = { name, status, detail };
+    } else {
+      steps.push({ name, status, detail });
+    }
     renderSteps(steps);
-    const pct = Math.round((steps.filter(s=>s.status==='done').length / 7) * 100);
+    const done = steps.filter(s => s.status === 'done').length;
+    const pct  = Math.min(Math.round((done / TOTAL) * 100), 99);
     document.getElementById('progress-fill').style.width = pct + '%';
     document.getElementById('progress-pct').textContent  = pct + '%';
     document.getElementById('progress-sub').textContent  = name;
   }
 
   try {
-    addStep('Finding iOS version...', 'active', '');
-    const versionsData = await appleProxy(`/apps/${appId}/appStoreVersions?filter[platform]=IOS&fields[appStoreVersions]=versionString,appStoreState&limit=5`);
+    addStep('Finding iOS version…', 'active', '');
+    const versionsData = await appleProxy(
+      `/apps/${appId}/appStoreVersions?filter[platform]=IOS&fields[appStoreVersions]=versionString,appStoreState&limit=5`
+    );
     let versions = versionsData.data || [];
-    let editableVersion = versions.find(v => ['PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED','REJECTED','METADATA_REJECTED'].includes(v.attributes.appStoreState));
+    let editableVersion = versions.find(v =>
+      ['PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED','REJECTED','METADATA_REJECTED']
+        .includes(v.attributes.appStoreState)
+    );
     if (!editableVersion) {
-      const cv = await appleProxy('/appStoreVersions', 'POST', { data:{ type:'appStoreVersions', attributes:{ versionString:versionStr, platform:'IOS' }, relationships:{ app:{ data:{ type:'apps', id:appId } } } } });
+      const cv = await appleProxy('/appStoreVersions', 'POST', {
+        data: {
+          type: 'appStoreVersions',
+          attributes: { versionString: versionStr, platform: 'IOS' },
+          relationships: { app: { data: { type: 'apps', id: appId } } }
+        }
+      });
       editableVersion = cv.data;
     }
     const versionId = editableVersion?.id;
     if (!versionId) throw new Error('Could not find or create an editable iOS version');
-    addStep('iOS version found', 'done', editableVersion.attributes.versionString);
+    addStep('iOS version ready — ' + editableVersion.attributes.versionString, 'done', '');
 
-    addStep('Attaching build...', 'active', buildId);
-    await appleProxy(`/appStoreVersions/${versionId}/relationships/build`, 'PATCH', { data:{ type:'builds', id:buildId } });
-    addStep('Build attached', 'done', buildId.slice(0,8)+'...');
+    addStep('Attaching build…', 'active', buildId.slice(0,8) + '…');
+    await appleProxy(`/appStoreVersions/${versionId}/relationships/build`, 'PATCH',
+      { data: { type: 'builds', id: buildId } });
+    addStep('Build attached', 'done', buildId.slice(0,8) + '…');
 
-    addStep('Pushing metadata...', 'active', '');
-    const locsData = await appleProxy(`/appStoreVersions/${versionId}/appStoreVersionLocalizations?fields[appStoreVersionLocalizations]=locale`);
+    addStep('Pushing metadata…', 'active', '');
+    const locsData = await appleProxy(
+      `/appStoreVersions/${versionId}/appStoreVersionLocalizations?fields[appStoreVersionLocalizations]=locale`
+    );
     const locs = locsData.data || [];
-    const metaAttrs = { description:desc, keywords, supportUrl:support };
+    const metaAttrs = { description: desc, keywords, supportUrl: support };
     if (marketing) metaAttrs.marketingUrl = marketing;
     if (whatsnew)  metaAttrs.whatsNew = whatsnew;
-    if (locs.length > 0) await appleProxy(`/appStoreVersionLocalizations/${locs[0].id}`, 'PATCH', { data:{ type:'appStoreVersionLocalizations', id:locs[0].id, attributes:metaAttrs } });
+    if (locs.length > 0) {
+      await appleProxy(`/appStoreVersionLocalizations/${locs[0].id}`, 'PATCH', {
+        data: { type: 'appStoreVersionLocalizations', id: locs[0].id, attributes: metaAttrs }
+      });
+    }
     addStep('Metadata pushed', 'done', 'Description & keywords updated');
 
-    addStep('Setting age rating...', 'active', '');
+    addStep('Setting age rating…', 'active', '');
     try {
-      await appleProxy('/ageRatingDeclarations/' + versionId, 'PATCH', { data:{ type:'ageRatingDeclarations', id:versionId, attributes:{ kidsAgeBand:null, matureOrSuggestiveThemes:'NONE', violenceCartoonOrFantasy:'NONE', violenceRealistic:'NONE', violenceRealisticProlongedGraphicOrSadistic:'NONE', profanityOrCrudeHumor:'NONE', sexualContentOrNudity:'NONE', sexualContentGraphicAndNudity:'NONE', alcoholTobaccoOrDrugUseOrReferences:'NONE', gamblingAndContests:false, gamblingSimulated:'NONE', medicalOrTreatmentInformation:'NONE', unrestrictedWebAccess:false, seventeenPlus:false } } });
-      addStep('Age rating set', 'done', '4+');
-    } catch(e) { addStep('Age rating (skipped)', 'done', 'May already be set'); }
+      await appleProxy('/ageRatingDeclarations/' + versionId, 'PATCH', {
+        data: { type: 'ageRatingDeclarations', id: versionId, attributes: {
+          kidsAgeBand: null, matureOrSuggestiveThemes: 'NONE',
+          violenceCartoonOrFantasy: 'NONE', violenceRealistic: 'NONE',
+          violenceRealisticProlongedGraphicOrSadistic: 'NONE',
+          profanityOrCrudeHumor: 'NONE', sexualContentOrNudity: 'NONE',
+          sexualContentGraphicAndNudity: 'NONE',
+          alcoholTobaccoOrDrugUseOrReferences: 'NONE',
+          gamblingAndContests: false, gamblingSimulated: 'NONE',
+          medicalOrTreatmentInformation: 'NONE',
+          unrestrictedWebAccess: false, seventeenPlus: false
+        }}
+      });
+      addStep('Age rating set to 4+', 'done', '');
+    } catch(e) { addStep('Age rating (already set)', 'done', ''); }
 
-    addStep('Declaring content rights...', 'active', '');
+    addStep('Declaring content rights…', 'active', '');
     try {
-      const cr = await appleProxy(`/appStoreVersions/${versionId}?fields[appStoreVersions]=contentRightsDeclaration`);
-      if (!cr.data?.attributes?.contentRightsDeclaration) await appleProxy(`/appStoreVersions/${versionId}`, 'PATCH', { data:{ type:'appStoreVersions', id:versionId, attributes:{ contentRightsDeclaration:'DOES_NOT_USE_THIRD_PARTY_CONTENT' } } });
+      const cr = await appleProxy(
+        `/appStoreVersions/${versionId}?fields[appStoreVersions]=contentRightsDeclaration`
+      );
+      if (!cr.data?.attributes?.contentRightsDeclaration) {
+        await appleProxy(`/appStoreVersions/${versionId}`, 'PATCH', {
+          data: { type: 'appStoreVersions', id: versionId,
+            attributes: { contentRightsDeclaration: 'DOES_NOT_USE_THIRD_PARTY_CONTENT' } }
+        });
+      }
       addStep('Content rights declared', 'done', '');
     } catch(e) { addStep('Content rights (skipped)', 'done', ''); }
 
-    addStep('Submitting for App Store review...', 'active', '');
-    const subCreate = await appleProxy('/reviewSubmissions', 'POST', { data:{ type:'reviewSubmissions', attributes:{ platform:'IOS' }, relationships:{ app:{ data:{ type:'apps', id:appId } } } } });
+    addStep('Submitting for App Store review…', 'active', '');
+    const subCreate = await appleProxy('/reviewSubmissions', 'POST', {
+      data: {
+        type: 'reviewSubmissions',
+        attributes: { platform: 'IOS' },
+        relationships: { app: { data: { type: 'apps', id: appId } } }
+      }
+    });
     const submissionId = subCreate.data?.id;
-    if (!submissionId) throw new Error('Failed to create review submission');
-    await appleProxy('/reviewSubmissionItems', 'POST', { data:{ type:'reviewSubmissionItems', relationships:{ reviewSubmission:{ data:{ type:'reviewSubmissions', id:submissionId } }, appStoreVersion:{ data:{ type:'appStoreVersions', id:versionId } } } } });
-    await appleProxy('/reviewSubmissions/' + submissionId, 'PATCH', { data:{ type:'reviewSubmissions', id:submissionId, attributes:{ submitted:true } } });
-    addStep('Submitted for review!', 'done', 'WAITING_FOR_REVIEW');
+    if (!submissionId) throw new Error('Failed to create review submission — check your credentials');
+    await appleProxy('/reviewSubmissionItems', 'POST', {
+      data: {
+        type: 'reviewSubmissionItems',
+        relationships: {
+          reviewSubmission: { data: { type: 'reviewSubmissions', id: submissionId } },
+          appStoreVersion:  { data: { type: 'appStoreVersions',  id: versionId } }
+        }
+      }
+    });
+    await appleProxy('/reviewSubmissions/' + submissionId, 'PATCH', {
+      data: { type: 'reviewSubmissions', id: submissionId, attributes: { submitted: true } }
+    });
+    addStep('Submitted for review! ✅', 'done', 'WAITING_FOR_REVIEW');
 
+    // 100%
     document.getElementById('progress-fill').style.width = '100%';
     document.getElementById('progress-pct').textContent  = '100%';
+
+    // Save to history
+    saveToHistory({
+      appName:  selectedApp?.name    || 'App',
+      bundleId: selectedApp?.bundleId || '',
+      version:  versionStr,
+      buildId:  buildId,
+      status:   'WAITING_FOR_REVIEW',
+      date:     new Date().toISOString()
+    });
+    updateAccountStats();
+
     document.getElementById('done-title').textContent = 'Submitted! 🎉';
-    document.getElementById('done-sub').textContent   = "Your app is in Apple's review queue. You'll hear back within 24–48 hours.";
-    document.getElementById('done-details').innerHTML = `<div class="card-title">Submission Summary</div><div class="status-row"><span class="status-key">App</span><span class="status-val">${selectedApp?.name||'App'}</span></div><div class="status-row"><span class="status-key">Version</span><span class="status-val">${versionStr}</span></div><div class="status-row"><span class="status-key">Build</span><span class="status-val">${buildId.slice(0,8)}...</span></div><div class="status-row"><span class="status-key">Status</span><span class="status-val" style="color:var(--accent2)">WAITING_FOR_REVIEW</span></div>`;
+    document.getElementById('done-sub').textContent   = "You'll hear back from Apple within 24–48 hours.";
+    document.getElementById('done-details').innerHTML =
+      `<div class="card-title">Submission Summary</div>
+       <div class="status-row"><span class="status-key">App</span><span class="status-val">${selectedApp?.name || 'App'}</span></div>
+       <div class="status-row"><span class="status-key">Version</span><span class="status-val">${versionStr}</span></div>
+       <div class="status-row"><span class="status-key">Build</span><span class="status-val">${buildId.slice(0,8)}…</span></div>
+       <div class="status-row"><span class="status-key">Status</span><span class="status-val" style="color:var(--accent2)">WAITING_FOR_REVIEW</span></div>`;
     setTimeout(() => showScreen('screen-done'), 1200);
 
   } catch(e) {
-    addStep('Error: ' + e.message, 'error', '');
-    showToast('Submission error: ' + e.message, 'error');
-    document.getElementById('progress-sub').textContent = 'Failed — see steps above';
+    steps.push({ name: 'Error: ' + e.message, status: 'error', detail: '' });
+    renderSteps(steps);
+    showToast('Submission failed: ' + e.message, 'error');
+    document.getElementById('progress-sub').textContent = 'Failed — see details above';
   }
 }
 
 function renderSteps(steps) {
-  document.getElementById('progress-steps').innerHTML = steps.map(s => `<div class="card" style="margin-bottom:10px;padding:14px 16px;"><div style="display:flex;align-items:center;gap:12px;"><div style="font-size:20px;flex-shrink:0;">${s.status==='done'?'✅':s.status==='error'?'❌':'⏳'}</div><div><div style="font-size:14px;font-weight:600;">${s.name}</div>${s.detail?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">${s.detail}</div>`:''}</div></div></div>`).join('');
+  document.getElementById('progress-steps').innerHTML = steps.map(s =>
+    `<div class="card" style="margin-bottom:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:20px;flex-shrink:0;">${
+          s.status === 'done'  ? '✅' :
+          s.status === 'error' ? '❌' : '⏳'
+        }</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;">${s.name}</div>
+          ${s.detail ? `<div style="font-size:12px;color:var(--text2);margin-top:2px;">${s.detail}</div>` : ''}
+        </div>
+      </div>
+    </div>`
+  ).join('');
 }
 
+/* ─────────────────────────────────────────
+   HISTORY
+───────────────────────────────────────── */
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('postapp_history') || '[]'); } catch(e) { return []; }
+}
+function saveToHistory(entry) {
+  try {
+    const h = getHistory();
+    h.unshift(entry);
+    if (h.length > 100) h.pop();
+    localStorage.setItem('postapp_history', JSON.stringify(h));
+  } catch(e) {}
+}
+function renderHistory() {
+  const hist = getHistory();
+  const el   = document.getElementById('history-list');
+  if (!hist.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No submissions yet</div>
+      <div class="empty-sub">After your first successful submission, you'll see a full log here.</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = hist.map(h => {
+    const d   = new Date(h.date);
+    const dStr = d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) +
+      ' · ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+    return `<div class="history-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div class="history-app">${h.appName}</div>
+        <span class="badge badge-blue" style="flex-shrink:0;">v${h.version}</span>
+      </div>
+      <div class="history-meta" style="margin-top:4px;">${h.bundleId}</div>
+      <div class="history-meta" style="margin-top:2px;">Build: ${(h.buildId || '').slice(0,8)}…</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div style="font-size:11px;color:var(--text3);">${dStr}</div>
+        <span class="badge badge-green">${h.status}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function clearHistory() {
+  if (confirm('Clear all submission history? This cannot be undone.')) {
+    localStorage.removeItem('postapp_history');
+    renderHistory();
+    updateAccountStats();
+  }
+}
+
+/* ─────────────────────────────────────────
+   ACCOUNT STATS
+───────────────────────────────────────── */
+function updateAccountStats() {
+  const count = getHistory().length;
+  const el = document.getElementById('acct-submission-count');
+  if (el) el.textContent = count;
+}
+
+/* ─────────────────────────────────────────
+   TOAST
+───────────────────────────────────────── */
 let _tt;
-function showToast(msg, type='') {
+function showToast(msg, type = '') {
   const el = document.getElementById('toast');
-  el.textContent  = msg;
-  el.className    = 'toast show' + (type ? ' '+type : '');
+  el.textContent = msg;
+  el.className   = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(_tt);
-  _tt = setTimeout(() => el.classList.remove('show'), 3500);
+  _tt = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
+/* ─────────────────────────────────────────
+   RESET / START OVER
+───────────────────────────────────────── */
 function startOver() {
-  selectedApp = null;
+  selectedApp      = null;
   triggeredBuildId = null;
+  stopBuildPoll();
   showScreen('screen-apps');
 }
 </script>

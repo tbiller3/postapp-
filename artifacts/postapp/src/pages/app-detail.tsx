@@ -34,16 +34,16 @@ import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } f
 import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon, Smartphone, Rocket } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, FileText, ImageIcon, Rocket, Settings2, MessageSquare, CheckSquare, ShieldAlert, AppWindow, Smartphone, BarChart2, RefreshCw, ChevronsDown, ExternalLink, CheckCircle2, XCircle, ListChecks } from "lucide-react";
 import { format } from "date-fns";
 import { AssetsPanel } from "@/components/assets-panel";
 import { AiAssistant } from "@/components/ai-assistant";
 import { WrapTab } from "@/components/wrap-tab";
 import { AnalyzeTab } from "@/components/analyze-tab";
-import { AutoSubmitPanel } from "@/components/auto-submit-panel";
 import { ScreenshotAutomator } from "@/components/screenshot-automator";
-import { StatusMonitor } from "@/components/status-monitor";
-import { RejectionFixer } from "@/components/rejection-fixer";
+import { OverviewTab } from "@/components/overview-tab";
+import { LaunchTab } from "@/components/launch-tab";
+import { ReadinessBar } from "@/components/readiness-bar";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -62,13 +62,17 @@ export default function AppDetail() {
   const { data: revisions, isLoading: isLoadingRevisions } = useListRevisions(appId, { query: { enabled: !!appId, queryKey: getListRevisionsQueryKey(appId) } });
   const { data: checklist, isLoading: isLoadingChecklist } = useGetChecklist(appId, { query: { enabled: !!appId, queryKey: getGetChecklistQueryKey(appId) } });
 
-  const [activeTab, setActiveTab] = useState("checklist");
+  const [activeTab, setActiveTab] = useState("overview");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [isSavingSubmission, setIsSavingSubmission] = useState(false);
   const [syncPulse, setSyncPulse] = useState(false);
   const [resolvingIds, setResolvingIds] = useState<Set<number>>(new Set());
   const [reviewNotes, setReviewNotes] = useState("");
   const [isSavingReviewNotes, setIsSavingReviewNotes] = useState(false);
+  // Review state — populated by StatusMonitor/OverviewTab via onRejected callback
+  const [reviewState, setReviewState] = useState<string | null>(null);
+  const [reviewVersion, setReviewVersion] = useState<string | null>(null);
+  const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
 
   const { seedFromApp, reset, syncDetected, applyAllDetectedValues } = useSubmissionStore();
   const storeFields = useSubmissionStore((s) => s.fields);
@@ -404,157 +408,87 @@ export default function AppDetail() {
         </span>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-        {/* Tab bar — scrolls horizontally on mobile, wraps on desktop */}
-        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
-          <TabsList className="bg-card border border-border rounded-lg p-1 h-auto gap-0.5 flex flex-nowrap w-max sm:w-full sm:flex-wrap">
-            <TabsTrigger value="checklist" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-primary/10 data-[state=active]:text-primary whitespace-nowrap">
-              <CheckSquare className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Operations Checklist</span>
-              <span className="sm:hidden">Checklist</span>
-              {!isLoadingChecklist && totalItems > 0 && (
-                <span className="ml-1.5 font-mono text-[10px] bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded-full">
-                  {completedItems}/{totalItems}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="submission" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400 whitespace-nowrap">
-              <FileText className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Submission Data</span>
-              <span className="sm:hidden">Submission</span>
-            </TabsTrigger>
-            <TabsTrigger value="revisions" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-500 whitespace-nowrap">
-              <ShieldAlert className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Review Logs</span>
-              <span className="sm:hidden">Reviews</span>
-            </TabsTrigger>
-            <TabsTrigger value="assets" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 whitespace-nowrap">
-              <ImageIcon className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Assets</span>
-              <span className="sm:hidden">Assets</span>
-            </TabsTrigger>
-            <TabsTrigger value="apple" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 whitespace-nowrap">
-              <AppWindow className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Apple Connect</span>
-              <span className="sm:hidden">Connect</span>
-            </TabsTrigger>
-            <TabsTrigger value="wrap" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 whitespace-nowrap">
-              <Smartphone className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Native Wrap</span>
-              <span className="sm:hidden">Wrap</span>
-            </TabsTrigger>
-            <TabsTrigger value="analyze" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400 whitespace-nowrap">
-              <BarChart2 className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">V25 Analyze</span>
-              <span className="sm:hidden">Analyze</span>
-            </TabsTrigger>
-            <TabsTrigger value="pipeline" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:text-violet-300 whitespace-nowrap relative">
-              <Rocket className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Auto-Submit</span>
-              <span className="sm:hidden">Submit</span>
-              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
-            </TabsTrigger>
-            <TabsTrigger value="screenshots" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 whitespace-nowrap">
-              <ImageIcon className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
-              <span className="hidden sm:inline">Screenshots</span>
-              <span className="sm:hidden">Shots</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* Always-visible readiness bar */}
+      <ReadinessBar
+        missingFields={fieldIssues.filter(f => f.fieldStatus === "missing").length}
+        blockers={blockers.length}
+        onNavigate={setActiveTab}
+      />
 
-        <TabsContent value="checklist" className="mt-6">
-          {isLoadingChecklist ? (
-            <Skeleton className="h-64 w-full rounded-xl bg-card border border-border" />
-          ) : (
-            <>
-              {/* Filter bar */}
-              <div className="flex items-center gap-2 mb-5">
-                {(["all", "critical", "review"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setFilterMode(mode)}
-                    className={`px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold uppercase tracking-wider border transition-colors ${
-                      filterMode === mode
-                        ? mode === "critical"
-                          ? "bg-red-500/10 border-red-500/30 text-red-400"
-                          : mode === "review"
-                            ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                            : "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-transparent border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-                    }`}
-                  >
-                    {mode === "all" && `All · ${enrichedChecklist.length}`}
-                    {mode === "critical" && `Critical · ${blockers.length}`}
-                    {mode === "review" && `Needs Review · ${enrichedChecklist.filter((i) => !i.blocker && !i.completed).length}`}
-                  </button>
-                ))}
-              </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
+        {/* 5-tab bar */}
+        <TabsList className="bg-card border border-border rounded-xl p-1 h-auto gap-0.5 grid grid-cols-5 w-full">
 
-              {/* Fix This Next panel */}
-              {filterMode !== "review" && (
-                <FixPanel
-                  blockers={blockers}
-                  fieldIssues={fieldIssues}
-                  onInternalNav={(target) => setActiveTab(target)}
-                />
-              )}
+          {/* 1 — Overview */}
+          <TabsTrigger value="overview" className="font-mono text-xs uppercase py-2.5 px-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-lg whitespace-nowrap flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[10px] sm:text-xs">Overview</span>
+            {blockers.length > 0 && (
+              <span className="text-[9px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full leading-none">
+                {blockers.length}
+              </span>
+            )}
+          </TabsTrigger>
 
-              {/* Grouped sections */}
-              {Object.keys(groupedChecklist).length > 0 ? (
-                <div className="space-y-4">
-                  {Object.entries(groupedChecklist).map(([category, items]) => {
-                    const done = items.filter((i) => i.completed).length;
-                    return (
-                      <Card key={category} className="bg-card border-border shadow-sm overflow-hidden">
-                        <CardHeader className="bg-muted/20 border-b border-border py-3 px-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-4 rounded-full ${SECTION_ACCENTS[category] ?? "bg-muted"}`} />
-                              <CardTitle className={`text-xs font-mono uppercase tracking-wider ${SECTION_TEXT_ACCENTS[category] ?? "text-muted-foreground"}`}>
-                                {category}
-                              </CardTitle>
-                            </div>
-                            <span className="text-xs font-mono text-muted-foreground">
-                              {done}/{items.length}
-                            </span>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                          <div className="divide-y divide-border/50">
-                            {items.map((item) => (
-                              <ChecklistItemCard
-                                key={item.id}
-                                id={item.id}
-                                label={item.label}
-                                completed={item.completed}
-                                status={item.status}
-                                blocker={item.blocker}
-                                helpText={item.helpText}
-                                actions={item.actions}
-                                fieldKey={item.fieldKey}
-                                onToggle={handleChecklistToggle}
-                                onInternalNav={(target) => setActiveTab(target)}
-                              />
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">
-                  <p className="text-muted-foreground text-sm">No items match this filter.</p>
-                </div>
-              )}
-            </>
-          )}
+          {/* 2 — Metadata */}
+          <TabsTrigger value="metadata" className="font-mono text-xs uppercase py-2.5 px-2 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-400 rounded-lg whitespace-nowrap flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[10px] sm:text-xs">Metadata</span>
+            {fieldIssues.filter(f => f.fieldStatus === "missing").length > 0 && (
+              <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full leading-none">
+                {fieldIssues.filter(f => f.fieldStatus === "missing").length}
+              </span>
+            )}
+          </TabsTrigger>
+
+          {/* 3 — Screenshots */}
+          <TabsTrigger value="screenshots" className="font-mono text-xs uppercase py-2.5 px-2 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 rounded-lg whitespace-nowrap flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[10px] sm:text-xs">Screenshots</span>
+          </TabsTrigger>
+
+          {/* 4 — Launch */}
+          <TabsTrigger value="launch" className="font-mono text-xs uppercase py-2.5 px-2 data-[state=active]:bg-gradient-to-b data-[state=active]:from-violet-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:text-violet-300 rounded-lg whitespace-nowrap flex flex-col sm:flex-row items-center gap-1 sm:gap-2 relative">
+            <Rocket className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[10px] sm:text-xs">Launch</span>
+            {(reviewState === "REJECTED" || reviewState === "METADATA_REJECTED") && (
+              <span className="text-[9px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full leading-none">!</span>
+            )}
+            {!reviewState && <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-violet-500 animate-pulse" />}
+          </TabsTrigger>
+
+          {/* 5 — Settings */}
+          <TabsTrigger value="settings" className="font-mono text-xs uppercase py-2.5 px-2 data-[state=active]:bg-muted/30 data-[state=active]:text-foreground rounded-lg whitespace-nowrap flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+            <Settings2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[10px] sm:text-xs">Settings</span>
+          </TabsTrigger>
+
+        </TabsList>
+
+        {/* ── TAB 1: OVERVIEW ─────────────────────────────────────────── */}
+        <TabsContent value="overview" className="mt-5">
+          <OverviewTab
+            appId={appId}
+            appName={app?.name ?? ""}
+            blockers={blockers.length}
+            checklistComplete={completedItems}
+            checklistTotal={totalItems}
+            onNavigate={setActiveTab}
+            onRejected={(status: unknown) => {
+              const s = status as { state: string; versionString: string | null; rejectionReasons: string[] };
+              setReviewState(s.state);
+              setReviewVersion(s.versionString);
+              setRejectionReasons(s.rejectionReasons ?? []);
+              setActiveTab("launch");
+            }}
+          />
         </TabsContent>
 
-        <TabsContent value="submission" className="mt-6 space-y-6">
+        {/* ── TAB 2: METADATA ─────────────────────────────────────────── */}
+        <TabsContent value="metadata" className="mt-5 space-y-6">
           <SubmissionEditor onSave={handleSaveSubmission} isSaving={isSavingSubmission} onReset={handleResetSubmission} />
 
-          {/* Reviewer Notes */}
+          {/* Reviewer Notes — tucked at the bottom, out of the way */}
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
@@ -562,215 +496,139 @@ export default function AppDetail() {
                   <MessageSquare className="h-4 w-4 text-violet-400" />
                   Notes for Reviewer
                 </CardTitle>
-                <span className="text-[10px] font-mono text-muted-foreground border border-border px-2 py-0.5 rounded">
-                  App Store Connect → Notes
-                </span>
+                <span className="text-[10px] font-mono text-muted-foreground border border-border px-2 py-0.5 rounded">optional</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                This text goes in the "Notes" field when you submit for review. Explain navigation, optional features, and anything the reviewer should know.
+                Sent to Apple when you submit. Explain login flows, special features, or anything the reviewer needs to know.
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
               <Textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Describe how to navigate the app, any special features, test accounts, or optional functionality the reviewer should know about..."
-                className="font-mono text-sm min-h-[160px] resize-y bg-background/50"
+                placeholder="Describe how to navigate the app, demo credentials, optional features..."
+                className="font-mono text-sm min-h-[120px] resize-y bg-background/50"
               />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  {reviewNotes.length} chars
-                </span>
-                <Button
-                  size="sm"
-                  onClick={handleSaveReviewNotes}
-                  disabled={isSavingReviewNotes}
-                  className="font-mono text-xs"
-                >
-                  {isSavingReviewNotes ? "Saving…" : "Save Notes"}
+                <span className="text-[10px] font-mono text-muted-foreground/50">{reviewNotes.length} chars</span>
+                <Button size="sm" onClick={handleSaveReviewNotes} disabled={isSavingReviewNotes} className="font-mono text-xs">
+                  {isSavingReviewNotes ? "Saving…" : "Save"}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="revisions" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              {isLoadingRevisions ? (
-                <Skeleton className="h-32 w-full rounded-xl" />
-              ) : revisions && revisions.length > 0 ? (
-                revisions.map((rev) => {
-                  const isResolving = resolvingIds.has(rev.id);
-                  const sourceColor = rev.source === 'Apple Review'
-                    ? 'border-l-amber-500'
-                    : rev.source === 'Tester'
-                    ? 'border-l-purple-500'
-                    : 'border-l-blue-500';
+        {/* ── TAB 3: SCREENSHOTS ──────────────────────────────────────── */}
+        <TabsContent value="screenshots" className="mt-5">
+          <ScreenshotAutomator />
+        </TabsContent>
+
+        {/* ── TAB 4: LAUNCH ───────────────────────────────────────────── */}
+        <TabsContent value="launch" className="mt-5">
+          <LaunchTab
+            reviewState={(reviewState as Parameters<typeof LaunchTab>[0]["reviewState"])}
+            versionString={reviewVersion}
+            rejectionReasons={rejectionReasons}
+            onResubmit={() => {
+              setReviewState(null);
+            }}
+          />
+        </TabsContent>
+
+        {/* ── TAB 5: SETTINGS ─────────────────────────────────────────── */}
+        <TabsContent value="settings" className="mt-5 space-y-8">
+          {/* Apple Connect */}
+          <div className="space-y-3">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/50 flex items-center gap-2">
+              <AppWindow className="h-3.5 w-3.5" /> Apple Connect
+            </p>
+            <AppleConnectPanel />
+          </div>
+
+          {/* Native Wrap / Build */}
+          <div className="space-y-3 border-t border-border/30 pt-6">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/50 flex items-center gap-2">
+              <Smartphone className="h-3.5 w-3.5" /> Native Wrap & Build
+            </p>
+            {app && (
+              <WrapTab
+                appId={appId}
+                app={{ name: app.name, bundleId: app.bundleId, replitUrl: app.replitUrl }}
+                onChecklistRefresh={() => queryClient.invalidateQueries({ queryKey: getGetChecklistQueryKey(appId) })}
+              />
+            )}
+          </div>
+
+          {/* Operations Checklist — full detail */}
+          <div className="space-y-3 border-t border-border/30 pt-6">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/50 flex items-center gap-2">
+              <CheckSquare className="h-3.5 w-3.5" /> Operations Checklist
+            </p>
+            {isLoadingChecklist ? (
+              <Skeleton className="h-48 w-full rounded-xl bg-card border border-border" />
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {(["all", "critical", "review"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setFilterMode(mode)}
+                      className={`px-3 py-1.5 rounded-md text-[11px] font-mono font-semibold uppercase tracking-wider border transition-colors ${
+                        filterMode === mode
+                          ? mode === "critical" ? "bg-red-500/10 border-red-500/30 text-red-400"
+                          : mode === "review" ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          : "bg-primary/10 border-primary/30 text-primary"
+                          : "bg-transparent border-border/50 text-muted-foreground hover:border-border"
+                      }`}
+                    >
+                      {mode === "all" && `All · ${enrichedChecklist.length}`}
+                      {mode === "critical" && `Critical · ${blockers.length}`}
+                      {mode === "review" && `Review · ${enrichedChecklist.filter(i => !i.blocker && !i.completed).length}`}
+                    </button>
+                  ))}
+                </div>
+                <FixPanel blockers={blockers} fieldIssues={fieldIssues} onInternalNav={setActiveTab} />
+                {Object.entries(groupedChecklist).map(([category, items]) => {
+                  const done = items.filter(i => i.completed).length;
                   return (
-                    <Card key={rev.id} className={`border-border border-l-4 ${sourceColor} ${rev.resolved ? 'opacity-60' : ''} transition-opacity`}>
-                      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between bg-muted/20">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`font-mono text-[10px] ${
-                            rev.source === 'Apple Review' ? 'text-amber-500 border-amber-500/30'
-                            : rev.source === 'Tester' ? 'text-purple-400 border-purple-400/30'
-                            : 'text-blue-400 border-blue-400/30'
-                          }`}>
-                            {rev.source}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {format(new Date(rev.createdAt), "MMM d, HH:mm")}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {rev.resolved ? (
-                            <span className="text-xs font-mono text-green-500 border border-green-500/30 bg-green-500/10 px-2 py-0.5 rounded flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />RESOLVED
-                            </span>
-                          ) : (
-                            <span className="text-xs font-mono text-amber-500 border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 rounded">ACTIVE</span>
-                          )}
-                          <button
-                            onClick={() => handleResolveRevision(rev.id, !rev.resolved)}
-                            disabled={isResolving}
-                            className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-all ${
-                              rev.resolved
-                                ? 'text-muted-foreground border-border hover:border-amber-500/40 hover:text-amber-400'
-                                : 'text-green-400 border-green-500/20 bg-green-500/5 hover:bg-green-500/15'
-                            } disabled:opacity-40`}
-                          >
-                            {isResolving ? '…' : rev.resolved ? 'Reopen' : 'Resolve'}
-                          </button>
+                    <Card key={category} className="bg-card border-border overflow-hidden">
+                      <CardHeader className="bg-muted/20 border-b border-border py-3 px-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-4 rounded-full ${SECTION_ACCENTS[category] ?? "bg-muted"}`} />
+                            <CardTitle className={`text-xs font-mono uppercase tracking-wider ${SECTION_TEXT_ACCENTS[category] ?? "text-muted-foreground"}`}>{category}</CardTitle>
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground">{done}/{items.length}</span>
                         </div>
                       </CardHeader>
-                      <CardContent className="p-4">
-                        <p className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{rev.note}</p>
+                      <CardContent className="p-0">
+                        <div className="divide-y divide-border/50">
+                          {items.map(item => (
+                            <ChecklistItemCard
+                              key={item.id} id={item.id} label={item.label}
+                              completed={item.completed} status={item.status} blocker={item.blocker}
+                              helpText={item.helpText} actions={item.actions} fieldKey={item.fieldKey}
+                              onToggle={handleChecklistToggle}
+                              onInternalNav={setActiveTab}
+                            />
+                          ))}
+                        </div>
                       </CardContent>
                     </Card>
                   );
-                })
-              ) : (
-                <div className="text-center p-12 border border-dashed border-border rounded-lg bg-card/20">
-                  <ShieldAlert className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium">No log entries</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Add a revision or feedback note to track progress.</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {/* Pre-submission readiness card */}
-              <PreSubmissionCard revisions={revisions ?? []} checklist={checklist ?? []} />
-
-              {/* New entry form */}
-              <Card className="bg-card border-border sticky top-4">
-                <CardHeader>
-                  <CardTitle className="text-sm font-mono uppercase tracking-wider flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    New Log Entry
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Form {...revisionForm}>
-                    <form onSubmit={revisionForm.handleSubmit(onRevisionSubmit)} className="space-y-4">
-                      <FormField
-                        control={revisionForm.control}
-                        name="source"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Source</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="font-mono text-sm">
-                                  <SelectValue placeholder="Source" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Internal">Internal Note</SelectItem>
-                                <SelectItem value="Apple Review">Apple Review</SelectItem>
-                                <SelectItem value="Tester">Tester Feedback</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={revisionForm.control}
-                        name="note"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Log Content</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Enter feedback details..." 
-                                className="min-h-[120px] resize-none text-sm" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" disabled={createRevision.isPending} className="w-full font-mono text-xs uppercase tracking-wider">
-                        {createRevision.isPending ? "Recording..." : "Record Entry"}
-                      </Button>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </div>
+                })}
+              </div>
+            )}
           </div>
-        </TabsContent>
 
-        <TabsContent value="assets" className="mt-6">
-          <AssetsPanel appId={appId} />
-        </TabsContent>
-
-        <TabsContent value="apple" className="mt-6">
-          <AppleConnectPanel />
-        </TabsContent>
-
-        <TabsContent value="wrap" className="mt-6">
-          {app && (
-            <WrapTab
-              appId={appId}
-              app={{ name: app.name, bundleId: app.bundleId, replitUrl: app.replitUrl }}
-              onChecklistRefresh={() => queryClient.invalidateQueries({ queryKey: getGetChecklistQueryKey(appId) })}
-            />
-          )}
-        </TabsContent>
-
-        <TabsContent value="analyze" className="mt-6">
-          <AnalyzeTab appId={appId} />
-        </TabsContent>
-
-        <TabsContent value="pipeline" className="mt-6">
-          <div className="space-y-8">
-            <StatusMonitor
-              onRejected={(status) => {
-                // Auto-scroll to rejection fixer when rejection detected
-                setTimeout(() => {
-                  document.getElementById("rejection-fixer-section")?.scrollIntoView({ behavior: "smooth" });
-                }, 300);
-              }}
-            />
-            <div className="border-t border-border/30 pt-6">
-              <AutoSubmitPanel />
-            </div>
-            <div id="rejection-fixer-section" className="border-t border-border/30 pt-6">
-              <RejectionFixer
-                appleAppId={undefined}
-                onResubmit={() => {
-                  // Switch to pipeline tab and trigger submit
-                  document.querySelector<HTMLButtonElement>('[data-pipeline-launch]')?.click();
-                }}
-              />
-            </div>
+          {/* V25 Analyzer */}
+          <div className="space-y-3 border-t border-border/30 pt-6">
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/50 flex items-center gap-2">
+              <BarChart2 className="h-3.5 w-3.5" /> V25 App Analyzer
+            </p>
+            <AnalyzeTab appId={appId} />
           </div>
-        </TabsContent>
-
-        <TabsContent value="screenshots" className="mt-6">
-          <ScreenshotAutomator />
         </TabsContent>
       </Tabs>
 

@@ -34,12 +34,13 @@ import { getItemMeta, ChecklistStatus, SECTION_ACCENTS, SECTION_TEXT_ACCENTS } f
 import { useSubmissionStore, SubmissionFields, DetectedData } from "@/state/submission-store";
 import { getFieldStatus } from "@/utils/source-sync";
 import { FieldIssue } from "@/components/fix-panel";
-import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon, Smartphone } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CheckSquare, MessageSquare, ExternalLink, FileText, RefreshCw, ChevronsDown, AppWindow, CheckCircle2, XCircle, BarChart2, ListChecks, ImageIcon, Smartphone, Rocket } from "lucide-react";
 import { format } from "date-fns";
 import { AssetsPanel } from "@/components/assets-panel";
 import { AiAssistant } from "@/components/ai-assistant";
 import { WrapTab } from "@/components/wrap-tab";
 import { AnalyzeTab } from "@/components/analyze-tab";
+import { AutoSubmitPanel } from "@/components/auto-submit-panel";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -444,6 +445,12 @@ export default function AppDetail() {
               <span className="hidden sm:inline">V25 Analyze</span>
               <span className="sm:hidden">Analyze</span>
             </TabsTrigger>
+            <TabsTrigger value="pipeline" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500/10 data-[state=active]:to-blue-500/10 data-[state=active]:text-violet-300 whitespace-nowrap relative">
+              <Rocket className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Auto-Submit</span>
+              <span className="sm:hidden">Submit</span>
+              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -727,6 +734,10 @@ export default function AppDetail() {
 
         <TabsContent value="analyze" className="mt-6">
           <AnalyzeTab appId={appId} />
+        </TabsContent>
+
+        <TabsContent value="pipeline" className="mt-6">
+          <AutoSubmitPanel />
         </TabsContent>
       </Tabs>
 

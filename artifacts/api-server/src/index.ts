@@ -30,7 +30,15 @@ async function initStripe() {
 
     const stripeSync = await getStripeSync();
 
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
+    // PUBLIC_URL for Railway/custom domains, fallback to Replit domain
+    const publicHost = process.env.PUBLIC_URL
+      ?? process.env.RAILWAY_PUBLIC_DOMAIN
+      ?? process.env.REPLIT_DOMAINS?.split(",")[0];
+    if (!publicHost) {
+      logger.warn("No PUBLIC_URL / RAILWAY_PUBLIC_DOMAIN set — skipping Stripe webhook setup");
+      return;
+    }
+    const webhookBaseUrl = `https://${publicHost}`;
     await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
     logger.info("Stripe webhook configured");
 

@@ -1,5 +1,6 @@
 import * as oidc from "openid-client";
 import { Router, type IRouter, type Request, type Response } from "express";
+import { eq } from "drizzle-orm";
 import {
   GetCurrentAuthUserResponse,
   ExchangeMobileAuthorizationCodeBody,
@@ -16,6 +17,8 @@ import {
   SESSION_COOKIE,
   SESSION_TTL,
   ISSUER_URL,
+  hashPassword,
+  verifyPassword,
   type SessionData,
 } from "../lib/auth";
 
@@ -91,6 +94,11 @@ router.get("/auth/user", (req: Request, res: Response) => {
 });
 
 router.get("/login", async (req: Request, res: Response) => {
+  // Without REPL_ID, the app uses local email/password auth — redirect to the React frontend
+  if (!process.env.REPL_ID) {
+    res.redirect("/");
+    return;
+  }
   const config = await getOidcConfig();
   const callbackUrl = `${getOrigin(req)}/api/callback`;
 
@@ -188,18 +196,26 @@ router.get("/callback", async (req: Request, res: Response) => {
 });
 
 router.get("/logout", async (req: Request, res: Response) => {
-  const config = await getOidcConfig();
-  const origin = getOrigin(req);
-
   const sid = getSessionId(req);
   await clearSession(res, sid);
 
-  const endSessionUrl = oidc.buildEndSessionUrl(config, {
-    client_id: process.env.REPL_ID!,
-    post_logout_redirect_uri: origin,
-  });
+  // Without REPL_ID, just redirect home after clearing the session
+  if (!process.env.REPL_ID) {
+    res.redirect("/");
+    return;
+  }
 
-  res.redirect(endSessionUrl.href);
+  try {
+    const config = await getOidcConfig();
+    const origin = getOrigin(req);
+    const endSessionUrl = oidc.buildEndSessionUrl(config, {
+      client_id: process.env.REPL_ID!,
+      post_logout_redirect_uri: origin,
+    });
+    res.redirect(endSessionUrl.href);
+  } catch {
+    res.redirect("/");
+  }
 });
 
 router.post(
@@ -267,6 +283,104 @@ router.post("/mobile-auth/logout", async (req: Request, res: Response) => {
     await deleteSession(sid);
   }
   res.json(LogoutMobileSessionResponse.parse({ success: true }));
+});
+
+// ── Local email/password auth (used when REPL_ID is not set, e.g. Railway) ──
+
+router.post("/auth/local/register", async (req: Request, res: Response) => {
+  const { email, password, firstName, lastName } = req.body ?? {};
+  if (!email || !password || typeof password !== "string" || password.length < 8) {
+    res.status(400).json({ error: "Email and password (min 8 characters) are required" });
+    return;
+  }
+
+  const [existing] = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.email, String(email)))
+    .limit(1);
+
+  if (existing) {
+    res.status(409).json({ error: "An account with this email already exists" });
+    return;
+  }
+
+  const pwHash = hashPassword(String(password));
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      email: String(email),
+      firstName: firstName ? String(firstName) : null,
+      lastName: lastName ? String(lastName) : null,
+      passwordHash: pwHash,
+    })
+    .returning();
+
+  const now = Math.floor(Date.now() / 1000);
+  const sessionData: SessionData = {
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+    },
+    access_token: "",
+    expires_at: now + Math.floor(SESSION_TTL / 1000),
+  };
+
+  const sid = await createSession(sessionData);
+  setSessionCookie(res, sid);
+  res.json({ ok: true });
+});
+
+router.post("/auth/local/login", async (req: Request, res: Response) => {
+  const { email, password } = req.body ?? {};
+  if (!email || !password) {
+    res.status(400).json({ error: "Email and password are required" });
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.email, String(email)))
+    .limit(1);
+
+  if (!user) {
+    // Deliberate vague message — don't reveal whether email exists
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  if (!user.passwordHash) {
+    res.status(401).json({
+      error: "This account was created with Replit authentication. Please use the Replit sign-in button.",
+    });
+    return;
+  }
+
+  if (!verifyPassword(String(password), user.passwordHash)) {
+    res.status(401).json({ error: "Invalid email or password" });
+    return;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const sessionData: SessionData = {
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profileImageUrl: user.profileImageUrl,
+    },
+    access_token: "",
+    expires_at: now + Math.floor(SESSION_TTL / 1000),
+  };
+
+  const sid = await createSession(sessionData);
+  setSessionCookie(res, sid);
+  res.json({ ok: true });
 });
 
 export default router;

@@ -1,5 +1,23 @@
 import * as client from "openid-client";
 import crypto from "crypto";
+
+// ── Password hashing (email/password auth, no external deps) ─────────────
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.pbkdf2Sync(password, salt, 100_000, 64, "sha512").toString("hex");
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, expectedHash] = stored.split(":");
+  if (!salt || !expectedHash) return false;
+  const hash = crypto.pbkdf2Sync(password, salt, 100_000, 64, "sha512").toString("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(expectedHash, "hex"));
+  } catch {
+    return false;
+  }
+}
 import { type Request, type Response } from "express";
 import { db, sessionsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";

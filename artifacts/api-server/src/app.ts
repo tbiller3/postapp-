@@ -2,6 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
+import path from "path";
+import fs from "fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -56,5 +58,17 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(authMiddleware);
 
 app.use("/api", router);
+
+// ── Serve React frontend in production ────────────────────────────────────
+// process.cwd() is the repo root on Railway (where the service is started from)
+const frontendDist = path.resolve(process.cwd(), "artifacts/postapp/dist/public");
+
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist, { index: false }));
+  // SPA catch-all: any non-API path gets index.html so React Router handles it
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 export default app;

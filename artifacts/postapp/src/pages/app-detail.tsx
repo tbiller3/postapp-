@@ -41,6 +41,9 @@ import { AiAssistant } from "@/components/ai-assistant";
 import { WrapTab } from "@/components/wrap-tab";
 import { AnalyzeTab } from "@/components/analyze-tab";
 import { AutoSubmitPanel } from "@/components/auto-submit-panel";
+import { ScreenshotAutomator } from "@/components/screenshot-automator";
+import { StatusMonitor } from "@/components/status-monitor";
+import { RejectionFixer } from "@/components/rejection-fixer";
 
 type FilterMode = "all" | "critical" | "review";
 
@@ -451,6 +454,11 @@ export default function AppDetail() {
               <span className="sm:hidden">Submit</span>
               <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
             </TabsTrigger>
+            <TabsTrigger value="screenshots" className="font-mono text-xs uppercase py-2 px-3 sm:px-4 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 whitespace-nowrap">
+              <ImageIcon className="h-3.5 w-3.5 sm:mr-2 shrink-0" />
+              <span className="hidden sm:inline">Screenshots</span>
+              <span className="sm:hidden">Shots</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -737,7 +745,32 @@ export default function AppDetail() {
         </TabsContent>
 
         <TabsContent value="pipeline" className="mt-6">
-          <AutoSubmitPanel />
+          <div className="space-y-8">
+            <StatusMonitor
+              onRejected={(status) => {
+                // Auto-scroll to rejection fixer when rejection detected
+                setTimeout(() => {
+                  document.getElementById("rejection-fixer-section")?.scrollIntoView({ behavior: "smooth" });
+                }, 300);
+              }}
+            />
+            <div className="border-t border-border/30 pt-6">
+              <AutoSubmitPanel />
+            </div>
+            <div id="rejection-fixer-section" className="border-t border-border/30 pt-6">
+              <RejectionFixer
+                appleAppId={undefined}
+                onResubmit={() => {
+                  // Switch to pipeline tab and trigger submit
+                  document.querySelector<HTMLButtonElement>('[data-pipeline-launch]')?.click();
+                }}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="screenshots" className="mt-6">
+          <ScreenshotAutomator />
         </TabsContent>
       </Tabs>
 

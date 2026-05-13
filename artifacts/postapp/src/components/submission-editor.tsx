@@ -13,8 +13,84 @@ import {
   RefreshCw,
   ChevronsDown,
   RotateCcw,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// ── AI Auto-Fill button ────────────────────────────────────────────────────
+function AIFillButton() {
+  const { fields, syncDetected } = useSubmissionStore();
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const run = async () => {
+    if (!fields.appName) {
+      setErrorMsg("Enter an App Name first so the AI knows what it's writing for.");
+      setState("error");
+      return;
+    }
+    setState("loading");
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`${BASE}/api/apple/ai-fill`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          appName: fields.appName,
+          appUrl: fields.supportUrl || "",
+          category: fields.category || "",
+          existingDescription: fields.description || "",
+        }),
+      });
+      const data = await res.json() as { ok?: boolean; fields?: Record<string, string>; error?: string };
+      if (!data.ok || !data.fields) throw new Error(data.error ?? "AI fill returned no data");
+      syncDetected(data.fields as never);
+      setState("done");
+      setTimeout(() => setState("idle"), 4000);
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "AI fill failed");
+      setState("error");
+      setTimeout(() => setState("idle"), 5000);
+    }
+  };
+
+  const label = {
+    idle:    "AI Auto-Fill",
+    loading: "Generating…",
+    done:    "Fields filled!",
+    error:   errorMsg ?? "Error",
+  }[state];
+
+  const icon = {
+    idle:    <Sparkles className="h-3 w-3" />,
+    loading: <Loader2 className="h-3 w-3 animate-spin" />,
+    done:    <CheckCircle2 className="h-3 w-3" />,
+    error:   <AlertTriangle className="h-3 w-3" />,
+  }[state];
+
+  const cls = {
+    idle:    "bg-violet-600/20 border-violet-500/40 text-violet-300 hover:bg-violet-600/30 hover:border-violet-500/60",
+    loading: "bg-violet-600/10 border-violet-500/20 text-violet-400/60 cursor-not-allowed",
+    done:    "bg-green-600/20 border-green-500/40 text-green-300",
+    error:   "bg-red-600/10 border-red-500/30 text-red-400",
+  }[state];
+
+  return (
+    <button
+      onClick={run}
+      disabled={state === "loading"}
+      title="Uses GPT-4o to write your subtitle, description, keywords, and What's New"
+      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider border transition-all ${cls}`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
 
 type FieldKey = keyof SubmissionFields;
 
@@ -103,6 +179,11 @@ export function SubmissionEditor({ onSave, isSaving, onReset }: SubmissionEditor
     <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* AI Auto-Fill — hero action */}
+        <AIFillButton />
+
+        <div className="w-px h-5 bg-border/40 mx-0.5" />
+
         <button
           onClick={applyAllDetectedValues}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-mono font-semibold uppercase tracking-wider bg-muted/30 border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors"

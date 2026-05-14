@@ -71,7 +71,8 @@ const frontendDist = path.resolve(process.cwd(), "artifacts/postapp/dist/public"
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist, { index: false }));
   // SPA catch-all: any non-API path gets index.html so React Router handles it
-  app.get("*", (_req, res) => {
+  // Express 5 requires named wildcard — bare "*" throws PathError in path-to-regexp v8
+  app.get("/*splat", (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));
   });
 }

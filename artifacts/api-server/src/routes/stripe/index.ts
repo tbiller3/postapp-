@@ -61,7 +61,11 @@ router.post('/stripe/checkout', async (req: any, res) => {
     }
 
     const stripe = await getUncachableStripeClient();
-    const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    const publicHost = process.env.PUBLIC_URL
+      ?? process.env.RAILWAY_PUBLIC_DOMAIN
+      ?? process.env.REPLIT_DOMAINS?.split(',')[0]
+      ?? 'localhost:3000';
+    const baseUrl = publicHost.startsWith('http') ? publicHost : `https://${publicHost}`;
     const userId = req.user?.id;
     const userEmail = req.user?.email;
 
@@ -105,7 +109,11 @@ router.post('/stripe/checkout/submission', async (req: any, res) => {
     }
 
     const stripe = await getUncachableStripeClient();
-    const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    const publicHost2 = process.env.PUBLIC_URL
+      ?? process.env.RAILWAY_PUBLIC_DOMAIN
+      ?? process.env.REPLIT_DOMAINS?.split(',')[0]
+      ?? 'localhost:3000';
+    const baseUrl = publicHost2.startsWith('http') ? publicHost2 : `https://${publicHost2}`;
 
     const SUBMISSION_PRICES: Record<string, { amount: number; label: string }> = {
       standard: { amount: 19900, label: 'Standard App Submission' },

@@ -1,4 +1,4 @@
-import { getStripeSync, getUncachableStripeClient } from './stripeClient';
+import { getUncachableStripeClient } from './stripeClient';
 import { db } from '@workspace/db';
 import { usersTable } from '@workspace/db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,13 +12,11 @@ export class WebhookHandlers {
         'FIX: Ensure webhook route is registered BEFORE app.use(express.json()).'
       );
     }
-    const sync = await getStripeSync();
-    await sync.processWebhook(payload, signature);
 
     try {
       await WebhookHandlers.handleCustomEvents(payload, signature);
     } catch (err) {
-      console.error('Custom webhook handler error (non-fatal):', err);
+      console.error('Webhook handler error (non-fatal):', err);
     }
   }
 

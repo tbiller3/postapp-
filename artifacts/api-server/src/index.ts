@@ -1,7 +1,5 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { runMigrations } from "stripe-replit-sync";
-import { getStripeSync } from "./stripeClient";
 
 const rawPort = process.env["PORT"];
 
@@ -17,40 +15,16 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-async function initStripe() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    logger.warn("DATABASE_URL not set — skipping Stripe init");
-    return;
-  }
-  try {
-    logger.info("Initializing Stripe schema...");
-    await runMigrations({ databaseUrl, schema: "stripe" });
-    logger.info("Stripe schema ready");
+// Log the public URL so we can confirm Stripe webhooks will work
+const publicHost = process.env.PUBLIC_URL
+  ?? process.env.RAILWAY_PUBLIC_DOMAIN
+  ?? process.env.REPLIT_DOMAINS?.split(",")[0];
 
-    const stripeSync = await getStripeSync();
-
-    // PUBLIC_URL for Railway/custom domains, fallback to Replit domain
-    const publicHost = process.env.PUBLIC_URL
-      ?? process.env.RAILWAY_PUBLIC_DOMAIN
-      ?? process.env.REPLIT_DOMAINS?.split(",")[0];
-    if (!publicHost) {
-      logger.warn("No PUBLIC_URL / RAILWAY_PUBLIC_DOMAIN set — skipping Stripe webhook setup");
-      return;
-    }
-    const webhookBaseUrl = `https://${publicHost}`;
-    await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
-    logger.info("Stripe webhook configured");
-
-    stripeSync.syncBackfill()
-      .then(() => logger.info("Stripe data synced"))
-      .catch((err: any) => logger.error({ err }, "Stripe sync error"));
-  } catch (err) {
-    logger.error({ err }, "Failed to initialize Stripe");
-  }
+if (publicHost) {
+  logger.info({ webhookUrl: `https://${publicHost}/api/stripe/webhook` }, "Stripe webhook URL ready — configure this in your Stripe dashboard");
+} else {
+  logger.warn("No PUBLIC_URL / RAILWAY_PUBLIC_DOMAIN set — set one so Stripe webhooks work");
 }
-
-await initStripe();
 
 app.listen(port, (err) => {
   if (err) {

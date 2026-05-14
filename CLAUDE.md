@@ -113,6 +113,11 @@ pnpm --filter @workspace/api-server dev
 ### Neon SSL
 - Neon requires SSL. Added `ssl: { rejectUnauthorized: false }` when URL contains `neon.tech`
 
+### Express 5 wildcard route crash
+- `app.get("*", ...)` throws `PathError: Missing parameter name at index 1: *` at startup
+- Express 5 upgraded path-to-regexp to v8 which rejects bare `*`
+- Fix: use `app.get("/*splat", ...)` instead
+
 ### AI_INTEGRATIONS_OPENAI_BASE_URL crash
 - `lib/integrations-openai-ai-server/src/client.ts` threw on startup if Replit AI vars missing
 - Fixed: falls back to standard `OPENAI_API_KEY` env var (already set in Railway variables)

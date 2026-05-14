@@ -10,6 +10,8 @@ workflows:
       vars:
         BUNDLE_ID: "com.tbiller.postapp"
         APP_NAME: "POSTAPP"
+        APP_VERSION: "1.8"
+        BUILD_NUMBER: $PROJECT_BUILD_NUMBER
       node: 18
       xcode: latest
       cocoapods: default
@@ -17,18 +19,18 @@ workflows:
       - name: Install dependencies
         script: |
           npm install
-      - name: Copy web assets
-        script: |
-          cp -r ../services/billing-v26/public/* www/ 2>/dev/null || echo "Using existing www"
       - name: Add iOS platform
         script: |
           npx cap add ios || true
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      - name: Set bundle ID
+      - name: Set bundle ID and version
         script: |
-          cd ios/App && /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" App/Info.plist
+          cd ios/App
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" App/Info.plist
       - name: Build iOS
         script: |
           cd ios/App
@@ -37,10 +39,26 @@ workflows:
             -sdk iphoneos \
             -configuration Release \
             -archivePath build/App.xcarchive \
-            archive
+            archive \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
       - name: Export IPA
         script: |
           cd ios/App
+          cat > exportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportOptionsPlist exportOptions.plist \

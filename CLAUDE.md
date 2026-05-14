@@ -113,6 +113,11 @@ pnpm --filter @workspace/api-server dev
 ### Neon SSL
 - Neon requires SSL. Added `ssl: { rejectUnauthorized: false }` when URL contains `neon.tech`
 
+### AI_INTEGRATIONS_OPENAI_BASE_URL crash
+- `lib/integrations-openai-ai-server/src/client.ts` threw on startup if Replit AI vars missing
+- Fixed: falls back to standard `OPENAI_API_KEY` env var (already set in Railway variables)
+- `baseURL` is now optional (only used on Replit)
+
 ---
 
 ## MarketEngine (Next Major Project)

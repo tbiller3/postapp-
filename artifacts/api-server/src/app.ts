@@ -11,6 +11,11 @@ import { WebhookHandlers } from "./webhookHandlers";
 
 const app: Express = express();
 
+// Healthcheck — registered first so it responds instantly with no middleware overhead
+app.get("/api/healthz", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 // Stripe webhook MUST be registered before express.json() parses body
 app.post(
   '/api/stripe/webhook',

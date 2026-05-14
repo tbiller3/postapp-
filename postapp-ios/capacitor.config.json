@@ -3,6 +3,8 @@
   "appName": "POSTAPP",
   "webDir": "www",
   "server": {
+    "url": "https://workspaceapi-server-production-d243.up.railway.app",
+    "cleartext": false,
     "androidScheme": "https"
   },
   "ios": {

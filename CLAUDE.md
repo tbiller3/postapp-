@@ -40,12 +40,22 @@
 
 ### What Still Needs Doing for PostApp
 1. ✅ Railway build passing (Dockerfile approach)
-2. ⬜ Confirm Railway healthcheck passes and get the public URL
-3. ⬜ Run Drizzle migrations against Neon (`cd lib/db && DATABASE_URL=<neon-url> pnpm push`)
-4. ⬜ Set `RAILWAY_PUBLIC_DOMAIN` or `PUBLIC_URL` variable in Railway to the assigned domain
-5. ⬜ Configure Stripe webhook in Stripe dashboard → the endpoint URL is `https://<railway-domain>/api/stripe/webhook`
-6. ⬜ Update iOS app's backend URL to point to Railway (not Replit)
-7. ⬜ Build new iOS version (v1.8) and submit to App Store
+2. ✅ Railway healthcheck passing — public URL: `https://workspaceapi-server-production-d243.up.railway.app`
+3. ✅ Drizzle migrations run — all 11 tables live in Neon (users, sessions, apps, build_settings, checklist, conversations, messages, revisions, screenshots, submission_credits, wrap_configs)
+4. ✅ `PUBLIC_URL` set in Railway env vars
+5. ✅ Stripe webhook configured — endpoint `we_1TX1EKB2sEKRi5VbPhf6Ii6g`, secret set as `STRIPE_WEBHOOK_SECRET` in Railway
+6. ✅ iOS `capacitor.config.json` updated — `server.url` points to Railway so all API calls route correctly
+7. ⬜ Build new iOS version (v1.8) and submit to App Store — requires Mac with Xcode:
+   ```bash
+   cd postapp-ios && npm install && npx cap sync ios && npx cap open ios
+   # Then in Xcode: bump to v1.8, Product → Archive → Distribute → App Store Connect
+   ```
+
+### Login — CONFIRMED WORKING
+- `POST /api/auth/local/register` ✅
+- `POST /api/auth/local/login` ✅  
+- `GET /api/auth/user` (session check) ✅
+- Sessions persisted in Neon `sessions` table
 
 ---
 
